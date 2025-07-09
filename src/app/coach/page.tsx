@@ -1,31 +1,45 @@
 'use client';
 
-import { useState } from 'react';
-import { User, Dumbbell } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/auth-context';
+import { useRouter } from 'next/navigation';
 import { CoachRoutineCreator } from '@/components/coach-routine-creator';
 import { CoachWorkoutDisplay, type CoachRoutine } from '@/components/coach-workout-display';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { AppHeader } from '@/components/app-header';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function CoachPage() {
+  const { user, userProfile, loading } = useAuth();
+  const router = useRouter();
   const [routine, setRoutine] = useState<CoachRoutine | null>(null);
+
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        router.push('/login');
+      } else if (userProfile?.role !== 'coach') {
+        router.push('/');
+      }
+    }
+  }, [user, userProfile, loading, router]);
+
+  if (loading || !user || userProfile?.role !== 'coach') {
+    return (
+        <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
+            <AppHeader />
+            <div className="w-full max-w-4xl space-y-8 mt-4">
+                <Skeleton className="h-72 w-full" />
+                <Skeleton className="h-96 w-full" />
+            </div>
+            <p className='mt-8 text-lg text-muted-foreground'>Verifying coach access...</p>
+        </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
       <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
-        <header className="w-full max-w-4xl flex items-center justify-between mb-10">
-            <div className="flex items-center">
-                <User className="w-10 h-10 text-primary" />
-                <h1 className="font-headline text-4xl font-bold ml-4 text-card-foreground">
-                    Coach Mode
-                </h1>
-            </div>
-            <Button asChild variant="outline">
-                <Link href="/">
-                    <Dumbbell className="mr-2 h-4 w-4" /> AI Mode
-                </Link>
-            </Button>
-        </header>
+        <AppHeader />
         
         <div className="w-full max-w-4xl">
           <CoachRoutineCreator onRoutineCreated={setRoutine} />
