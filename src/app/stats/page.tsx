@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Bar, BarChart, CartesianGrid, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
 import type { Routine } from '@/components/athlete-routine-list';
 
 import { AppHeader } from '@/components/app-header';
@@ -18,15 +18,21 @@ import { ChartConfig, ChartContainer, ChartTooltipContent, ChartLegend, ChartLeg
 type StatsData = {
   totalWorkouts: number;
   totalExercisesLogged: number;
+  totalVolumeLifted: number;
   difficultyBreakdown: { name: string; value: number }[];
   workoutPerformance: { date: string; completed: number }[];
   routineTypeBreakdown: { name: string; value: number; fill: string }[];
+  volumeByDate: { date: string; volume: number }[];
 };
 
 const chartConfig: ChartConfig = {
   completed: {
     label: 'Exercises Completed',
     color: 'hsl(var(--primary))',
+  },
+  volume: {
+    label: 'Volume (kg)',
+    color: 'hsl(var(--accent))',
   },
   easy: { label: 'Easy', color: 'hsl(var(--chart-1))' },
   medium: { label: 'Medium', color: 'hsl(var(--chart-2))' },
@@ -85,6 +91,7 @@ export default function StatsPage() {
       const difficultyCounts = { easy: 0, medium: 0, hard: 0 };
       const routineTypeCounts: { [key: string]: number } = {};
       let totalExercisesLogged = 0;
+      let totalVolumeLifted = 0;
 
       const workoutPerformance = routines.map(routine => {
         const completedCount = Object.values(routine.progress || {}).filter(p => p.completed).length;
@@ -107,16 +114,52 @@ export default function StatsPage() {
         };
       }).filter(item => item.completed > 0);
 
+      const volumeByDate = routines.map(routine => {
+        let routineVolume = 0;
+        if(routine.progress) {
+            routine.blocks.forEach((block, blockIndex) => {
+                const sets = parseInt(block.sets.match(/\d+/)?.[0] || '1', 10);
+                block.exercises.forEach((exercise, exerciseIndex) => {
+                    const exerciseKey = `${blockIndex}-${exerciseIndex}`;
+                    if (routine.progress?.[exerciseKey]?.completed) {
+                        const weight = parseInt(exercise.weight?.match(/\d+/)?.[0] || '0', 10);
+                        if(weight > 0) {
+                            let reps = 0;
+                            if (exercise.repType === 'reps' && exercise.reps) {
+                                const repParts = exercise.reps.split('-').map(r => parseInt(r.trim(), 10));
+                                if (repParts.length > 1 && !isNaN(repParts[0]) && !isNaN(repParts[1])) {
+                                    reps = (repParts[0] + repParts[1]) / 2;
+                                } else if (!isNaN(repParts[0])) {
+                                    reps = repParts[0];
+                                }
+                            }
+                            if (!isNaN(reps) && reps > 0 && !isNaN(sets)) {
+                               routineVolume += sets * reps * weight;
+                            }
+                        }
+                    }
+                });
+            });
+        }
+        totalVolumeLifted += routineVolume;
+        return {
+            date: new Date(routine.routineDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            volume: routineVolume,
+        };
+      }).filter(v => v.volume > 0);
+
 
       setStats({
         totalWorkouts: routines.length,
         totalExercisesLogged: totalExercisesLogged,
+        totalVolumeLifted,
         difficultyBreakdown: [
           { name: 'easy', value: difficultyCounts.easy },
           { name: 'medium', value: difficultyCounts.medium },
           { name: 'hard', value: difficultyCounts.hard },
         ].filter(d => d.value > 0),
         workoutPerformance,
+        volumeByDate,
         routineTypeBreakdown: Object.entries(routineTypeCounts).map(([name, value], index) => ({
             name,
             value,
@@ -174,9 +217,9 @@ export default function StatsPage() {
                       <CardHeader><CardTitle>Exercises Logged</CardTitle></CardHeader>
                       <CardContent><p className="text-4xl font-bold">{stats.totalExercisesLogged}</p></CardContent>
                   </Card>
-                   <Card>
-                      <CardHeader><CardTitle>Avg. Exercises / Workout</CardTitle></CardHeader>
-                      <CardContent><p className="text-4xl font-bold">{(stats.totalExercisesLogged / stats.totalWorkouts).toFixed(1)}</p></CardContent>
+                  <Card>
+                      <CardHeader><CardTitle>Total Volume Lifted (kg)</CardTitle></CardHeader>
+                      <CardContent><p className="text-4xl font-bold">{stats.totalVolumeLifted.toLocaleString()}</p></CardContent>
                   </Card>
               </div>
 
@@ -226,6 +269,25 @@ export default function StatsPage() {
                     </CardContent>
                   </Card>
               </div>
+              
+              <Card>
+                <CardHeader>
+                    <CardTitle>Total Workout Volume (kg)</CardTitle>
+                    <CardDescription>Total weight lifted (Sets x Reps x Weight) per workout.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                        <LineChart data={stats.volumeByDate} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                            <CartesianGrid vertical={false} />
+                            <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+                            <YAxis />
+                            <Tooltip content={<ChartTooltipContent />} />
+                            <Line type="monotone" dataKey="volume" stroke="var(--color-volume)" strokeWidth={2} dot={false} />
+                        </LineChart>
+                    </ChartContainer>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle>Workout Distribution</CardTitle>
