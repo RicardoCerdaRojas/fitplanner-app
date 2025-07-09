@@ -3,13 +3,17 @@
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { PlusCircle, Trash2, ClipboardCheck } from 'lucide-react';
+import { format } from "date-fns";
+import { PlusCircle, Trash2, ClipboardCheck, Calendar as CalendarIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 import type { CoachRoutine } from './coach-workout-display';
 
 const exerciseSchema = z.object({
@@ -28,10 +32,18 @@ const exerciseSchema = z.object({
     path: ['reps'],
 });
 
+const blockSchema = z.object({
+    name: z.string().min(2, 'Block name is required.'),
+    sets: z.string().min(1, 'Sets are required.'),
+    exercises: z.array(exerciseSchema).min(1, 'Please add at least one exercise to this block.'),
+});
+
 const routineSchema = z.object({
   userName: z.string().min(2, 'Client name is required.'),
-  routineName: z.string().min(3, 'Routine name is required.'),
-  exercises: z.array(exerciseSchema).min(1, 'Please add at least one exercise.'),
+  routineDate: z.date({
+    required_error: "A date for the routine is required.",
+  }),
+  blocks: z.array(blockSchema).min(1, 'Please add at least one block to the routine.'),
 });
 
 type FormValues = z.infer<typeof routineSchema>;
@@ -45,14 +57,14 @@ export function CoachRoutineCreator({ onRoutineCreated }: CoachRoutineCreatorPro
     resolver: zodResolver(routineSchema),
     defaultValues: {
       userName: '',
-      routineName: '',
-      exercises: [{ name: '', repType: 'reps', reps: '', duration: '', weight: '', videoUrl: '' }],
+      routineDate: new Date(),
+      blocks: [{ name: 'Block A', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' }] }],
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields: blockFields, append: appendBlock, remove: removeBlock } = useFieldArray({
     control: form.control,
-    name: 'exercises',
+    name: 'blocks',
   });
 
   function onSubmit(values: FormValues) {
@@ -60,13 +72,13 @@ export function CoachRoutineCreator({ onRoutineCreated }: CoachRoutineCreatorPro
   }
 
   return (
-    <Card className="w-full max-w-3xl mx-auto shadow-lg border-2 border-primary/20">
+    <Card className="w-full max-w-4xl mx-auto shadow-lg border-2 border-primary/20">
       <CardHeader>
         <div className="flex items-center gap-3">
           <ClipboardCheck className="w-8 h-8 text-primary" />
           <div>
             <CardTitle className="font-headline text-2xl">Create a New Routine</CardTitle>
-            <CardDescription>Design a personalized workout for a client.</CardDescription>
+            <CardDescription>Design a personalized workout session for a client.</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -75,108 +87,86 @@ export function CoachRoutineCreator({ onRoutineCreated }: CoachRoutineCreatorPro
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
-                control={form.control}
-                name="userName"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Client's Name</FormLabel>
-                    <FormControl>
-                        <Input placeholder="e.g., Jane Doe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
+                  control={form.control}
+                  name="userName"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Client's Name</FormLabel>
+                      <FormControl>
+                          <Input placeholder="e.g., Jane Doe" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
                 />
                 <FormField
-                control={form.control}
-                name="routineName"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Routine Name</FormLabel>
-                    <FormControl>
-                        <Input placeholder="e.g., Full Body Strength" {...field} />
-                    </FormControl>
-                    <FormMessage />
+                  control={form.control}
+                  name="routineDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Routine Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
                     </FormItem>
-                )}
+                  )}
                 />
             </div>
             
-            <div className="space-y-4">
-                <h3 className="text-lg font-medium">Exercises</h3>
-                {fields.map((field, index) => (
-                    <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
-                        <h4 className="font-semibold">Exercise #{index + 1}</h4>
-                        <FormField
-                            control={form.control}
-                            name={`exercises.${index}.name`}
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Exercise Name</FormLabel>
-                                    <FormControl><Input placeholder="e.g., Bench Press" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name={`exercises.${index}.repType`}
-                            render={({ field }) => (
-                                <FormItem className="space-y-3">
-                                <FormLabel>Repetitions or Duration?</FormLabel>
-                                <FormControl>
-                                    <RadioGroup
-                                        onValueChange={field.onChange}
-                                        defaultValue={field.value}
-                                        className="flex gap-4"
-                                    >
-                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                            <FormControl><RadioGroupItem value="reps" /></FormControl>
-                                            <FormLabel className="font-normal">Reps</FormLabel>
-                                        </FormItem>
-                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                            <FormControl><RadioGroupItem value="duration" /></FormControl>
-                                            <FormLabel className="font-normal">Duration (minutes)</FormLabel>
-                                        </FormItem>
-                                    </RadioGroup>
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {form.watch(`exercises.${index}.repType`) === 'reps' && (
-                                <FormField control={form.control} name={`exercises.${index}.reps`} render={({ field }) => (<FormItem><FormLabel>Reps</FormLabel><FormControl><Input placeholder="e.g., 3x12" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            )}
-                            {form.watch(`exercises.${index}.repType`) === 'duration' && (
-                                <FormField control={form.control} name={`exercises.${index}.duration`} render={({ field }) => (<FormItem><FormLabel>Duration (minutes)</FormLabel><FormControl><Input type="number" placeholder="e.g., 10" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            )}
-                             <FormField control={form.control} name={`exercises.${index}.weight`} render={({ field }) => (<FormItem><FormLabel>Weight</FormLabel><FormControl><Input placeholder="e.g., 50kg or Bodyweight" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        </div>
-
-                        <FormField
-                            control={form.control}
-                            name={`exercises.${index}.videoUrl`}
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Example Video URL</FormLabel>
-                                    <FormControl><Input placeholder="https://example.com/video.mp4" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        
-                        <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2" onClick={() => remove(index)}>
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                    </div>
+            <div className="space-y-6">
+                <h3 className="text-xl font-medium">Workout Blocks</h3>
+                {blockFields.map((blockField, blockIndex) => (
+                    <Card key={blockField.id} className="p-4 bg-card/60 relative">
+                        <CardHeader className='p-2'>
+                          <div className='flex justify-between items-center'>
+                            <CardTitle>Block #{blockIndex + 1}</CardTitle>
+                            <Button type="button" variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => removeBlock(blockIndex)}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className='p-2 space-y-4'>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField control={form.control} name={`blocks.${blockIndex}.name`} render={({ field }) => (<FormItem><FormLabel>Block Name</FormLabel><FormControl><Input placeholder="e.g., Warm-up" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (<FormItem><FormLabel>Sets / Rounds</FormLabel><FormControl><Input placeholder="e.g., 3 Sets" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                          </div>
+                          
+                          <ExercisesArray blockIndex={blockIndex} form={form} />
+                        </CardContent>
+                    </Card>
                 ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => appendBlock({ name: `Block ${blockFields.length + 1}`, sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' }] })}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Block
+                </Button>
             </div>
 
-            <div className="flex justify-between items-center">
-              <Button type="button" variant="outline" onClick={() => append({ name: '', repType: 'reps', reps: '', duration: '', weight: '', videoUrl: '' })}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Exercise
-              </Button>
+            <div className="flex justify-end items-center">
               <Button type="submit" className="w-auto bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg py-6">
                 Create Routine
               </Button>
@@ -186,4 +176,56 @@ export function CoachRoutineCreator({ onRoutineCreated }: CoachRoutineCreatorPro
       </CardContent>
     </Card>
   );
+}
+
+
+function ExercisesArray({ blockIndex, form }: { blockIndex: number, form: any }) {
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: `blocks.${blockIndex}.exercises`,
+  });
+
+  return (
+    <div className='space-y-4 pl-4 border-l-2 border-primary/20'>
+      <h4 className="text-md font-medium">Exercises</h4>
+      {fields.map((field, index) => (
+        <div key={field.id} className="p-3 border rounded-md space-y-4 relative bg-background/50">
+           <h5 className="font-semibold text-sm">Exercise #{index + 1}</h5>
+            <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => remove(index)}>
+                <Trash2 className="h-4 w-4" />
+            </Button>
+            <FormField
+                control={form.control} name={`blocks.${blockIndex}.exercises.${index}.name`}
+                render={({ field }) => (<FormItem><FormLabel>Exercise Name</FormLabel><FormControl><Input placeholder="e.g., Bench Press" {...field} /></FormControl><FormMessage /></FormItem>)}
+            />
+            <FormField
+                control={form.control} name={`blocks.${blockIndex}.exercises.${index}.repType`}
+                render={({ field }) => (
+                    <FormItem className="space-y-2"><FormLabel>Repetitions or Duration?</FormLabel>
+                    <FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
+                        <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="reps" /></FormControl><FormLabel className="font-normal">Reps</FormLabel></FormItem>
+                        <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="duration" /></FormControl><FormLabel className="font-normal">Duration (minutes)</FormLabel></FormItem>
+                    </RadioGroup></FormControl><FormMessage /></FormItem>
+                )}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {form.watch(`blocks.${blockIndex}.exercises.${index}.repType`) === 'reps' && (
+                    <FormField control={form.control} name={`blocks.${blockIndex}.exercises.${index}.reps`} render={({ field }) => (<FormItem><FormLabel>Reps</FormLabel><FormControl><Input placeholder="e.g., 3x12" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                )}
+                {form.watch(`blocks.${blockIndex}.exercises.${index}.repType`) === 'duration' && (
+                    <FormField control={form.control} name={`blocks.${blockIndex}.exercises.${index}.duration`} render={({ field }) => (<FormItem><FormLabel>Duration (minutes)</FormLabel><FormControl><Input type="number" placeholder="e.g., 10" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                )}
+                 <FormField control={form.control} name={`blocks.${blockIndex}.exercises.${index}.weight`} render={({ field }) => (<FormItem><FormLabel>Weight</FormLabel><FormControl><Input placeholder="e.g., 50kg or Bodyweight" {...field} /></FormControl><FormMessage /></FormItem>)} />
+            </div>
+            <FormField
+                control={form.control} name={`blocks.${blockIndex}.exercises.${index}.videoUrl`}
+                render={({ field }) => (<FormItem><FormLabel>Example Video URL</FormLabel><FormControl><Input placeholder="https://example.com/video.mp4" {...field} /></FormControl><FormMessage /></FormItem>)}
+            />
+        </div>
+      ))}
+      <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' })}>
+        <PlusCircle className="mr-2 h-4 w-4" /> Add Exercise to Block
+      </Button>
+    </div>
+  )
 }
