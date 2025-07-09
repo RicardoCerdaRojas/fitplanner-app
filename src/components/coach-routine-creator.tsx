@@ -255,18 +255,18 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
                 />
             </div>
             
-            <div>
+            <div className="pt-4 border-t">
               <FormLabel>Workout Blocks</FormLabel>
               <Tabs value={activeBlockId} onValueChange={setActiveBlockId} className="w-full mt-2">
-                <div className="flex items-center gap-2 pb-2 mb-4 overflow-x-auto">
+                <div className="flex items-center gap-2 pb-2 mb-4 overflow-x-auto border-b">
                     <TabsList className="relative">
                         {blockFields.map((field, index) => (
                             <TabsTrigger key={field.id} value={field.id} className="relative pr-7">
                                 Block {index + 1}
                                 {blockFields.length > 1 && (
-                                    <button type="button" onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeBlock(index);}} className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-muted-foreground/20">
+                                    <div role="button" aria-label={`Remove Block ${index + 1}`} onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeBlock(index);}} className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-muted-foreground/20 cursor-pointer">
                                         <X className="h-3 w-3" />
-                                    </button>
+                                    </div>
                                 )}
                             </TabsTrigger>
                         ))}
@@ -334,7 +334,7 @@ function ExerciseEditor({ blockIndex, control, watch }: { blockIndex: number, co
   
   if (fields.length === 0) {
       return (
-          <div className="text-center p-4">
+          <div className="text-center p-4 border-t pt-6 mt-4">
               <p className="text-muted-foreground mb-2">This block has no exercises.</p>
               <Button type="button" size="sm" variant="outline" onClick={handleAddExercise}>
                 <Plus className="mr-2 h-4 w-4" /> Add First Exercise
@@ -344,18 +344,18 @@ function ExerciseEditor({ blockIndex, control, watch }: { blockIndex: number, co
   }
 
   return (
-    <div className='space-y-4 pt-4 border-t'>
+    <div className='space-y-4 pt-6 border-t mt-4'>
       <FormLabel>Exercises</FormLabel>
       <Tabs value={activeExerciseId} onValueChange={setActiveExerciseId} className="w-full">
-        <div className="flex items-center gap-2 pb-2 mb-2 overflow-x-auto">
+        <div className="flex items-center gap-2 pb-2 mb-2 overflow-x-auto border-b">
             <TabsList>
                 {fields.map((field, index) => (
                     <TabsTrigger key={field.id} value={field.id} className="relative pr-7">
                         Exercise {index + 1}
                         {fields.length > 1 && (
-                             <button type="button" onClick={(e) => { e.stopPropagation(); e.preventDefault(); remove(index);}} className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-muted-foreground/20">
+                             <div role="button" aria-label={`Remove Exercise ${index + 1}`} onClick={(e) => { e.stopPropagation(); e.preventDefault(); remove(index);}} className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-muted-foreground/20 cursor-pointer">
                                 <X className="h-3 w-3" />
-                            </button>
+                            </div>
                         )}
                     </TabsTrigger>
                 ))}
