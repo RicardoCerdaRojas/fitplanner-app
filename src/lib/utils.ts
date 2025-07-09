@@ -8,8 +8,8 @@ export function cn(...inputs: ClassValue[]) {
 export function getYouTubeEmbedUrl(url: string | undefined | null): string | null {
   if (!url) return null;
 
-  // Regex to extract YouTube video ID from various URL formats
-  const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/;
+  // Robust regex to extract YouTube video ID from various URL formats
+  const youtubeRegex = /(?:youtube(?:-nocookie)?\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
   const match = url.match(youtubeRegex);
 
   if (match && match[1]) {
