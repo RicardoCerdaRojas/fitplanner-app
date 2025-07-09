@@ -57,6 +57,7 @@ const blockSchema = z.object({
 });
 
 const routineSchema = z.object({
+  routineName: z.string().min(3, 'Routine name must be at least 3 characters.'),
   athleteId: z.string({ required_error: "Please select a client." }).min(1, 'Please select a client.'),
   routineDate: z.date({
     required_error: "A date for the routine is required.",
@@ -74,6 +75,7 @@ type CoachRoutineCreatorProps = {
 };
 
 const defaultFormValues = {
+  routineName: '',
   athleteId: '',
   routineDate: new Date(),
   blocks: [{ name: 'Warm-up', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' }] }],
@@ -102,6 +104,7 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
   useEffect(() => {
     if (routineToEdit) {
         form.reset({
+            routineName: routineToEdit.routineName || '',
             athleteId: routineToEdit.athleteId,
             routineDate: routineToEdit.routineDate,
             blocks: routineToEdit.blocks,
@@ -194,7 +197,7 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                 <FormField
                   control={form.control}
                   name="athleteId"
@@ -231,6 +234,18 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="routineName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Routine Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Upper Body Focus" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
                 <FormField
                   control={form.control}
                   name="routineDate"

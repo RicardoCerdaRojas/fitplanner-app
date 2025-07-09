@@ -28,6 +28,7 @@ export type Block = {
 
 export type Routine = {
   id: string; 
+  routineName?: string;
   routineDate: Date;
   blocks: Block[];
   coachId: string;
@@ -55,7 +56,10 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
           <AccordionTrigger className='px-4 hover:no-underline'>
             <div className="flex items-center gap-4">
                 <Calendar className="w-5 h-5 text-primary"/>
-                <span className="text-lg font-bold font-headline">Workout for {format(routine.routineDate, 'PPP')}</span>
+                <div className="flex flex-col items-start text-left">
+                  <span className="text-lg font-bold font-headline">{routine.routineName || 'Workout'}</span>
+                  <span className="text-sm text-muted-foreground">{format(routine.routineDate, 'PPP')}</span>
+                </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className='px-4'>

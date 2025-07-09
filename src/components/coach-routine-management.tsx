@@ -97,7 +97,12 @@ export function CoachRoutineManagement({ routines, onEdit, initialAthleteId }: P
                                     <AccordionItem value={routine.id} key={routine.id} className="border rounded-lg px-2">
                                         <div className="flex items-center justify-between w-full">
                                             <AccordionTrigger className="flex-1 py-3 px-2 text-left hover:no-underline">
-                                                Workout for {format(routine.routineDate, 'PPP')}
+                                                <div className="flex flex-col items-start">
+                                                    <span className="font-semibold">{routine.routineName || 'Untitled Routine'}</span>
+                                                    <span className="text-sm text-muted-foreground font-normal">
+                                                        {format(routine.routineDate, 'PPP')}
+                                                    </span>
+                                                </div>
                                             </AccordionTrigger>
                                             <div className="flex items-center gap-2 pr-2">
                                                 <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onEdit(routine)}>

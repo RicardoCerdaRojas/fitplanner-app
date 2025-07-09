@@ -35,6 +35,7 @@ function AthleteDashboard() {
                 const data = doc.data();
                 return {
                     id: doc.id,
+                    routineName: data.routineName,
                     routineDate: (data.routineDate as Timestamp).toDate(),
                     blocks: data.blocks,
                     coachId: data.coachId,

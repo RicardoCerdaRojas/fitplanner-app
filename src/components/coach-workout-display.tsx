@@ -23,6 +23,7 @@ export type CoachBlock = {
 
 export type CoachRoutine = {
   athleteId: string;
+  routineName?: string;
   userName: string;
   routineDate: Date;
   blocks: CoachBlock[];
