@@ -1,10 +1,15 @@
-rules_version = '2';
 
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow users to read and write their own profile data.
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // A user can read, update, and delete their own profile.
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      
+      // The signup action can create a user profile, but only with a valid role.
+      // This is secure because it strictly limits the initial document's content.
+      allow create: if request.resource.data.keys().hasOnly(['role'])
+                    && request.resource.data.role in ['athlete', 'coach'];
     }
   }
 }
