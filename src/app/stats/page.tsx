@@ -86,9 +86,9 @@ export default function StatsPage() {
         totalWorkouts: routines.length,
         totalExercisesLogged: totalExercisesLogged,
         difficultyBreakdown: [
-          { name: 'Easy', value: difficultyCounts.easy },
-          { name: 'Medium', value: difficultyCounts.medium },
-          { name: 'Hard', value: difficultyCounts.hard },
+          { name: 'easy', value: difficultyCounts.easy },
+          { name: 'medium', value: difficultyCounts.medium },
+          { name: 'hard', value: difficultyCounts.hard },
         ].filter(d => d.value > 0),
         workoutPerformance,
       });
