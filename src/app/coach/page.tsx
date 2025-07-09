@@ -188,7 +188,7 @@ export default function CoachPage() {
             </TabsList>
             <TabsContent value="create">
               {isLoading ? <Skeleton className="h-96 w-full mt-4"/> : (
-                userProfile?.gymId && <CoachRoutineCreator athletes={athletes} routineTypes={routineTypes} gymId={userProfile.gymId} routineToEdit={editingRoutine} onRoutineSaved={handleRoutineSaved} />
+                userProfile?.gymId && <CoachRoutineCreator key={editingRoutine ? editingRoutine.id : 'create'} athletes={athletes} routineTypes={routineTypes} gymId={userProfile.gymId} routineToEdit={editingRoutine} onRoutineSaved={handleRoutineSaved} />
               )}
             </TabsContent>
             <TabsContent value="manage">
