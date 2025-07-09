@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Dumbbell } from 'lucide-react';
+import { Dumbbell, User } from 'lucide-react';
 import type { GenerateWorkoutRoutineOutput } from '@/ai/flows/generate-workout-routine';
 import { AIWorkoutGenerator } from '@/components/ai-workout-generator';
 import { WorkoutDisplay } from '@/components/workout-display';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default function Home() {
   const [routine, setRoutine] = useState<GenerateWorkoutRoutineOutput | null>(null);
@@ -12,11 +14,18 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
-        <header className="w-full max-w-4xl flex items-center justify-center sm:justify-start mb-10">
-          <Dumbbell className="w-10 h-10 text-primary" />
-          <h1 className="font-headline text-4xl font-bold ml-4 text-card-foreground">
-            Fitness Flow
-          </h1>
+        <header className="w-full max-w-4xl flex items-center justify-between mb-10">
+          <div className="flex items-center">
+            <Dumbbell className="w-10 h-10 text-primary" />
+            <h1 className="font-headline text-4xl font-bold ml-4 text-card-foreground">
+              Fitness Flow
+            </h1>
+          </div>
+          <Button asChild variant="outline">
+            <Link href="/coach">
+                <User className="mr-2 h-4 w-4" /> Coach Mode
+            </Link>
+          </Button>
         </header>
         
         <div className="w-full max-w-4xl">
