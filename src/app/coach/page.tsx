@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { CoachRoutineCreator } from '@/components/coach-routine-creator';
-import { CoachWorkoutDisplay, type CoachRoutine } from '@/components/coach-workout-display';
 import { AppHeader } from '@/components/app-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AdminNav } from '@/components/admin-nav';
@@ -12,6 +11,8 @@ import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firest
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { CoachRoutineManagement, type ManagedRoutine } from '@/components/coach-routine-management';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ClipboardPlus, ClipboardList } from 'lucide-react';
 
 export type Athlete = {
   uid: string;
@@ -22,12 +23,12 @@ export default function CoachPage() {
   const { user, userProfile, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [routine, setRoutine] = useState<CoachRoutine | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [isLoadingAthletes, setIsLoadingAthletes] = useState(true);
   const [routines, setRoutines] = useState<ManagedRoutine[]>([]);
   const [isLoadingRoutines, setIsLoadingRoutines] = useState(true);
   const [editingRoutine, setEditingRoutine] = useState<ManagedRoutine | null>(null);
+  const [activeTab, setActiveTab] = useState('create');
 
 
   useEffect(() => {
@@ -122,11 +123,13 @@ export default function CoachPage() {
   
   const handleEditRoutine = (routine: ManagedRoutine) => {
     setEditingRoutine(routine);
+    setActiveTab('create');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
   const handleRoutineSaved = () => {
     setEditingRoutine(null); // Clear editing state
+    setActiveTab('manage');
   };
 
 
@@ -157,21 +160,35 @@ export default function CoachPage() {
             ) : (
                 <h1 className="text-3xl font-bold font-headline mb-8">Coach Dashboard</h1>
             )}
-          {isLoadingAthletes ? <Skeleton className="h-96 w-full"/> : (
-            userProfile?.gymId && <CoachRoutineCreator onRoutineCreated={setRoutine} athletes={athletes} gymId={userProfile.gymId} routineToEdit={editingRoutine} onRoutineSaved={handleRoutineSaved} />
-          )}
-          <CoachWorkoutDisplay routine={routine} />
-          {isLoadingRoutines ? (
-              <Skeleton className="h-96 w-full mt-8" />
-          ) : (
-              <CoachRoutineManagement routines={routines} onEdit={handleEditRoutine} />
-          )}
+
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="create">
+                <ClipboardPlus className="mr-2" /> {editingRoutine ? 'Edit Routine' : 'Create Routine'}
+              </TabsTrigger>
+              <TabsTrigger value="manage">
+                <ClipboardList className="mr-2" /> Manage Routines
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="create">
+              {isLoadingAthletes ? <Skeleton className="h-96 w-full mt-4"/> : (
+                userProfile?.gymId && <CoachRoutineCreator athletes={athletes} gymId={userProfile.gymId} routineToEdit={editingRoutine} onRoutineSaved={handleRoutineSaved} />
+              )}
+            </TabsContent>
+            <TabsContent value="manage">
+              {isLoadingRoutines ? (
+                  <Skeleton className="h-96 w-full mt-4" />
+              ) : (
+                  <CoachRoutineManagement routines={routines} onEdit={handleEditRoutine} />
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
       <footer className="w-full text-center p-4 text-muted-foreground text-sm">
         <p>
-          Create personalized routines for your clients.
+          Create and manage personalized routines for your clients.
         </p>
         <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
       </footer>

@@ -16,7 +16,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import type { CoachRoutine } from './coach-workout-display';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import type { Athlete } from '@/app/coach/page';
@@ -66,7 +65,6 @@ const routineSchema = z.object({
 type FormValues = z.infer<typeof routineSchema>;
 
 type CoachRoutineCreatorProps = {
-  onRoutineCreated: (routine: CoachRoutine | null) => void;
   athletes: Athlete[];
   gymId: string;
   routineToEdit?: ManagedRoutine | null;
@@ -79,7 +77,7 @@ const defaultFormValues = {
   blocks: [{ name: 'Block A', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' }] }],
 };
 
-export function CoachRoutineCreator({ onRoutineCreated, athletes, gymId, routineToEdit, onRoutineSaved }: CoachRoutineCreatorProps) {
+export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineSaved }: CoachRoutineCreatorProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -126,13 +124,11 @@ export function CoachRoutineCreator({ onRoutineCreated, athletes, gymId, routine
         coachId: user.uid,
         gymId: gymId,
     };
-    
-    onRoutineCreated(routineData);
 
     const docToWrite = {
         ...routineData,
         routineDate: Timestamp.fromDate(routineData.routineDate),
-        createdAt: isEditing ? routineToEdit.createdAt : Timestamp.now(), // Keep original creation date
+        createdAt: isEditing && routineToEdit ? routineToEdit.createdAt : Timestamp.now(), // Keep original creation date
         updatedAt: Timestamp.now(),
     };
     // This is a Firestore object, remove non-serializable fields if they exist
@@ -141,7 +137,7 @@ export function CoachRoutineCreator({ onRoutineCreated, athletes, gymId, routine
     setIsSubmitting(true);
 
     try {
-        if(isEditing) {
+        if(isEditing && routineToEdit) {
             const routineRef = doc(db, 'routines', routineToEdit.id);
             await updateDoc(routineRef, docToWrite);
             toast({ title: 'Routine Updated!', description: `The routine for ${routineData.userName} has been updated.` });
@@ -150,8 +146,7 @@ export function CoachRoutineCreator({ onRoutineCreated, athletes, gymId, routine
             toast({ title: 'Routine Saved!', description: `The routine for ${routineData.userName} has been saved successfully.` });
         }
       
-      onRoutineSaved(); // This will clear the editing state in parent
-      onRoutineCreated(null); // Clear preview
+      onRoutineSaved(); // This will clear the editing state and switch tab in parent
     } catch (error: any) {
       console.error('Error saving routine:', error);
       toast({ variant: 'destructive', title: 'Save Failed', description: error.message || 'An unexpected error occurred.' });
@@ -161,13 +156,13 @@ export function CoachRoutineCreator({ onRoutineCreated, athletes, gymId, routine
   }
 
   return (
-    <Card className="w-full max-w-4xl mx-auto shadow-lg border-2 border-primary/20">
+    <Card className="w-full max-w-4xl mx-auto mt-4 shadow-lg border-2 border-primary/20">
       <CardHeader>
         <div className="flex items-center gap-3">
           {isEditing ? <Edit className="w-8 h-8 text-primary" /> : <ClipboardCheck className="w-8 h-8 text-primary" />}
           <div>
             <CardTitle className="font-headline text-2xl">{isEditing ? 'Edit Routine' : 'Create a New Routine'}</CardTitle>
-            <CardDescription>{isEditing ? `You are editing a routine for ${routineToEdit.userName}.` : 'Design a personalized workout session for a client.'}</CardDescription>
+            <CardDescription>{isEditing && routineToEdit ? `You are editing a routine for ${routineToEdit.userName}.` : 'Design a personalized workout session for a client.'}</CardDescription>
           </div>
         </div>
       </CardHeader>
