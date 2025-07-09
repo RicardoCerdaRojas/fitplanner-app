@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,8 +18,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { Building } from 'lucide-react';
-import { createGymAction } from './actions';
 import { Skeleton } from '@/components/ui/skeleton';
+import { db } from '@/lib/firebase';
+import { runTransaction, doc, collection } from 'firebase/firestore';
 
 const formSchema = z.object({
   gymName: z.string().min(3, { message: 'Gym name must be at least 3 characters.' }),
@@ -44,13 +44,39 @@ export default function CreateGymPage() {
         return;
     }
     
-    const result = await createGymAction(values, user.uid);
-    
-    if (result.success) {
-        toast({ title: 'Success!', description: 'Your gym has been created.' });
-        router.push('/');
-    } else {
-        toast({ variant: 'destructive', title: 'Error', description: result.error });
+    try {
+      const gymCollectionRef = collection(db, 'gyms');
+      const newGymRef = doc(gymCollectionRef);
+      const userRef = doc(db, 'users', user.uid);
+      const logoUrl = `https://placehold.co/100x50.png?text=${encodeURIComponent(values.gymName)}`;
+
+      await runTransaction(db, async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists()) {
+          throw new Error('User profile not found.');
+        }
+        if (userDoc.data().gymId) {
+          throw new Error('User is already part of a gym.');
+        }
+
+        transaction.set(newGymRef, {
+          name: values.gymName,
+          adminUid: user.uid,
+          createdAt: new Date(),
+          logoUrl: logoUrl,
+        });
+
+        transaction.update(userRef, {
+          role: 'gym-admin',
+          gymId: newGymRef.id,
+        });
+      });
+
+      toast({ title: 'Success!', description: 'Your gym has been created.' });
+      router.push('/');
+    } catch (error: any) {
+      console.error("Error creating gym:", error);
+      toast({ variant: 'destructive', title: 'Error', description: error.message || "Could not create gym." });
     }
   }
   

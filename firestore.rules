@@ -1,32 +1,24 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
     match /users/{userId} {
-      // A user can create their own profile upon signup.
-      // A user can read, update, or delete their own profile.
-      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
+      allow read, update, delete: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId;
     }
 
     match /gyms/{gymId} {
-      // Any authenticated user can create a gym (since they are funneled to the create page).
-      allow create: if request.auth != null;
-      // Any user who is part of a gym can read that gym's details.
-      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId == gymId;
-      // Only the gym-admin can update their gym's info.
-      allow update: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'gym-admin' && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId == gymId;
+      // Any user that is part of a gym can read that gym's document
+      allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId == gymId;
+      // An authenticated user can create a gym, but only if they set themselves as the admin
+      allow create: if request.auth.uid != null && request.resource.data.adminUid == request.auth.uid;
     }
-    
-    match /routines/{routineId} {
-      // Only a coach can create a routine. The routine's gymId must match the coach's gymId.
-      allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'coach' && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId == request.resource.data.gymId;
-      
-      // Only users from the same gym can read the routine.
-      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId == resource.data.gymId;
 
-      // Only the coach who created the routine can update or delete it.
-      allow update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.uid == resource.data.coachId;
+    match /routines/{routineId} {
+      // Only a coach can create a routine
+      allow create: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'coach';
+      // Only users from the same gym can read routines
+      allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId == resource.data.gymId;
     }
   }
 }
