@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
+import { collection, query, where, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import type { GenerateWorkoutRoutineOutput } from '@/ai/flows/generate-workout-routine';
 import { AIWorkoutGenerator } from '@/components/ai-workout-generator';
 import { WorkoutDisplay } from '@/components/workout-display';
@@ -11,14 +13,79 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { User, Building } from 'lucide-react';
+import { User, Building, WandSparkles } from 'lucide-react';
+import type { Routine as AthleteRoutine } from '@/components/athlete-routine-list';
+import { AthleteRoutineList } from '@/components/athlete-routine-list';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
 
 function AthleteDashboard() {
-    const [routine, setRoutine] = useState<GenerateWorkoutRoutineOutput | null>(null);
+    const { user } = useAuth();
+    const [routines, setRoutines] = useState<AthleteRoutine[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [aiRoutine, setAiRoutine] = useState<GenerateWorkoutRoutineOutput | null>(null);
+
+    useEffect(() => {
+        if (!user) return;
+
+        setIsLoading(true);
+        const routinesQuery = query(
+            collection(db, 'routines'),
+            where('athleteId', '==', user.uid),
+            orderBy('routineDate', 'desc')
+        );
+
+        const unsubscribe = onSnapshot(routinesQuery, (snapshot) => {
+            const fetchedRoutines = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    routineDate: (data.routineDate as Timestamp).toDate(),
+                    blocks: data.blocks,
+                    coachId: data.coachId,
+                } as AthleteRoutine;
+            });
+            setRoutines(fetchedRoutines);
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Error fetching routines: ", error);
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [user]);
+
     return (
-        <div className="w-full max-w-2xl">
-            <AIWorkoutGenerator onRoutineGenerated={setRoutine} />
-            <WorkoutDisplay routine={routine} />
+        <div className="w-full max-w-4xl space-y-8">
+            <div className="text-center">
+                <h1 className="text-3xl md:text-4xl font-bold font-headline">Your Dashboard</h1>
+                <p className="text-muted-foreground mt-2">Here are the latest workouts assigned by your coach.</p>
+            </div>
+            
+            {isLoading ? (
+                <div className="space-y-4">
+                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                </div>
+            ) : (
+                <AthleteRoutineList routines={routines} />
+            )}
+
+            <Accordion type="single" collapsible className="w-full pt-4 border-t">
+                <AccordionItem value="item-1" className="border-b-0">
+                    <AccordionTrigger className="text-xl font-headline hover:no-underline">
+                        <div className="flex items-center gap-2">
+                           <WandSparkles className="w-6 h-6 text-primary" />
+                           <span>Need something different? Generate one with AI</span>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4">
+                        <AIWorkoutGenerator onRoutineGenerated={setAiRoutine} />
+                        <WorkoutDisplay routine={aiRoutine} />
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
         </div>
     );
 }
