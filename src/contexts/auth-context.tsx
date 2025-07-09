@@ -15,9 +15,16 @@ type UserProfile = {
   status?: string;
 };
 
+type GymProfile = {
+    name: string;
+    theme?: { [key: string]: string };
+    logoUrl?: string;
+};
+
 type AuthContextType = {
   user: User | null;
   userProfile: UserProfile | null;
+  gymProfile: GymProfile | null;
   loading: boolean;
 };
 
@@ -26,18 +33,21 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [gymProfile, setGymProfile] = useState<GymProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Effect for auth state changes
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
       setUser(authUser);
-      setLoading(false);
+      if (!authUser) {
+        setLoading(false);
+      }
     });
     return () => unsubscribeAuth();
   }, []);
 
-  // Effect for profile data, dependent on user
+  // Effect for user profile data, dependent on user
   useEffect(() => {
     if (user) {
       setLoading(true);
@@ -49,8 +59,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUserProfile(doc.data() as UserProfile);
           } else {
             setUserProfile(null);
+            setLoading(false);
           }
-          setLoading(false);
+          // Do not set loading to false here, wait for gym profile
         },
         (error) => {
           console.error('Error fetching user profile:', error);
@@ -58,17 +69,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setLoading(false);
         }
       );
-
-      // This cleanup function will be called when `user` changes (i.e., on logout)
       return () => unsubscribeSnapshot();
     } else {
-      // User is null, so clear the profile
       setUserProfile(null);
     }
   }, [user]);
 
+  // Effect for gym profile data, dependent on userProfile
+  useEffect(() => {
+    if (userProfile?.gymId) {
+        const gymDocRef = doc(db, 'gyms', userProfile.gymId);
+        const unsubscribe = onSnapshot(gymDocRef, (doc) => {
+            if(doc.exists()) {
+                setGymProfile(doc.data() as GymProfile);
+            } else {
+                setGymProfile(null);
+            }
+            setLoading(false);
+        }, (error) => {
+            console.error('Error fetching gym profile:', error);
+            setGymProfile(null);
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    } else if (user && !userProfile?.gymId) {
+        // User exists but has no gym, so we are done loading
+        setGymProfile(null);
+        setLoading(false);
+    }
+  }, [userProfile, user]);
+
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading }}>
+    <AuthContext.Provider value={{ user, userProfile, gymProfile, loading }}>
       {children}
     </AuthContext.Provider>
   );
