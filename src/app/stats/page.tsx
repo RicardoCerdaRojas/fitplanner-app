@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Bar, BarChart, CartesianGrid, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
 import type { Routine } from '@/components/athlete-routine-list';
@@ -50,7 +50,17 @@ export default function StatsPage() {
     const routinesQuery = query(collection(db, 'routines'), where('athleteId', '==', user.uid));
     const unsubscribe = onSnapshot(routinesQuery, (snapshot) => {
       const fetchedRoutines = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() } as Routine))
+        .map((doc) => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                routineName: data.routineName,
+                routineDate: (data.routineDate as Timestamp).toDate(),
+                blocks: data.blocks,
+                coachId: data.coachId,
+                progress: data.progress,
+            } as Routine;
+        })
         .sort((a, b) => a.routineDate.getTime() - b.routineDate.getTime());
       setRoutines(fetchedRoutines);
       setLoading(false);
