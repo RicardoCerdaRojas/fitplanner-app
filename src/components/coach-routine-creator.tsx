@@ -23,13 +23,21 @@ const exerciseSchema = z.object({
   duration: z.string().optional(),
   weight: z.string().optional(),
   videoUrl: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
-}).refine(data => {
-    if (data.repType === 'reps' && !data.reps) return false;
-    if (data.repType === 'duration' && !data.duration) return false;
-    return true;
-}, {
-    message: "Please specify reps or duration.",
-    path: ['reps'],
+}).superRefine((data, ctx) => {
+    if (data.repType === 'reps' && (!data.reps || data.reps.trim() === '')) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Reps are required.",
+            path: ['reps'],
+        });
+    }
+    if (data.repType === 'duration' && (!data.duration || data.duration.trim() === '')) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Duration is required.",
+            path: ['duration'],
+        });
+    }
 });
 
 const blockSchema = z.object({
@@ -57,7 +65,7 @@ export function CoachRoutineCreator({ onRoutineCreated }: CoachRoutineCreatorPro
     resolver: zodResolver(routineSchema),
     defaultValues: {
       userName: '',
-      routineDate: new Date(),
+      routineDate: undefined,
       blocks: [{ name: 'Block A', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' }] }],
     },
   });
