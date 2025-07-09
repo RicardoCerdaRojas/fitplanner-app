@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, Calendar as CalendarIcon, Trash2 } from 'lucide-react';
+import { UserPlus, Calendar as CalendarIcon, Trash2, ClipboardList } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, Timestamp, deleteDoc } from 'firebase/firestore';
@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import Link from 'next/link';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -143,12 +144,12 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                     </CardHeader>
                     <CardContent>
                          <Table>
-                            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Plan</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Plan</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {isLoading ? (
-                                    <TableRow><TableCell colSpan={4}>Loading users...</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={5}>Loading users...</TableCell></TableRow>
                                 ) : users.length === 0 ? (
-                                     <TableRow><TableCell colSpan={4}>No active users found in your gym yet.</TableCell></TableRow>
+                                     <TableRow><TableCell colSpan={5}>No active users found in your gym yet.</TableCell></TableRow>
                                 ) : (
                                     users.map((user) => (
                                         <TableRow key={user.id}>
@@ -156,6 +157,15 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                                             <TableCell>{user.email}</TableCell>
                                             <TableCell><Badge variant={user.role === 'gym-admin' ? 'default' : 'secondary'}>{user.role}</Badge></TableCell>
                                             <TableCell>{user.plan || 'N/A'}</TableCell>
+                                            <TableCell className="text-right">
+                                                {(user.role === 'athlete' || user.role === 'coach') && (
+                                                    <Button asChild variant="ghost" size="icon" title="Manage Routines">
+                                                        <Link href={`/coach?athleteId=${user.id}`}>
+                                                            <ClipboardList className="h-4 w-4" />
+                                                        </Link>
+                                                    </Button>
+                                                )}
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 )}

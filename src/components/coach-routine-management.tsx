@@ -24,9 +24,10 @@ export type ManagedRoutine = Omit<Routine, 'routineDate'> & Omit<CoachRoutine, '
 type Props = {
     routines: ManagedRoutine[];
     onEdit: (routine: ManagedRoutine) => void;
+    initialAthleteId?: string | null;
 };
 
-export function CoachRoutineManagement({ routines, onEdit }: Props) {
+export function CoachRoutineManagement({ routines, onEdit, initialAthleteId }: Props) {
     const { toast } = useToast();
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
@@ -63,6 +64,7 @@ export function CoachRoutineManagement({ routines, onEdit }: Props) {
     }, {} as Record<string, { name: string; routines: ManagedRoutine[] }>);
 
     const athleteIds = Object.keys(routinesByAthlete);
+    const defaultTab = initialAthleteId && athleteIds.includes(initialAthleteId) ? initialAthleteId : athleteIds[0];
 
     if (routines.length === 0) {
         return (
@@ -77,7 +79,7 @@ export function CoachRoutineManagement({ routines, onEdit }: Props) {
     
     return (
         <div className="mt-4">
-            <Tabs defaultValue={athleteIds[0]} className="w-full">
+            <Tabs defaultValue={defaultTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                     {athleteIds.map((athleteId) => (
                         <TabsTrigger key={athleteId} value={athleteId}>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { CoachRoutineCreator } from '@/components/coach-routine-creator';
 import { AppHeader } from '@/components/app-header';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,13 +22,16 @@ export type Athlete = {
 export default function CoachPage() {
   const { user, userProfile, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [isLoadingAthletes, setIsLoadingAthletes] = useState(true);
   const [routines, setRoutines] = useState<ManagedRoutine[]>([]);
   const [isLoadingRoutines, setIsLoadingRoutines] = useState(true);
   const [editingRoutine, setEditingRoutine] = useState<ManagedRoutine | null>(null);
-  const [activeTab, setActiveTab] = useState('create');
+  
+  const initialAthleteId = searchParams.get('athleteId');
+  const [activeTab, setActiveTab] = useState(initialAthleteId ? 'manage' : 'create');
 
 
   useEffect(() => {
@@ -179,7 +182,7 @@ export default function CoachPage() {
               {isLoadingRoutines ? (
                   <Skeleton className="h-96 w-full mt-4" />
               ) : (
-                  <CoachRoutineManagement routines={routines} onEdit={handleEditRoutine} />
+                  <CoachRoutineManagement routines={routines} onEdit={handleEditRoutine} initialAthleteId={initialAthleteId} />
               )}
             </TabsContent>
           </Tabs>
