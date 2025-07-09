@@ -106,29 +106,26 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
             routineDate: routineToEdit.routineDate,
             blocks: routineToEdit.blocks,
         });
-        setActiveBlockId(routineToEdit.blocks[0]?.name); // Using name as ID is not ideal, but field ID will change. Let's reset to first tab.
+        setActiveBlockId(routineToEdit.blocks[0] ? `block-${routineToEdit.blocks[0].name}` : undefined);
     } else {
         form.reset(defaultFormValues);
-        setActiveBlockId(defaultFormValues.blocks[0]?.name);
+        setActiveBlockId(defaultFormValues.blocks[0] ? `block-${defaultFormValues.blocks[0].name}` : undefined);
     }
   }, [routineToEdit, form]);
   
   useEffect(() => {
-    // Select first tab on initial load or if the active one is deleted
-    if (activeBlockId === undefined && blockFields.length > 0) {
-      setActiveBlockId(blockFields[0].id);
-    } else if (activeBlockId && !blockFields.some(field => field.id === activeBlockId)) {
+    // When a block is added, switch to it
+    if (blockFields.length > lastBlockCount) {
+        setActiveBlockId(blockFields[blockFields.length - 1].id);
+    }
+    setLastBlockCount(blockFields.length);
+
+    // If active tab is deleted, switch to the last one
+    if (activeBlockId && !blockFields.some(field => field.id === activeBlockId)) {
       setActiveBlockId(blockFields[Math.max(0, blockFields.length - 1)]?.id);
     }
-  }, [blockFields, activeBlockId]);
 
-  useEffect(() => {
-      // When a block is added, switch to it
-      if (blockFields.length > lastBlockCount) {
-          setActiveBlockId(blockFields[blockFields.length - 1].id);
-      }
-      setLastBlockCount(blockFields.length);
-  }, [blockFields, lastBlockCount]);
+  }, [blockFields, lastBlockCount, activeBlockId]);
 
 
   const handleAddBlock = () => {
@@ -184,7 +181,7 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
   }
 
   return (
-    <Card className="w-full max-w-4xl mx-auto mt-4 shadow-lg border-0">
+    <Card className="w-full max-w-4xl mx-auto mt-4 shadow-lg border-0 bg-transparent">
       <CardHeader>
         <div className="flex items-center gap-3">
           {isEditing ? <Edit className="w-8 h-8 text-primary" /> : <ClipboardPlus className="w-8 h-8 text-primary" />}
@@ -256,23 +253,23 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
                 />
             </div>
             
-            <div className="pt-4 border-t">
+            <div className="pt-4">
               <FormLabel>Workout Blocks</FormLabel>
               <Tabs value={activeBlockId} onValueChange={setActiveBlockId} className="w-full mt-2">
-                <div className="flex items-center gap-2 pb-2 mb-4 overflow-x-auto border-b">
-                    <TabsList className="relative bg-transparent p-0">
+                <div className="flex items-center gap-2 pb-2 mb-4 overflow-x-auto">
+                    <TabsList className="relative bg-transparent p-0 gap-2">
                         {blockFields.map((field, index) => (
-                            <TabsTrigger key={field.id} value={field.id} className="relative pr-8 border border-input data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:text-primary">
+                            <TabsTrigger key={field.id} value={field.id} className="relative pr-8 border border-input data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:text-primary rounded-full">
                                 Block {index + 1}
                                 {blockFields.length > 1 && (
-                                    <div role="button" aria-label={`Remove Block ${index + 1}`} onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeBlock(index);}} className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-sm p-0.5 hover:bg-destructive/20 hover:text-destructive cursor-pointer">
+                                    <div role="button" aria-label={`Remove Block ${index + 1}`} onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeBlock(index);}} className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-destructive/20 hover:text-destructive cursor-pointer">
                                         <X className="h-3 w-3" />
                                     </div>
                                 )}
                             </TabsTrigger>
                         ))}
                     </TabsList>
-                    <Button type="button" size="sm" variant="outline" onClick={handleAddBlock}>
+                    <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={handleAddBlock}>
                         <Plus className="mr-2 h-4 w-4" /> Add Block
                     </Button>
                 </div>
@@ -293,7 +290,7 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
 
             <div className="flex justify-end items-center gap-4 pt-4 border-t">
               {isEditing && (<Button type="button" variant="outline" onClick={onRoutineSaved}>Cancel Edit</Button>)}
-              <Button type="submit" className="w-auto bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg py-6" disabled={isSubmitting}>
+              <Button type="submit" className="w-auto bg-accent hover:bg-accent/90" disabled={isSubmitting}>
                 {isSubmitting ? 'Saving...' : (isEditing ? 'Update Routine' : 'Create and Save Routine')}
               </Button>
             </div>
@@ -337,7 +334,7 @@ function ExerciseEditor({ blockIndex, control, watch }: { blockIndex: number, co
       return (
           <div className="text-center p-4 border-t pt-6 mt-4">
               <p className="text-muted-foreground mb-2">This block has no exercises.</p>
-              <Button type="button" size="sm" variant="outline" onClick={handleAddExercise}>
+              <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={handleAddExercise}>
                 <Plus className="mr-2 h-4 w-4" /> Add First Exercise
               </Button>
           </div>
@@ -348,20 +345,20 @@ function ExerciseEditor({ blockIndex, control, watch }: { blockIndex: number, co
     <div className='space-y-4 pt-6 border-t mt-4'>
       <FormLabel>Exercises</FormLabel>
       <Tabs value={activeExerciseId} onValueChange={setActiveExerciseId} className="w-full">
-        <div className="flex items-center gap-2 pb-2 mb-2 overflow-x-auto border-b">
-            <TabsList className="relative bg-transparent p-0">
+        <div className="flex items-center gap-2 pb-2 mb-2 overflow-x-auto">
+            <TabsList className="relative bg-transparent p-0 gap-2">
                 {fields.map((field, index) => (
-                    <TabsTrigger key={field.id} value={field.id} className="relative pr-8 border border-input data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:text-primary">
+                    <TabsTrigger key={field.id} value={field.id} className="relative pr-8 border border-input data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:text-primary rounded-full">
                         Exercise {index + 1}
                         {fields.length > 1 && (
-                             <div role="button" aria-label={`Remove Exercise ${index + 1}`} onClick={(e) => { e.stopPropagation(); e.preventDefault(); remove(index);}} className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-sm p-0.5 hover:bg-destructive/20 hover:text-destructive cursor-pointer">
+                             <div role="button" aria-label={`Remove Exercise ${index + 1}`} onClick={(e) => { e.stopPropagation(); e.preventDefault(); remove(index);}} className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-destructive/20 hover:text-destructive cursor-pointer">
                                 <X className="h-3 w-3" />
                             </div>
                         )}
                     </TabsTrigger>
                 ))}
             </TabsList>
-             <Button type="button" size="sm" variant="outline" onClick={handleAddExercise}>
+             <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={handleAddExercise}>
                 <Plus className="mr-2 h-4 w-4" /> Add Exercise
             </Button>
         </div>
@@ -378,10 +375,9 @@ function ExerciseEditor({ blockIndex, control, watch }: { blockIndex: number, co
                         </RadioGroup></FormControl><FormMessage /></FormItem>
                     )}/>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                        {watch(`blocks.${blockIndex}.exercises.${index}.repType`) === 'reps' && (
+                        {watch(`blocks.${blockIndex}.exercises.${index}.repType`) === 'reps' ? (
                             <FormField control={control} name={`blocks.${blockIndex}.exercises.${index}.reps`} render={({ field }) => (<FormItem><FormLabel>Reps</FormLabel><FormControl><Input placeholder="e.g., 3x12" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        )}
-                        {watch(`blocks.${blockIndex}.exercises.${index}.repType`) === 'duration' && (
+                        ) : (
                             <FormField control={control} name={`blocks.${blockIndex}.exercises.${index}.duration`} render={({ field }) => (<FormItem><FormLabel>Duration (minutes)</FormLabel><FormControl><Input type="number" placeholder="e.g., 10" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         )}
                          <FormField control={control} name={`blocks.${blockIndex}.exercises.${index}.weight`} render={({ field }) => (<FormItem><FormLabel>Weight</FormLabel><FormControl><Input placeholder="e.g., 50kg or Bodyweight" {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -394,3 +390,5 @@ function ExerciseEditor({ blockIndex, control, watch }: { blockIndex: number, co
     </div>
   )
 }
+
+    
