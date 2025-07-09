@@ -1,10 +1,17 @@
-rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId} {
-      // Allow authenticated users to read and write to their own user document.
-      // This is a common and secure pattern for user profiles.
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth.uid == userId;
+    }
+
+    match /routines/{routineId} {
+      // The creator must be a coach and the coachId in the document must match the creator's UID.
+      allow create: if request.auth.uid == request.resource.data.coachId 
+                      && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'coach';
+      
+      // The owning coach can read, update, and delete it.
+      // In the future, assigned athletes could be given read access.
+      allow read, update, delete: if request.auth.uid == resource.data.coachId;
     }
   }
 }

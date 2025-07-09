@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from "date-fns";
 import { PlusCircle, Trash2, ClipboardCheck, Calendar as CalendarIcon } from 'lucide-react';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +16,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import type { CoachRoutine } from './coach-workout-display';
+import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/hooks/use-toast';
+import { saveRoutineAction } from '@/app/coach/actions';
 
 const exerciseSchema = z.object({
   name: z.string().min(2, 'Exercise name is required.'),
@@ -61,6 +65,10 @@ type CoachRoutineCreatorProps = {
 };
 
 export function CoachRoutineCreator({ onRoutineCreated }: CoachRoutineCreatorProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
   const form = useForm<FormValues>({
     resolver: zodResolver(routineSchema),
     defaultValues: {
@@ -75,8 +83,44 @@ export function CoachRoutineCreator({ onRoutineCreated }: CoachRoutineCreatorPro
     name: 'blocks',
   });
 
-  function onSubmit(values: FormValues) {
-    onRoutineCreated(values);
+  async function onSubmit(values: FormValues) {
+    if (!user) {
+      toast({
+        variant: 'destructive',
+        title: 'Not Authenticated',
+        description: 'You must be logged in as a coach to save a routine.',
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    onRoutineCreated(values); // Show preview immediately
+
+    const result = await saveRoutineAction({
+      ...values,
+      coachId: user.uid,
+    });
+    
+    setIsSubmitting(false);
+
+    if (result.success) {
+      toast({
+        title: 'Routine Saved!',
+        description: `The routine for ${values.userName} has been saved successfully.`,
+      });
+      form.reset({
+        userName: '',
+        routineDate: undefined,
+        blocks: [{ name: 'Block A', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' }] }],
+      });
+      onRoutineCreated(null); // Clear the preview after saving
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Save Failed',
+        description: result.error || 'An unexpected error occurred.',
+      });
+    }
   }
 
   return (
@@ -175,8 +219,8 @@ export function CoachRoutineCreator({ onRoutineCreated }: CoachRoutineCreatorPro
             </div>
 
             <div className="flex justify-end items-center">
-              <Button type="submit" className="w-auto bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg py-6">
-                Create Routine
+              <Button type="submit" className="w-auto bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg py-6" disabled={isSubmitting}>
+                {isSubmitting ? 'Saving Routine...' : 'Create and Save Routine'}
               </Button>
             </div>
           </form>
