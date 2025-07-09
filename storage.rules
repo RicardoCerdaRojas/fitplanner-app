@@ -2,18 +2,20 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow public read access to all logos
-    match /logos/{gymId}/{allPaths=**} {
-      allow read;
-    }
-
-    // Allow a gym-admin to write to their own gym's logo folder.
-    // We first check if the user's document exists before trying to access its data.
     match /logos/{gymId}/{fileName} {
-      allow write: if request.auth != null &&
-                      exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
-                      get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'gym-admin' &&
-                      get(/databases/(default)/documents/users/$(request.auth.uid)).data.gymId == gymId;
+      // Public read access for logos.
+      allow read;
+
+      // isGymAdmin checks if the user is an admin of the specified gym.
+      function isGymAdmin(userId, gymId) {
+        // Get the user's profile from Firestore.
+        let userProfile = get(/databases/(default)/documents/users/$(userId)).data;
+        // The user must have the 'gym-admin' role AND their gymId must match.
+        return userProfile.role == 'gym-admin' && userProfile.gymId == gymId;
+      }
+
+      // Allow write if the user is authenticated and is an admin of this gym.
+      allow write: if request.auth != null && isGymAdmin(request.auth.uid, gymId);
     }
   }
 }
