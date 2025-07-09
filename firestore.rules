@@ -2,23 +2,30 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     match /users/{userId} {
-      allow read, update, delete: if request.auth.uid == userId;
-      allow create: if request.auth.uid == userId;
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /invites/{inviteEmail} {
+      // Allow a user to read and delete their own invitation during signup.
+      allow read, delete: if request.auth != null && request.auth.token.email == inviteEmail;
     }
 
     match /gyms/{gymId} {
-      // Any user that is part of a gym can read that gym's document
-      allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId == gymId;
-      // An authenticated user can create a gym, but only if they set themselves as the admin
-      allow create: if request.auth.uid != null && request.resource.data.adminUid == request.auth.uid;
+    	allow create: if request.auth != null
+          && getUserData().gymId == null
+          && request.resource.data.adminUid == request.auth.uid;
     }
 
     match /routines/{routineId} {
-      // Only a coach can create a routine
-      allow create: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'coach';
-      // Only users from the same gym can read routines
-      allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId == resource.data.gymId;
+    	allow create: if request.auth != null && getUserData().role == 'coach';
     }
+    
   }
 }

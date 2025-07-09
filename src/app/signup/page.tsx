@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { UserPlus } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
 const formSchema = z.object({
@@ -41,21 +41,43 @@ export default function SignupPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     form.clearErrors();
+    const lowerCaseEmail = values.email.toLowerCase();
+
     try {
+      // 1. Check if an invitation exists
+      const inviteRef = doc(db, 'invites', lowerCaseEmail);
+      const inviteSnap = await getDoc(inviteRef);
+
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const { user } = userCredential;
-      
-      await setDoc(doc(db, 'users', user.uid), {
-        email: values.email,
-        role: null,
-        gymId: null,
-      });
+      const userDocRef = doc(db, 'users', user.uid);
+
+      if (inviteSnap.exists()) {
+        // Invitation found: use its data
+        const { role, gymId } = inviteSnap.data();
+        await setDoc(userDocRef, {
+          email: lowerCaseEmail,
+          role,
+          gymId,
+          status: 'active',
+        });
+        // Clean up the invitation
+        await deleteDoc(inviteRef);
+      } else {
+        // No invitation: standard registration
+        await setDoc(userDocRef, {
+          email: lowerCaseEmail,
+          role: null,
+          gymId: null,
+          status: 'active',
+        });
+      }
       
       router.push('/');
     } catch (error: any) {
       let description = 'An unexpected error occurred. Please try again.';
       if (error.code === 'auth/email-already-in-use') {
-        description = 'This email is already registered.';
+        description = 'This email is already registered. Please login or use a different email.';
       } else {
         description = error.message;
       }

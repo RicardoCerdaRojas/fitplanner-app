@@ -49,10 +49,14 @@ function AdminDashboard() {
             <Card className="p-8">
                 <CardHeader>
                     <CardTitle className="text-3xl font-headline">Admin Dashboard</CardTitle>
-                    <CardDescription>Welcome! Manage your gym, coaches, and athletes from here.</CardDescription>
+                    <CardDescription>Manage your gym, coaches, and athletes from here.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-muted-foreground">(Admin features coming soon)</p>
+                     <Button asChild size="lg" className="bg-accent hover:bg-accent/90">
+                        <Link href="/admin">
+                            <Building className="mr-2 h-4 w-4" /> Go to Gym Management
+                        </Link>
+                    </Button>
                 </CardContent>
             </Card>
         </div>
