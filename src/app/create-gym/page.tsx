@@ -21,6 +21,7 @@ import { Building } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import { runTransaction, doc, collection } from 'firebase/firestore';
+import { useEffect } from 'react';
 
 const formSchema = z.object({
   gymName: z.string().min(3, { message: 'Gym name must be at least 3 characters.' }),
@@ -29,7 +30,15 @@ const formSchema = z.object({
 export default function CreateGymPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, userProfile, loading } = useAuth();
+
+  useEffect(() => {
+    // Redirect if the user is loaded and already has a gym
+    if (!loading && userProfile?.gymId) {
+      router.push('/');
+    }
+  }, [userProfile, loading, router]);
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -72,8 +81,7 @@ export default function CreateGymPage() {
         });
       });
 
-      toast({ title: 'Success!', description: 'Your gym has been created.' });
-      router.push('/');
+      toast({ title: 'Success!', description: 'Your gym has been created. Redirecting...' });
     } catch (error: any) {
       console.error("Error creating gym:", error);
       toast({ variant: 'destructive', title: 'Error', description: error.message || "Could not create gym." });
@@ -87,6 +95,14 @@ export default function CreateGymPage() {
   if (!user) {
     router.push('/login');
     return null;
+  }
+
+  if (userProfile?.gymId) {
+      return (
+          <div className="flex items-center justify-center min-h-screen">
+              <p>You are already part of a gym. Redirecting to dashboard...</p>
+          </div>
+      );
   }
 
   return (
