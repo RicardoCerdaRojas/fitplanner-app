@@ -159,6 +159,14 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                                 controls
                                 width="100%"
                                 height="100%"
+                                config={{
+                                    youtube: {
+                                        playerVars: {
+                                            autoplay: 1,
+                                            mute: 1,
+                                        },
+                                    },
+                                }}
                             />
                         </div>
                         <Button variant="outline" onClick={() => setShowVideo(false)}>

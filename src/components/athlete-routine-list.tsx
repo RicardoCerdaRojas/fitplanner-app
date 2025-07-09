@@ -105,6 +105,14 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
                     controls
                     width="100%"
                     height="100%"
+                    config={{
+                        youtube: {
+                            playerVars: {
+                                autoplay: 1,
+                                mute: 1,
+                            },
+                        },
+                    }}
                 />
             </div>
           )}
