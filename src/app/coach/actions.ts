@@ -61,8 +61,8 @@ export async function saveRoutineAction(routineData: any) {
         };
         await adminDb.collection('routines').add(docToWrite);
         return { success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error saving routine:", error);
-        return { success: false, error: "Could not save the routine to the database." };
+        return { success: false, error: error.message || "An unknown error occurred while saving the routine." };
     }
 }
