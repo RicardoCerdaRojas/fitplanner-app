@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -23,19 +25,43 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const formSchema = z.object({
   gymName: z.string().min(3, { message: 'Gym name must be at least 3 characters.' }),
+  logoDataUrl: z.string().optional(),
 });
 
 export default function CreateGymPage() {
   const { toast } = useToast();
   const router = useRouter();
   const { user, loading } = useAuth();
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       gymName: '',
+      logoDataUrl: '',
     },
   });
+
+  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 1024 * 1024) { // 1MB size limit
+        toast({
+          variant: 'destructive',
+          title: 'File too large',
+          description: 'Please upload a logo smaller than 1MB.',
+        });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setLogoPreview(result);
+        form.setValue('logoDataUrl', result, { shouldValidate: true });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) {
@@ -91,16 +117,20 @@ export default function CreateGymPage() {
               <FormItem>
                   <FormLabel>Gym Logo</FormLabel>
                   <div className="flex items-center justify-center w-full">
-                    <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-muted">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <Upload className="w-10 h-10 mb-3 text-muted-foreground" />
-                            <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                            <p className="text-xs text-muted-foreground">PNG, JPG or GIF (MAX. 800x400px)</p>
-                            <p className="text-xs text-destructive mt-2">(Logo upload coming soon)</p>
-                        </div>
-                        <input id="dropzone-file" type="file" className="hidden" disabled />
+                    <label htmlFor="dropzone-file" className="relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-muted">
+                        {logoPreview ? (
+                            <Image src={logoPreview} alt="Logo Preview" fill style={{ objectFit: 'contain' }} className="rounded-lg p-2" />
+                        ) : (
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                <Upload className="w-10 h-10 mb-3 text-muted-foreground" />
+                                <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                <p className="text-xs text-muted-foreground">PNG or JPG (MAX. 1MB)</p>
+                            </div>
+                        )}
+                        <input id="dropzone-file" type="file" className="hidden" onChange={handleLogoChange} accept="image/png, image/jpeg" />
                     </label>
-                </div> 
+                </div>
+                <FormMessage />
               </FormItem>
 
               <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
