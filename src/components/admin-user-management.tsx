@@ -238,7 +238,7 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                                                             mode="single"
                                                             selected={field.value}
                                                             onSelect={field.onChange}
-                                                            captionLayout="dropdown-buttons"
+                                                            captionLayout="dropdown"
                                                             fromYear={1940}
                                                             toYear={new Date().getFullYear()}
                                                             disabled={(date) =>
