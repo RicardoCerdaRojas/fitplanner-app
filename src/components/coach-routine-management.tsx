@@ -10,15 +10,25 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trash2, Edit, ClipboardList, Repeat, Clock, Dumbbell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { Routine } from './athlete-routine-list'; 
-import type { CoachRoutine } from './coach-workout-display';
+import type { Block, ExerciseProgress } from './athlete-routine-list'; 
 import type { Timestamp } from 'firebase/firestore';
 
 
 // A more robust, combined type for routines being managed.
-export type ManagedRoutine = Omit<Routine & CoachRoutine, 'routineDate'> & {
+export type ManagedRoutine = {
+    id: string;
+    athleteId: string;
+    userName: string;
     routineDate: Date;
+    blocks: Block[];
+    coachId: string;
+    gymId: string;
     createdAt: Timestamp;
+    updatedAt: Timestamp;
+    routineName?: string;
+    routineTypeName?: string;
+    routineTypeId?: string;
+    progress?: ExerciseProgress;
 };
 
 
