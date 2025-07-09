@@ -5,7 +5,6 @@ import { z } from 'zod';
 
 const createGymSchema = z.object({
   gymName: z.string().min(3, 'Gym name must be at least 3 characters.'),
-  logoDataUrl: z.string().optional(),
 });
 
 export async function createGymAction(values: z.infer<typeof createGymSchema>, uid: string) {
@@ -30,7 +29,7 @@ export async function createGymAction(values: z.infer<typeof createGymSchema>, u
       return { success: false, error: 'User is already part of a gym.' };
     }
 
-    const logoUrl = validation.data.logoDataUrl || `https://placehold.co/100x50.png?text=${encodeURIComponent(validation.data.gymName)}`;
+    const logoUrl = `https://placehold.co/100x50.png?text=${encodeURIComponent(validation.data.gymName)}`;
 
     await adminDb.runTransaction(async (transaction) => {
       // Create the new gym
