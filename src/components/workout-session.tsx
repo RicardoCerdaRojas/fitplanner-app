@@ -128,10 +128,15 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
             <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-muted/20 overflow-y-auto">
                 {showVideo && currentExerciseWithMeta.videoUrl ? (
-                    <div className="w-full max-w-2xl aspect-video bg-black rounded-lg">
-                        <video controls autoPlay src={currentExerciseWithMeta.videoUrl} className="w-full h-full rounded-lg" key={currentExerciseWithMeta.videoUrl}>
-                            Your browser does not support the video tag.
-                        </video>
+                    <div className="w-full max-w-2xl flex flex-col items-center gap-4">
+                        <div className="w-full aspect-video bg-black rounded-lg">
+                            <video controls autoPlay muted src={currentExerciseWithMeta.videoUrl} className="w-full h-full rounded-lg" key={currentExerciseWithMeta.videoUrl}>
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                        <Button variant="outline" onClick={() => setShowVideo(false)}>
+                            <ChevronLeft className="mr-2 h-4 w-4" /> Back to Exercise
+                        </Button>
                     </div>
                 ) : (
                     <Card className="w-full max-w-md bg-background shadow-xl">
