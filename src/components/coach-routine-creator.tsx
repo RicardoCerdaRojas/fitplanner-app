@@ -101,9 +101,10 @@ export function CoachRoutineCreator({ athletes, routineTypes, gymId, routineToEd
     name: 'blocks',
   });
   
-  const [activeBlockId, setActiveBlockId] = useState<string | undefined>(blockFields[0]?.id);
+  const [activeBlockId, setActiveBlockId] = useState<string | undefined>();
   const [lastBlockCount, setLastBlockCount] = useState(blockFields.length);
 
+  // Effect to reset the form when the routineToEdit prop changes
   useEffect(() => {
     if (routineToEdit) {
         form.reset({
@@ -112,25 +113,25 @@ export function CoachRoutineCreator({ athletes, routineTypes, gymId, routineToEd
             routineDate: routineToEdit.routineDate,
             blocks: routineToEdit.blocks,
         });
-        setActiveBlockId(routineToEdit.blocks[0] ? `block-${routineToEdit.blocks[0].name}` : undefined);
     } else {
         form.reset(defaultFormValues);
-        setActiveBlockId(defaultFormValues.blocks[0] ? `block-${defaultFormValues.blocks[0].name}` : undefined);
     }
-  }, [routineToEdit, form]);
+    // After reset, we want to reset the active block, the effect below will pick the first one.
+    setActiveBlockId(undefined); 
+  }, [routineToEdit, form.reset]);
   
+  // Effect to manage the active block tab
   useEffect(() => {
+    // A block was added, make it active
     if (blockFields.length > lastBlockCount) {
         setActiveBlockId(blockFields[blockFields.length - 1].id);
+    } 
+    // The active block was removed or there is no active block, select the first one
+    else if (!activeBlockId || !blockFields.some(field => field.id === activeBlockId)) {
+      setActiveBlockId(blockFields[0]?.id);
     }
     setLastBlockCount(blockFields.length);
-
-    if (activeBlockId && !blockFields.some(field => field.id === activeBlockId)) {
-      setActiveBlockId(blockFields[Math.max(0, blockFields.length - 1)]?.id);
-    }
-
-  }, [blockFields, lastBlockCount, activeBlockId]);
-
+  }, [blockFields, activeBlockId, lastBlockCount]);
 
   const handleAddBlock = () => {
     appendBlock({ name: `Block ${blockFields.length + 1}`, sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '10', weight: '', videoUrl: '' }] });
@@ -287,7 +288,9 @@ export function CoachRoutineCreator({ athletes, routineTypes, gymId, routineToEd
                             mode="single"
                             selected={field.value}
                             onSelect={(date) => {
-                                field.onChange(date);
+                                if (date) {
+                                  field.onChange(date);
+                                }
                                 setCalendarOpen(false);
                             }}
                             initialFocus
