@@ -19,6 +19,16 @@ import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, orderBy, 
 import { AppHeader } from '@/components/app-header';
 import { AdminNav } from '@/components/admin-nav';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const formSchema = z.object({
   name: z.string().min(2, 'Type name must be at least 2 characters.'),
@@ -40,6 +50,7 @@ export default function RoutineTypesPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [editingType, setEditingType] = useState<RoutineType | null>(null);
+    const [typeToDelete, setTypeToDelete] = useState<RoutineType | null>(null);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
@@ -106,16 +117,18 @@ export default function RoutineTypesPage() {
         }
     }
     
-    async function deleteType(typeId: string, typeName: string) {
-        if (!window.confirm(`Are you sure you want to delete the routine type "${typeName}"? This cannot be undone.`)) return;
-        setIsDeleting(typeId);
+    async function handleDeleteConfirm() {
+        if (!typeToDelete) return;
+
+        setIsDeleting(typeToDelete.id);
         try {
-            await deleteDoc(doc(db, "routineTypes", typeId));
-            toast({ title: 'Routine Type Deleted', description: `The type "${typeName}" has been removed.`});
+            await deleteDoc(doc(db, "routineTypes", typeToDelete.id));
+            toast({ title: 'Routine Type Deleted', description: `The type "${typeToDelete.name}" has been removed.`});
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not delete the routine type.' });
         } finally {
             setIsDeleting(null);
+            setTypeToDelete(null);
         }
     }
 
@@ -137,92 +150,114 @@ export default function RoutineTypesPage() {
     }
 
     return (
-        <div className="flex flex-col min-h-screen">
-            <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
-                <AppHeader />
-                <div className="w-full max-w-4xl">
-                    <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
-                    <AdminNav />
-                    
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2">
-                             <Card>
-                                <CardHeader>
-                                    <CardTitle>Manage Routine Types</CardTitle>
-                                    <CardDescription>A list of all available routine types in your gym.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <Table>
-                                        <TableHeader><TableRow><TableHead>Name</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                            {routineTypes.length === 0 ? (
-                                                <TableRow><TableCell colSpan={2}>No routine types created yet.</TableCell></TableRow>
-                                            ) : (
-                                                routineTypes.map((type) => (
-                                                    <TableRow key={type.id}>
-                                                        <TableCell className="font-medium">{type.name}</TableCell>
-                                                        <TableCell className="text-right">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                onClick={() => setEditingType(type)}
-                                                                disabled={isDeleting === type.id || !!editingType}
-                                                            >
-                                                                <Edit className="h-4 w-4" />
-                                                            </Button>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                onClick={() => deleteType(type.id, type.name)}
-                                                                disabled={isDeleting === type.id || !!editingType}
-                                                            >
-                                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                                            </Button>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))
-                                            )}
-                                        </TableBody>
-                                    </Table>
-                                </CardContent>
-                            </Card>
-                        </div>
-                        <div>
-                             <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        {editingType ? <Edit/> : <Plus/>} 
-                                        {editingType ? 'Edit Type' : 'Add New Type'}
-                                    </CardTitle>
-                                    <CardDescription>
-                                        {editingType ? `Update the name for "${editingType.name}".` : 'Create a new type for routines.'}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <Form {...form}>
-                                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                                            <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Type Name</FormLabel><FormControl><Input placeholder="e.g. Upper Body" {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                                            <div className="flex flex-col-reverse sm:flex-row gap-2">
-                                                {editingType && (
-                                                    <Button type="button" variant="outline" className="w-full" onClick={handleCancelEdit}>
-                                                        Cancel
-                                                    </Button>
+        <>
+            <AlertDialog open={!!typeToDelete} onOpenChange={(isOpen) => {if (!isOpen) setTypeToDelete(null)}}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the routine type "{typeToDelete?.name}".
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteConfirm}
+                            disabled={isDeleting === typeToDelete?.id}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {isDeleting === typeToDelete?.id ? 'Deleting...' : 'Delete'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <div className="flex flex-col min-h-screen">
+                <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
+                    <AppHeader />
+                    <div className="w-full max-w-4xl">
+                        <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
+                        <AdminNav />
+                        
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div className="lg:col-span-2">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Manage Routine Types</CardTitle>
+                                        <CardDescription>A list of all available routine types in your gym.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Table>
+                                            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                                            <TableBody>
+                                                {routineTypes.length === 0 ? (
+                                                    <TableRow><TableCell colSpan={2}>No routine types created yet.</TableCell></TableRow>
+                                                ) : (
+                                                    routineTypes.map((type) => (
+                                                        <TableRow key={type.id}>
+                                                            <TableCell className="font-medium">{type.name}</TableCell>
+                                                            <TableCell className="text-right">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() => setEditingType(type)}
+                                                                    disabled={isDeleting === type.id || !!editingType}
+                                                                >
+                                                                    <Edit className="h-4 w-4" />
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() => setTypeToDelete(type)}
+                                                                    disabled={isDeleting === type.id || !!editingType}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
                                                 )}
-                                                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                                                    {isSubmitting ? (editingType ? 'Updating...' : 'Creating...') : (editingType ? 'Update Type' : 'Create Type')}
-                                                </Button>
-                                            </div>
-                                        </form>
-                                    </Form>
-                                </CardContent>
-                            </Card>
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                            <div>
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            {editingType ? <Edit/> : <Plus/>} 
+                                            {editingType ? 'Edit Type' : 'Add New Type'}
+                                        </CardTitle>
+                                        <CardDescription>
+                                            {editingType ? `Update the name for "${editingType.name}".` : 'Create a new type for routines.'}
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Form {...form}>
+                                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                                                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Type Name</FormLabel><FormControl><Input placeholder="e.g. Upper Body" {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                                                <div className="flex flex-col-reverse sm:flex-row gap-2">
+                                                    {editingType && (
+                                                        <Button type="button" variant="outline" className="w-full" onClick={handleCancelEdit}>
+                                                            Cancel
+                                                        </Button>
+                                                    )}
+                                                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                                                        {isSubmitting ? (editingType ? 'Updating...' : 'Creating...') : (editingType ? 'Update Type' : 'Create Type')}
+                                                    </Button>
+                                                </div>
+                                            </form>
+                                        </Form>
+                                    </CardContent>
+                                </Card>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </main>
-             <footer className="w-full text-center p-4 text-muted-foreground text-sm">
-                <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
-            </footer>
-        </div>
+                </main>
+                <footer className="w-full text-center p-4 text-muted-foreground text-sm">
+                    <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
+                </footer>
+            </div>
+        </>
     );
 }
