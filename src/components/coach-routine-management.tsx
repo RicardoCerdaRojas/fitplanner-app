@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trash2, Edit, ClipboardList } from 'lucide-react';
+import { Trash2, Edit, ClipboardList, Repeat, Clock, Dumbbell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Routine } from './athlete-routine-list'; 
 import type { CoachRoutine } from './coach-workout-display';
@@ -125,27 +125,31 @@ export function CoachRoutineManagement({ routines, onEdit }: Props) {
                                                             <span className="text-xs font-semibold text-accent bg-accent/10 px-2 py-0.5 rounded-full">{block.sets}</span>
                                                         </div>
                                                         <div className="space-y-1 text-sm">
-                                                            {block.exercises.map((ex, exIndex) => {
-                                                                const details = [];
-                                                                if (ex.repType === 'reps' && ex.reps) {
-                                                                    details.push(ex.reps);
-                                                                }
-                                                                if (ex.repType === 'duration' && ex.duration) {
-                                                                    details.push(`${ex.duration} min`);
-                                                                }
-                                                                if (ex.weight) {
-                                                                    details.push(ex.weight);
-                                                                }
-
-                                                                return (
-                                                                    <div key={exIndex} className="flex justify-between items-center py-1 border-b border-dashed border-border/50 last:border-b-0">
-                                                                        <span className="text-card-foreground/90">{ex.name}</span>
-                                                                        {details.length > 0 && (
-                                                                            <span className="text-xs font-mono bg-muted text-muted-foreground px-2 py-0.5 rounded">{details.join(' / ')}</span>
+                                                            {block.exercises.map((ex, exIndex) => (
+                                                                <div key={exIndex} className="flex justify-between items-center py-1.5 border-b border-dashed border-border/50 last:border-b-0">
+                                                                    <span className="text-card-foreground/90">{ex.name}</span>
+                                                                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                                                        {ex.repType === 'reps' && ex.reps && (
+                                                                            <span className="flex items-center gap-1.5" title="Reps">
+                                                                                <Repeat className="w-4 h-4 text-primary/70" />
+                                                                                <span>{ex.reps}</span>
+                                                                            </span>
+                                                                        )}
+                                                                        {ex.repType === 'duration' && ex.duration && (
+                                                                            <span className="flex items-center gap-1.5" title="Duration">
+                                                                                <Clock className="w-4 h-4 text-primary/70" />
+                                                                                <span>{ex.duration} min</span>
+                                                                            </span>
+                                                                        )}
+                                                                        {ex.weight && (
+                                                                            <span className="flex items-center gap-1.5" title="Weight">
+                                                                                <Dumbbell className="w-4 h-4 text-primary/70" />
+                                                                                <span>{ex.weight}</span>
+                                                                            </span>
                                                                         )}
                                                                     </div>
-                                                                );
-                                                            })}
+                                                                </div>
+                                                            ))}
                                                         </div>
                                                     </div>
                                                 ))}
