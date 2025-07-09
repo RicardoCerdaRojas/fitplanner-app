@@ -7,6 +7,7 @@ const inputSchema = z.object({
   fitnessLevel: z.enum(['beginner', 'intermediate', 'advanced']),
   goals: z.string().min(10, "Please describe your goals in more detail."),
   availableEquipment: z.string().min(3, "Please list your available equipment."),
+  age: z.number().positive(),
 });
 
 export async function generateRoutineAction(values: GenerateWorkoutRoutineInput) {

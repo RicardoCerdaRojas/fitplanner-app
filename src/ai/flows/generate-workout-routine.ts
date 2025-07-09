@@ -22,6 +22,7 @@ const GenerateWorkoutRoutineInputSchema = z.object({
     ),
   availableEquipment:
     z.string().describe('The equipment available to the user.'),
+  age: z.number().describe('The age of the user.'),
 });
 export type GenerateWorkoutRoutineInput = z.infer<
   typeof GenerateWorkoutRoutineInputSchema
@@ -44,8 +45,9 @@ const prompt = ai.definePrompt({
   name: 'generateWorkoutRoutinePrompt',
   input: {schema: GenerateWorkoutRoutineInputSchema},
   output: {schema: GenerateWorkoutRoutineOutputSchema},
-  prompt: `You are an expert fitness trainer. Generate a workout routine based on the user's fitness level, goals, and available equipment.
+  prompt: `You are an expert fitness trainer. Generate a workout routine based on the user's age, fitness level, goals, and available equipment.
 
+Age: {{{age}}}
 Fitness Level: {{{fitnessLevel}}}
 Goals: {{{goals}}}
 Available Equipment: {{{availableEquipment}}}

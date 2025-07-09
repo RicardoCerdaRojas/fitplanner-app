@@ -9,44 +9,64 @@ import { WandSparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { generateRoutineAction } from '@/app/actions';
 import type { GenerateWorkoutRoutineOutput } from '@/ai/flows/generate-workout-routine';
+import { useAuth } from '@/contexts/auth-context';
 
 const formSchema = z.object({
   fitnessLevel: z.enum(['beginner', 'intermediate', 'advanced'], {
     required_error: 'Please select your fitness level.',
   }),
   goals: z.string().min(10, 'Please describe your goals in at least 10 characters.'),
-  availableEquipment: z.string().min(3, 'Please list at least one piece of equipment.'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 type AIWorkoutGeneratorProps = {
-  onRoutineGenerated: (routine: GenerateWorkoutRoutineOutput) => void;
+  onRoutineGenerated: (routine: GenerateWorkoutRoutineOutput | null) => void;
 };
 
 export function AIWorkoutGenerator({ onRoutineGenerated }: AIWorkoutGeneratorProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { userProfile } = useAuth();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       fitnessLevel: undefined,
       goals: '',
-      availableEquipment: '',
     },
   });
+
+  function calculateAge(dob: Date | undefined): number {
+    if (!dob) return 30; // Default age if not available for any reason
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+        age--;
+    }
+    return age;
+  }
 
   async function onSubmit(values: FormValues) {
     setIsLoading(true);
     onRoutineGenerated(null); // Clear previous routine
-    const result = await generateRoutineAction(values);
+
+    const dobDate = userProfile?.dob?.toDate();
+    const age = calculateAge(dobDate);
+
+    const routineInput = {
+      ...values,
+      age: age,
+      availableEquipment: 'Standard gym equipment, including free weights, benches, and cardio machines.',
+    };
+
+    const result = await generateRoutineAction(routineInput);
     setIsLoading(false);
 
     if (result.success && result.data) {
@@ -104,22 +124,9 @@ export function AIWorkoutGenerator({ onRoutineGenerated }: AIWorkoutGeneratorPro
                 <FormItem>
                   <FormLabel>Your Fitness Goals</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Lose weight, build muscle, improve cardio" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="availableEquipment"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Available Equipment</FormLabel>
-                  <FormControl>
                     <Textarea
-                      placeholder="e.g., Dumbbells, resistance bands, treadmill, or just bodyweight"
-                      className="resize-none"
+                      placeholder="e.g., Lose weight, build muscle, improve cardio endurance, prepare for a marathon..."
+                      className="resize-y min-h-[100px]"
                       {...field}
                     />
                   </FormControl>
