@@ -63,9 +63,9 @@ export async function getAthletesAction(gymId: string) {
     const athletes = athletesSnapshot.docs.map(doc => ({
       uid: doc.id,
       ...doc.data(),
-    })) as { uid: string; email: string; role: 'athlete' }[];
+    })) as { uid: string; email: string; name?: string; role: 'athlete' }[];
     
-    const athleteData = athletes.map(athlete => ({ uid: athlete.uid, name: athlete.email }));
+    const athleteData = athletes.map(athlete => ({ uid: athlete.uid, name: athlete.name || athlete.email }));
 
     return { success: true, data: athleteData };
   } catch (error) {

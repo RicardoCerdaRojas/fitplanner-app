@@ -2,13 +2,17 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
 type UserProfile = {
   role: 'athlete' | 'coach' | 'gym-admin' | null;
   email?: string;
   gymId?: string | null;
+  name?: string;
+  dob?: Timestamp;
+  plan?: 'basic' | 'premium' | 'pro';
+  status?: string;
 };
 
 type AuthContextType = {

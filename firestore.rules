@@ -1,31 +1,51 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function getUserData(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data;
     }
 
     match /users/{userId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
-    }
+      allow read, update: if isAuth() && request.auth.uid == userId;
+      allow create: if isAuth() && request.auth.uid == userId;
 
-    match /invites/{inviteEmail} {
-      // Allow a user to read and delete their own invitation during signup.
-      allow read, delete: if request.auth != null && request.auth.token.email == inviteEmail;
+      // Admin can list users in their gym
+      allow list: if isAuth() && getUserData(request.auth.uid).role == 'gym-admin';
     }
 
     match /gyms/{gymId} {
-    	allow create: if request.auth != null
-          && getUserData().gymId == null
-          && request.resource.data.adminUid == request.auth.uid;
-    }
-
-    match /routines/{routineId} {
-    	allow create: if request.auth != null && getUserData().role == 'coach';
+      allow read: if isAuth();
+      allow create: if isAuth() 
+                  && request.resource.data.adminUid == request.auth.uid 
+                  && getUserData(request.auth.uid).gymId == null;
     }
     
+    match /routines/{routineId} {
+        allow create: if isAuth() 
+                    && getUserData(request.auth.uid).role == 'coach' 
+                    && getUserData(request.auth.uid).gymId == request.resource.data.gymId;
+        allow read, write: if isAuth();
+    }
+
+    match /invites/{email} {
+      // Allow signed-in user to read/delete their own invite during signup
+      allow get, delete: if isAuth() && request.auth.token.email == email;
+      
+      // Allow admin to create invites for their own gym
+      allow create: if isAuth() 
+                  && getUserData(request.auth.uid).role == 'gym-admin'
+                  && request.resource.data.gymId == getUserData(request.auth.uid).gymId;
+                  
+      // Allow admin to list/delete invites in their own gym
+      allow list: if isAuth() && getUserData(request.auth.uid).role == 'gym-admin';
+      allow delete: if isAuth() 
+                   && getUserData(request.auth.uid).role == 'gym-admin' 
+                   && getUserData(request.auth.uid).gymId == get(/databases/$(database)/documents/invites/$(email)).data.gymId;
+    }
   }
 }

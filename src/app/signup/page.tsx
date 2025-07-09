@@ -54,11 +54,14 @@ export default function SignupPage() {
 
       if (inviteSnap.exists()) {
         // Invitation found: use its data
-        const { role, gymId } = inviteSnap.data();
+        const { role, gymId, name, dob, plan } = inviteSnap.data();
         await setDoc(userDocRef, {
           email: lowerCaseEmail,
           role,
           gymId,
+          name,
+          dob,
+          plan,
           status: 'active',
         });
         // Clean up the invitation
