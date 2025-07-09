@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import type { Routine } from './athlete-routine-list';
+import type { Routine, ExerciseProgress } from './athlete-routine-list';
 import { DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -89,10 +89,26 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
   
     const [currentIndex, setCurrentIndex] = useState(0);
     const [showVideo, setShowVideo] = useState(false);
+    const [progress, setProgress] = useState<ExerciseProgress>(routine.progress || {});
 
     const currentExerciseWithMeta = allExercises[currentIndex];
     const exerciseKey = `${currentExerciseWithMeta.blockIndex}-${currentExerciseWithMeta.exerciseIndex}`;
-    const currentProgress = routine.progress?.[exerciseKey];
+    const currentExerciseProgress = progress?.[exerciseKey];
+
+    const handleProgressUpdate = (newData: { completed?: boolean; difficulty?: 'easy' | 'medium' | 'hard' }) => {
+        const updatedProgressForExercise = {
+            ...(progress[exerciseKey] || { completed: false }),
+            ...newData,
+        };
+
+        const newProgressState = {
+            ...progress,
+            [exerciseKey]: updatedProgressForExercise,
+        };
+        
+        setProgress(newProgressState);
+        onProgressChange(routine.id, exerciseKey, progress[exerciseKey] || {}, newData);
+    };
 
     const handleNext = () => {
         setShowVideo(false);
@@ -171,14 +187,14 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                     <div className="flex items-center gap-2">
                         <Checkbox 
                             id={`session-cb-${exerciseKey}`}
-                            checked={currentProgress?.completed || false}
-                            onCheckedChange={(checked) => onProgressChange(routine.id, exerciseKey, currentProgress, { completed: !!checked })}
+                            checked={currentExerciseProgress?.completed || false}
+                            onCheckedChange={(checked) => handleProgressUpdate({ completed: !!checked })}
                         />
                         <label htmlFor={`session-cb-${exerciseKey}`} className="text-sm font-medium">Mark as Complete</label>
                     </div>
                     <Select 
-                        onValueChange={(value: 'easy' | 'medium' | 'hard') => onProgressChange(routine.id, exerciseKey, currentProgress, { difficulty: value })}
-                        value={currentProgress?.difficulty}
+                        onValueChange={(value: 'easy' | 'medium' | 'hard') => handleProgressUpdate({ difficulty: value })}
+                        value={currentExerciseProgress?.difficulty}
                     >
                         <SelectTrigger className="w-[140px] h-9 text-xs"><SelectValue placeholder="Rate Difficulty" /></SelectTrigger>
                         <SelectContent>
