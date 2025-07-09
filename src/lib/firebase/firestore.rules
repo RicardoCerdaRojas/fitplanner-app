@@ -1,0 +1,62 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuth() && request.auth.uid == userId;
+    }
+
+    function getUserData(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data;
+    }
+
+    function isRoleInGym(userId, role, gymId) {
+      let userData = getUserData(userId);
+      return userData.role == role && userData.gymId == gymId;
+    }
+
+    // A user can always read/write their own data.
+    // An admin can read data for any user within their own gym.
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+      allow read: if isAuth() && isRoleInGym(request.auth.uid, 'gym-admin', resource.data.gymId);
+    }
+
+    // Users can read their gym's data.
+    // Only admins of that gym can write to it.
+    match /gyms/{gymId} {
+      allow read: if isAuth() && getUserData(request.auth.uid).gymId == gymId;
+      allow write: if isAuth() && isRoleInGym(request.auth.uid, 'gym-admin', gymId);
+    }
+
+    // Athletes can read/write their own routines.
+    // Coaches and admins can read/write any routine within their gym.
+    match /routines/{routineId} {
+      allow read, write: if isOwner(resource.data.athleteId);
+      allow read, write: if isAuth() && 
+                          (isRoleInGym(request.auth.uid, 'coach', resource.data.gymId) || 
+                           isRoleInGym(request.auth.uid, 'gym-admin', resource.data.gymId));
+    }
+    
+    // Any user in a gym can read routine types.
+    // Only admins of that gym can create/delete them.
+    match /routineTypes/{typeId} {
+      allow read: if isAuth() && getUserData(request.auth.uid).gymId == resource.data.gymId;
+      allow write: if isAuth() && isRoleInGym(request.auth.uid, 'gym-admin', resource.data.gymId);
+    }
+
+    // Users can read/delete their own invite when signing up.
+    // Admins can manage all invites for their gym.
+    match /invites/{inviteEmail} {
+      allow read, delete: if isAuth() && request.auth.token.email == inviteEmail;
+      allow read, write: if isAuth() && isRoleInGym(request.auth.uid, 'gym-admin', resource.data.gymId);
+    }
+  }
+}
