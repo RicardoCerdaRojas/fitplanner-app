@@ -1,7 +1,9 @@
+
 'use server';
 
 import { adminDb } from '@/lib/firebase-admin';
 import { z } from 'zod';
+import { Timestamp } from 'firebase-admin/firestore';
 
 const exerciseSchema = z.object({
   name: z.string().min(2, 'Exercise name is required.'),
@@ -35,9 +37,11 @@ export async function saveRoutineAction(routineData: z.infer<typeof routineSchem
     }
 
     try {
+        const { routineDate, ...restOfData } = validation.data;
         const docToWrite = {
-            ...validation.data,
-            createdAt: new Date(),
+            ...restOfData,
+            routineDate: Timestamp.fromDate(routineDate),
+            createdAt: Timestamp.now(),
         };
         await adminDb.collection('routines').add(docToWrite);
         return { success: true };
