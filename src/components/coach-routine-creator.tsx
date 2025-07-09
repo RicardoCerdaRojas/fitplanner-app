@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useForm, useFieldArray, useWatch, Control } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch, Control, useController, FieldPath } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from "date-fns";
-import { Plus, ClipboardPlus, Calendar as CalendarIcon, Edit, X } from 'lucide-react';
+import { Plus, ClipboardPlus, Calendar as CalendarIcon, Edit, X, Minus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -78,7 +78,7 @@ const defaultFormValues = {
   routineName: '',
   athleteId: '',
   routineDate: new Date(),
-  blocks: [{ name: 'Warm-up', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' }] }],
+  blocks: [{ name: 'Warm-up', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '10', weight: '', videoUrl: '' }] }],
 };
 
 export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineSaved }: CoachRoutineCreatorProps) {
@@ -132,7 +132,7 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
 
 
   const handleAddBlock = () => {
-    appendBlock({ name: `Block ${blockFields.length + 1}`, sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' }] });
+    appendBlock({ name: `Block ${blockFields.length + 1}`, sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '10', weight: '', videoUrl: '' }] });
   };
 
 
@@ -209,7 +209,7 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
                           <Input
                             value={routineToEdit.userName}
                             disabled
-                            className="font-semibold"
+                            className="font-semibold h-10"
                           />
                         </FormControl>
                       ) : (
@@ -250,7 +250,7 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
                   control={form.control}
                   name="routineDate"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>Routine Date</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
@@ -269,13 +269,13 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
                 />
             </div>
             
-            <div className="pt-4">
+            <div className="pt-4 border-t">
               <FormLabel>Workout Blocks</FormLabel>
               <Tabs value={activeBlockId} onValueChange={setActiveBlockId} className="w-full mt-2">
-                <div className="flex items-center gap-2 pb-2 mb-4 overflow-x-auto">
+                <div className="flex items-center gap-2 pb-2 mb-4 overflow-x-auto border-b">
                     <TabsList className="relative bg-transparent p-0 gap-2">
                         {blockFields.map((field, index) => (
-                            <TabsTrigger key={field.id} value={field.id} className="relative pr-8 border border-input data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:text-primary rounded-full">
+                            <TabsTrigger key={field.id} value={field.id} className="relative pr-8 border border-input data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:text-primary rounded-md">
                                 Block {index + 1}
                                 {blockFields.length > 1 && (
                                     <div role="button" aria-label={`Remove Block ${index + 1}`} onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeBlock(index);}} className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-destructive/20 hover:text-destructive cursor-pointer">
@@ -285,7 +285,7 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
                             </TabsTrigger>
                         ))}
                     </TabsList>
-                    <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={handleAddBlock}>
+                    <Button type="button" size="sm" variant="outline" className="rounded-md" onClick={handleAddBlock}>
                         <Plus className="mr-2 h-4 w-4" /> Add Block
                     </Button>
                 </div>
@@ -343,14 +343,14 @@ function ExerciseEditor({ blockIndex, control, watch }: { blockIndex: number, co
   }, [fields, lastExerciseCount]);
 
   const handleAddExercise = () => {
-    append({ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' });
+    append({ name: '', repType: 'reps', reps: '12', duration: '10', weight: '', videoUrl: '' });
   };
   
   if (fields.length === 0) {
       return (
           <div className="text-center p-4 border-t pt-6 mt-4">
               <p className="text-muted-foreground mb-2">This block has no exercises.</p>
-              <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={handleAddExercise}>
+              <Button type="button" size="sm" variant="outline" className="rounded-md" onClick={handleAddExercise}>
                 <Plus className="mr-2 h-4 w-4" /> Add First Exercise
               </Button>
           </div>
@@ -364,7 +364,7 @@ function ExerciseEditor({ blockIndex, control, watch }: { blockIndex: number, co
         <div className="flex items-center gap-2 pb-2 mb-2 overflow-x-auto">
             <TabsList className="relative bg-transparent p-0 gap-2">
                 {fields.map((field, index) => (
-                    <TabsTrigger key={field.id} value={field.id} className="relative pr-8 border border-input data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:text-primary rounded-full">
+                    <TabsTrigger key={field.id} value={field.id} className="relative pr-8 border border-input data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:text-primary rounded-md">
                         Exercise {index + 1}
                         {fields.length > 1 && (
                              <div role="button" aria-label={`Remove Exercise ${index + 1}`} onClick={(e) => { e.stopPropagation(); e.preventDefault(); remove(index);}} className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-destructive/20 hover:text-destructive cursor-pointer">
@@ -374,7 +374,7 @@ function ExerciseEditor({ blockIndex, control, watch }: { blockIndex: number, co
                     </TabsTrigger>
                 ))}
             </TabsList>
-             <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={handleAddExercise}>
+             <Button type="button" size="sm" variant="outline" className="rounded-md" onClick={handleAddExercise}>
                 <Plus className="mr-2 h-4 w-4" /> Add Exercise
             </Button>
         </div>
@@ -392,9 +392,25 @@ function ExerciseEditor({ blockIndex, control, watch }: { blockIndex: number, co
                     )}/>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                         {watch(`blocks.${blockIndex}.exercises.${index}.repType`) === 'reps' ? (
-                            <FormField control={control} name={`blocks.${blockIndex}.exercises.${index}.reps`} render={({ field }) => (<FormItem><FormLabel>Reps</FormLabel><FormControl><Input placeholder="e.g., 3x12" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                           <FormField control={control} name={`blocks.${blockIndex}.exercises.${index}.reps`} render={() => (
+                                <FormItem>
+                                    <FormLabel>Reps</FormLabel>
+                                    <FormControl>
+                                        <StepperInput control={control} name={`blocks.${blockIndex}.exercises.${index}.reps`} placeholder="12" />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
                         ) : (
-                            <FormField control={control} name={`blocks.${blockIndex}.exercises.${index}.duration`} render={({ field }) => (<FormItem><FormLabel>Duration (minutes)</FormLabel><FormControl><Input type="number" placeholder="e.g., 10" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={control} name={`blocks.${blockIndex}.exercises.${index}.duration`} render={() => (
+                                <FormItem>
+                                    <FormLabel>Duration (minutes)</FormLabel>
+                                    <FormControl>
+                                        <StepperInput control={control} name={`blocks.${blockIndex}.exercises.${index}.duration`} placeholder="10" />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
                         )}
                          <FormField control={control} name={`blocks.${blockIndex}.exercises.${index}.weight`} render={({ field }) => (<FormItem><FormLabel>Weight</FormLabel><FormControl><Input placeholder="e.g., 50kg or Bodyweight" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
@@ -407,6 +423,38 @@ function ExerciseEditor({ blockIndex, control, watch }: { blockIndex: number, co
   )
 }
 
-    
+const StepperInput = ({ control, name, ...props }: { control: Control<FormValues>; name: FieldPath<FormValues>; [key: string]: any }) => {
+  const { field } = useController({
+    name,
+    control,
+  });
 
-    
+  const handleStep = (amount: number) => {
+    const currentValue = parseInt(field.value, 10);
+    const numericValue = isNaN(currentValue) ? 0 : currentValue;
+    const newValue = numericValue + amount;
+    if (newValue >= 0) {
+      field.onChange(String(newValue));
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => handleStep(-1)} aria-label="Decrement">
+        <Minus className="h-4 w-4" />
+      </Button>
+      <Input
+        {...field}
+        {...props}
+        className="h-10 text-center font-semibold text-base"
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        onFocus={(e) => e.target.select()}
+      />
+      <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => handleStep(1)} aria-label="Increment">
+        <Plus className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
