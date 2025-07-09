@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AdminNav } from '@/components/admin-nav';
 
 export default function AdminPage() {
     const { user, userProfile, loading } = useAuth();
@@ -38,7 +39,8 @@ export default function AdminPage() {
             <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
                 <AppHeader />
                 <div className="w-full max-w-6xl">
-                    <h1 className="text-3xl font-bold font-headline mb-8">Admin Dashboard</h1>
+                    <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
+                    <AdminNav />
                     {userProfile.gymId && <AdminUserManagement gymId={userProfile.gymId} />}
                 </div>
             </main>

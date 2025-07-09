@@ -8,6 +8,7 @@ import { CoachWorkoutDisplay, type CoachRoutine } from '@/components/coach-worko
 import { AppHeader } from '@/components/app-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAthletesAction } from './actions';
+import { AdminNav } from '@/components/admin-nav';
 
 export type Athlete = {
   uid: string;
@@ -65,6 +66,14 @@ export default function CoachPage() {
         <AppHeader />
         
         <div className="w-full max-w-4xl">
+          {userProfile?.role === 'gym-admin' ? (
+              <>
+                  <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
+                  <AdminNav />
+              </>
+            ) : (
+                <h1 className="text-3xl font-bold font-headline mb-8">Coach Dashboard</h1>
+            )}
           {userProfile?.gymId && <CoachRoutineCreator onRoutineCreated={setRoutine} athletes={athletes} gymId={userProfile.gymId} />}
           <CoachWorkoutDisplay routine={routine} />
         </div>
