@@ -65,10 +65,15 @@ export async function getGymUsersAction(gymId: string) {
         }
         
         const mappedUsers = usersSnapshot.docs
-            .map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            }))
+            .map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    email: data.email,
+                    role: data.role,
+                    status: data.status,
+                };
+            })
             .filter(user => user.role && user.role !== null); // Filter out users pending gym creation
             
         const users = mappedUsers as { id: string, email: string, role: 'athlete' | 'coach' | 'gym-admin', status?: string }[];
