@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
-import { getYouTubeEmbedUrl } from '@/lib/utils';
+import ReactPlayer from 'react-player/lazy';
 
 // Timer Component
 const Timer = ({ durationString, isCurrent }: { durationString: string; isCurrent: boolean }) => {
@@ -101,8 +101,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     const currentExerciseWithMeta = allExercises[currentIndex];
     const exerciseKey = `${currentExerciseWithMeta.blockIndex}-${currentExerciseWithMeta.exerciseIndex}`;
     const currentExerciseProgress = progress?.[exerciseKey];
-    const embedUrl = getYouTubeEmbedUrl(currentExerciseWithMeta.videoUrl);
-
+    
     const handleProgressUpdate = (newData: { completed?: boolean; difficulty?: 'easy' | 'medium' | 'hard' }) => {
         const updatedProgressForExercise = {
             ...(progress[exerciseKey] || { completed: false }),
@@ -153,21 +152,14 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
             <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-muted/20 overflow-y-auto">
                 {showVideo && currentExerciseWithMeta.videoUrl ? (
                     <div className="w-full max-w-2xl flex flex-col items-center gap-4">
-                        <div className="w-full aspect-video bg-black rounded-lg">
-                            {embedUrl ? (
-                                <iframe
-                                    src={embedUrl}
-                                    title="YouTube video player"
-                                    frameBorder="0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                    allowFullScreen
-                                    className="w-full h-full rounded-lg"
-                                ></iframe>
-                            ) : (
-                                <video controls autoPlay muted src={currentExerciseWithMeta.videoUrl} className="w-full h-full rounded-lg" key={currentExerciseWithMeta.videoUrl}>
-                                    Your browser does not support the video tag.
-                                </video>
-                            )}
+                        <div className="w-full aspect-video bg-black rounded-lg overflow-hidden">
+                           <ReactPlayer
+                                url={currentExerciseWithMeta.videoUrl}
+                                playing
+                                controls
+                                width="100%"
+                                height="100%"
+                            />
                         </div>
                         <Button variant="outline" onClick={() => setShowVideo(false)}>
                             <ChevronLeft className="mr-2 h-4 w-4" /> Back to Exercise
