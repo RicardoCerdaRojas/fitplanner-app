@@ -4,8 +4,8 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from "date-fns";
-import { PlusCircle, Trash2, ClipboardCheck, Calendar as CalendarIcon } from 'lucide-react';
-import { useState } from 'react';
+import { PlusCircle, Trash2, ClipboardCheck, Calendar as CalendarIcon, Edit } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,8 +20,10 @@ import type { CoachRoutine } from './coach-workout-display';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import type { Athlete } from '@/app/coach/page';
-import { addDoc, collection, Timestamp } from 'firebase/firestore';
+import { addDoc, collection, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import type { ManagedRoutine } from './coach-routine-management';
+
 
 const exerciseSchema = z.object({
   name: z.string().min(2, 'Exercise name is required.'),
@@ -67,21 +69,39 @@ type CoachRoutineCreatorProps = {
   onRoutineCreated: (routine: CoachRoutine | null) => void;
   athletes: Athlete[];
   gymId: string;
+  routineToEdit?: ManagedRoutine | null;
+  onRoutineSaved: () => void;
 };
 
-export function CoachRoutineCreator({ onRoutineCreated, athletes, gymId }: CoachRoutineCreatorProps) {
+const defaultFormValues = {
+  athleteId: '',
+  routineDate: new Date(),
+  blocks: [{ name: 'Block A', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' }] }],
+};
+
+export function CoachRoutineCreator({ onRoutineCreated, athletes, gymId, routineToEdit, onRoutineSaved }: CoachRoutineCreatorProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  const isEditing = !!routineToEdit;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(routineSchema),
-    defaultValues: {
-      athleteId: '',
-      routineDate: new Date(),
-      blocks: [{ name: 'Block A', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' }] }],
-    },
+    defaultValues: defaultFormValues,
   });
+  
+  useEffect(() => {
+      if (routineToEdit) {
+          form.reset({
+              athleteId: routineToEdit.athleteId,
+              routineDate: routineToEdit.routineDate,
+              blocks: routineToEdit.blocks,
+          });
+      } else {
+          form.reset(defaultFormValues);
+      }
+  }, [routineToEdit, form]);
 
   const { fields: blockFields, append: appendBlock, remove: removeBlock } = useFieldArray({
     control: form.control,
@@ -90,21 +110,13 @@ export function CoachRoutineCreator({ onRoutineCreated, athletes, gymId }: Coach
 
   async function onSubmit(values: FormValues) {
     if (!user) {
-      toast({
-        variant: 'destructive',
-        title: 'Not Authenticated',
-        description: 'You must be logged in as a coach to save a routine.',
-      });
+      toast({ variant: 'destructive', title: 'Not Authenticated', description: 'You must be logged in to save a routine.' });
       return;
     }
 
     const selectedAthlete = athletes.find((a) => a.uid === values.athleteId);
     if (!selectedAthlete) {
-      toast({
-        variant: 'destructive',
-        title: 'Invalid Client',
-        description: 'The selected client could not be found.',
-      });
+      toast({ variant: 'destructive', title: 'Invalid Client', description: 'The selected client could not be found.' });
       return;
     }
     
@@ -115,50 +127,36 @@ export function CoachRoutineCreator({ onRoutineCreated, athletes, gymId }: Coach
         gymId: gymId,
     };
     
-    // The preview component expects a standard Date object.
     onRoutineCreated(routineData);
 
     const docToWrite = {
         ...routineData,
         routineDate: Timestamp.fromDate(routineData.routineDate),
-        createdAt: Timestamp.now(),
+        createdAt: isEditing ? routineToEdit.createdAt : Timestamp.now(), // Keep original creation date
+        updatedAt: Timestamp.now(),
     };
+    // This is a Firestore object, remove non-serializable fields if they exist
+    delete (docToWrite as any).id;
 
     setIsSubmitting(true);
 
     try {
-      await addDoc(collection(db, 'routines'), docToWrite);
-
-      setIsSubmitting(false);
-
-      toast({
-        title: 'Routine Saved!',
-        description: `The routine for ${routineData.userName} has been saved successfully.`,
-      });
-      form.reset({
-        athleteId: '',
-        routineDate: new Date(),
-        blocks: [
-          {
-            name: 'Block A',
-            sets: '3 Sets',
-            exercises: [
-              { name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' },
-            ],
-          },
-        ],
-      });
-      onRoutineCreated(null);
+        if(isEditing) {
+            const routineRef = doc(db, 'routines', routineToEdit.id);
+            await updateDoc(routineRef, docToWrite);
+            toast({ title: 'Routine Updated!', description: `The routine for ${routineData.userName} has been updated.` });
+        } else {
+            await addDoc(collection(db, 'routines'), docToWrite);
+            toast({ title: 'Routine Saved!', description: `The routine for ${routineData.userName} has been saved successfully.` });
+        }
+      
+      onRoutineSaved(); // This will clear the editing state in parent
+      onRoutineCreated(null); // Clear preview
     } catch (error: any) {
-      setIsSubmitting(false);
       console.error('Error saving routine:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Save Failed',
-        description:
-          error.message ||
-          'An unexpected error occurred while saving the routine.',
-      });
+      toast({ variant: 'destructive', title: 'Save Failed', description: error.message || 'An unexpected error occurred.' });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
@@ -166,10 +164,10 @@ export function CoachRoutineCreator({ onRoutineCreated, athletes, gymId }: Coach
     <Card className="w-full max-w-4xl mx-auto shadow-lg border-2 border-primary/20">
       <CardHeader>
         <div className="flex items-center gap-3">
-          <ClipboardCheck className="w-8 h-8 text-primary" />
+          {isEditing ? <Edit className="w-8 h-8 text-primary" /> : <ClipboardCheck className="w-8 h-8 text-primary" />}
           <div>
-            <CardTitle className="font-headline text-2xl">Create a New Routine</CardTitle>
-            <CardDescription>Design a personalized workout session for a client.</CardDescription>
+            <CardTitle className="font-headline text-2xl">{isEditing ? 'Edit Routine' : 'Create a New Routine'}</CardTitle>
+            <CardDescription>{isEditing ? `You are editing a routine for ${routineToEdit.userName}.` : 'Design a personalized workout session for a client.'}</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -183,7 +181,7 @@ export function CoachRoutineCreator({ onRoutineCreated, athletes, gymId }: Coach
                   render={({ field }) => (
                       <FormItem>
                       <FormLabel>Client's Name</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isEditing}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select a client to assign the routine" />
@@ -272,9 +270,12 @@ export function CoachRoutineCreator({ onRoutineCreated, athletes, gymId }: Coach
                 </Button>
             </div>
 
-            <div className="flex justify-end items-center">
+            <div className="flex justify-end items-center gap-4">
+              {isEditing && (
+                  <Button type="button" variant="outline" onClick={onRoutineSaved}>Cancel Edit</Button>
+              )}
               <Button type="submit" className="w-auto bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg py-6" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving Routine...' : 'Create and Save Routine'}
+                {isSubmitting ? 'Saving...' : (isEditing ? 'Update Routine' : 'Create and Save Routine')}
               </Button>
             </div>
           </form>

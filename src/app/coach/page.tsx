@@ -8,9 +8,10 @@ import { CoachWorkoutDisplay, type CoachRoutine } from '@/components/coach-worko
 import { AppHeader } from '@/components/app-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AdminNav } from '@/components/admin-nav';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { CoachRoutineManagement, type ManagedRoutine } from '@/components/coach-routine-management';
 
 export type Athlete = {
   uid: string;
@@ -24,6 +25,10 @@ export default function CoachPage() {
   const [routine, setRoutine] = useState<CoachRoutine | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [isLoadingAthletes, setIsLoadingAthletes] = useState(true);
+  const [routines, setRoutines] = useState<ManagedRoutine[]>([]);
+  const [isLoadingRoutines, setIsLoadingRoutines] = useState(true);
+  const [editingRoutine, setEditingRoutine] = useState<ManagedRoutine | null>(null);
+
 
   useEffect(() => {
     if (!loading) {
@@ -35,6 +40,7 @@ export default function CoachPage() {
     }
   }, [user, userProfile, loading, router]);
 
+  // Fetch athletes
   useEffect(() => {
     if (loading || !userProfile?.gymId) {
       setIsLoadingAthletes(false);
@@ -72,6 +78,57 @@ export default function CoachPage() {
     return () => unsubscribe();
   }, [userProfile?.gymId, loading, toast]);
 
+  // Fetch routines for management
+  useEffect(() => {
+    if (loading || !userProfile?.gymId) {
+      setIsLoadingRoutines(false);
+      return;
+    }
+
+    setIsLoadingRoutines(true);
+    const routinesQuery = query(
+      collection(db, 'routines'),
+      where('gymId', '==', userProfile.gymId)
+    );
+
+    const unsubscribe = onSnapshot(routinesQuery, (snapshot) => {
+        const fetchedRoutines = snapshot.docs.map(doc => {
+            const data = doc.data();
+            // Ensure data has the required fields before casting
+            if (data.athleteId && data.userName && data.routineDate) {
+                return {
+                    id: doc.id,
+                    ...data,
+                    routineDate: (data.routineDate as Timestamp).toDate(),
+                } as ManagedRoutine;
+            }
+            return null;
+        }).filter((r): r is ManagedRoutine => r !== null) // Filter out nulls
+          .sort((a, b) => b.routineDate.getTime() - a.routineDate.getTime());
+        setRoutines(fetchedRoutines);
+        setIsLoadingRoutines(false);
+    }, (error) => {
+        console.error("Error fetching routines: ", error);
+        toast({
+            variant: 'destructive',
+            title: 'Database Error',
+            description: 'Could not fetch routines. Please check the console for details.',
+        });
+        setIsLoadingRoutines(false);
+    });
+
+    return () => unsubscribe();
+  }, [userProfile?.gymId, loading, toast]);
+  
+  const handleEditRoutine = (routine: ManagedRoutine) => {
+    setEditingRoutine(routine);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
+  const handleRoutineSaved = () => {
+    setEditingRoutine(null); // Clear editing state
+  };
+
 
   if (loading || !user || (userProfile?.role !== 'coach' && userProfile?.role !== 'gym-admin')) {
     return (
@@ -101,9 +158,14 @@ export default function CoachPage() {
                 <h1 className="text-3xl font-bold font-headline mb-8">Coach Dashboard</h1>
             )}
           {isLoadingAthletes ? <Skeleton className="h-96 w-full"/> : (
-            userProfile?.gymId && <CoachRoutineCreator onRoutineCreated={setRoutine} athletes={athletes} gymId={userProfile.gymId} />
+            userProfile?.gymId && <CoachRoutineCreator onRoutineCreated={setRoutine} athletes={athletes} gymId={userProfile.gymId} routineToEdit={editingRoutine} onRoutineSaved={handleRoutineSaved} />
           )}
           <CoachWorkoutDisplay routine={routine} />
+          {isLoadingRoutines ? (
+              <Skeleton className="h-96 w-full mt-8" />
+          ) : (
+              <CoachRoutineManagement routines={routines} onEdit={handleEditRoutine} />
+          )}
         </div>
       </main>
 
