@@ -33,7 +33,7 @@ export function AppHeader() {
                     <Dumbbell className="w-10 h-10 text-primary group-hover:animate-bounce" />
                 )}
                 <h1 className="font-headline text-4xl font-bold text-card-foreground">
-                    Fitness Flow
+                    {gymProfile?.name || 'Fitness Flow'}
                 </h1>
             </Link>
             <div className="flex items-center gap-2">

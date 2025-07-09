@@ -35,13 +35,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [gymProfile, setGymProfile] = useState<GymProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileChecked, setProfileChecked] = useState(false);
 
   // Effect for auth state changes
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
       setUser(authUser);
+      setProfileChecked(false); // Reset check on auth change
       if (!authUser) {
         setLoading(false);
+        setUserProfile(null);
+        setGymProfile(null);
       }
     });
     return () => unsubscribeAuth();
@@ -55,36 +59,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const unsubscribeSnapshot = onSnapshot(
         userDocRef,
         (doc) => {
-          if (doc.exists()) {
-            setUserProfile(doc.data() as UserProfile);
-          } else {
-            setUserProfile(null);
-            setLoading(false);
-          }
-          // Do not set loading to false here, wait for gym profile
+          setUserProfile(doc.exists() ? (doc.data() as UserProfile) : null);
+          setProfileChecked(true);
         },
         (error) => {
           console.error('Error fetching user profile:', error);
           setUserProfile(null);
-          setLoading(false);
+          setProfileChecked(true); // Also mark as checked on error
         }
       );
       return () => unsubscribeSnapshot();
     } else {
       setUserProfile(null);
+      setProfileChecked(false);
     }
   }, [user]);
 
-  // Effect for gym profile data, dependent on userProfile
+  // Effect for gym profile data, dependent on userProfile AND the check status
   useEffect(() => {
+    if (!profileChecked) {
+      return; // Do nothing until the user profile has been checked
+    }
+
     if (userProfile?.gymId) {
         const gymDocRef = doc(db, 'gyms', userProfile.gymId);
         const unsubscribe = onSnapshot(gymDocRef, (doc) => {
-            if(doc.exists()) {
-                setGymProfile(doc.data() as GymProfile);
-            } else {
-                setGymProfile(null);
-            }
+            setGymProfile(doc.exists() ? (doc.data() as GymProfile) : null);
             setLoading(false);
         }, (error) => {
             console.error('Error fetching gym profile:', error);
@@ -92,12 +92,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setLoading(false);
         });
         return () => unsubscribe();
-    } else if (user && !userProfile?.gymId) {
-        // User exists but has no gym, so we are done loading
+    } else {
+        // The profile was checked and there's no gymId
         setGymProfile(null);
         setLoading(false);
     }
-  }, [userProfile, user]);
+  }, [profileChecked, userProfile]);
 
   return (
     <AuthContext.Provider value={{ user, userProfile, gymProfile, loading }}>
