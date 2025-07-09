@@ -2,39 +2,35 @@
 
 import { getStorage } from 'firebase-admin/storage';
 import { adminDb } from '@/lib/firebase-admin';
-import { auth } from 'firebase-admin';
 import { v4 as uuidv4 } from 'uuid';
-
-async function verifyAdmin(gymId: string, adminUid: string | undefined): Promise<boolean> {
-  if (!adminUid) {
-    console.error('Authentication check failed: No current user UID provided.');
-    return false;
-  }
-
-  try {
-    const userDoc = await adminDb.collection('users').doc(adminUid).get();
-    if (!userDoc.exists) {
-      console.error(`Admin verification failed: User document not found for UID ${adminUid}.`);
-      return false;
-    }
-    const userData = userDoc.data();
-    if (userData?.role === 'gym-admin' && userData?.gymId === gymId) {
-      return true;
-    }
-    console.error(`Admin verification failed: User ${adminUid} is not an admin for gym ${gymId}. Role: ${userData?.role}, GymID: ${userData?.gymId}`);
-    return false;
-  } catch (error) {
-    console.error('Error during admin verification:', error);
-    return false;
-  }
-}
 
 export async function getSignedUrlAction(gymId: string, fileType: string, fileSize: number, adminUid: string | undefined) {
   if (!gymId) {
     return { failure: 'Missing Gym ID.' };
   }
 
-  const isAuthorized = await verifyAdmin(gymId, adminUid);
+  // --- Verification Logic ---
+  let isAuthorized = false;
+  if (adminUid) {
+    try {
+      const userDoc = await adminDb.collection('users').doc(adminUid).get();
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        if (userData?.role === 'gym-admin' && userData?.gymId === gymId) {
+          isAuthorized = true;
+        } else {
+           console.error(`Authorization failed: Role or GymID mismatch. User Role: ${userData?.role}, User GymID: ${userData?.gymId}, Target GymID: ${gymId}`);
+        }
+      } else {
+        console.error(`Authorization failed: User document not found for UID ${adminUid}.`);
+      }
+    } catch (error) {
+      console.error('Error during admin verification inside action:', error);
+      isAuthorized = false;
+    }
+  }
+  // --- End Verification ---
+
   if (!isAuthorized) {
     return { failure: 'User is not authorized to upload to this gym.' };
   }
@@ -47,7 +43,11 @@ export async function getSignedUrlAction(gymId: string, fileType: string, fileSi
   }
 
   try {
-    const bucket = getStorage().bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
+    const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+    if (!bucketName) {
+        throw new Error("Firebase Storage Bucket name is not configured on the server.");
+    }
+    const bucket = getStorage().bucket(bucketName);
     const fileName = `${uuidv4()}`;
     const filePath = `logos/${gymId}/${fileName}`;
     
@@ -65,8 +65,8 @@ export async function getSignedUrlAction(gymId: string, fileType: string, fileSi
     const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filePath)}?alt=media`;
 
     return { success: { signedUrl: url, publicUrl: publicUrl } };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error generating signed URL:', error);
-    return { failure: 'Could not generate upload URL.' };
+    return { failure: error.message || 'Could not generate upload URL.' };
   }
 }
