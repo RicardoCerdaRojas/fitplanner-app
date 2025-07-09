@@ -9,6 +9,7 @@ import { Skeleton } from './ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/contexts/theme-provider';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 export function AppHeader() {
     const { user, gymProfile, loading } = useAuth();
@@ -32,8 +33,11 @@ export function AppHeader() {
                 ) : (
                     <Dumbbell className="w-10 h-10 text-primary group-hover:animate-bounce" />
                 )}
-                <h1 className="font-headline text-4xl font-bold text-card-foreground">
-                    {gymProfile?.name || 'Fitness Flow'}
+                <h1 className={cn(
+                    "font-headline font-bold text-card-foreground",
+                    gymProfile?.logoUrl ? "text-2xl" : "text-4xl"
+                )}>
+                    {gymProfile?.logoUrl ? 'Fitness Flow' : (gymProfile?.name || 'Fitness Flow')}
                 </h1>
             </Link>
             <div className="flex items-center gap-2">
