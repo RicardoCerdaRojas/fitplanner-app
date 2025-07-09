@@ -1,11 +1,19 @@
 rules_version = '2';
+
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow public read for logos so they can be displayed in the app.
+    // Allow public read access to all logos
     match /logos/{gymId}/{allPaths=**} {
       allow read;
-      // All writes must go through the signed URL action, so direct writes are denied.
-      allow write: if false;
+    }
+
+    // Allow a gym-admin to write to their own gym's logo folder.
+    // We first check if the user's document exists before trying to access its data.
+    match /logos/{gymId}/{fileName} {
+      allow write: if request.auth != null &&
+                      exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+                      get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'gym-admin' &&
+                      get(/databases/(default)/documents/users/$(request.auth.uid)).data.gymId == gymId;
     }
   }
 }
