@@ -28,36 +28,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Effect for auth state changes
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUser(user);
-        setLoading(true);
-        const userDocRef = doc(db, 'users', user.uid);
-        const unsubscribeSnapshot = onSnapshot(userDocRef, (doc) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
+      setUser(authUser);
+      setLoading(false);
+    });
+    return () => unsubscribeAuth();
+  }, []);
+
+  // Effect for profile data, dependent on user
+  useEffect(() => {
+    if (user) {
+      setLoading(true);
+      const userDocRef = doc(db, 'users', user.uid);
+      const unsubscribeSnapshot = onSnapshot(
+        userDocRef,
+        (doc) => {
           if (doc.exists()) {
             setUserProfile(doc.data() as UserProfile);
           } else {
-            setUserProfile({ role: null, gymId: null });
+            setUserProfile(null);
           }
           setLoading(false);
-        }, (error) => {
-            console.error("Error fetching user profile:", error);
-            setUserProfile({ role: null, gymId: null });
-            setLoading(false);
-        });
+        },
+        (error) => {
+          console.error('Error fetching user profile:', error);
+          setUserProfile(null);
+          setLoading(false);
+        }
+      );
 
-        // Detach snapshot listener when user logs out
-        return () => unsubscribeSnapshot();
-      } else {
-        setUser(null);
-        setUserProfile(null);
-        setLoading(false);
-      }
-    });
-
-    return () => unsubscribeAuth();
-  }, []);
+      // This cleanup function will be called when `user` changes (i.e., on logout)
+      return () => unsubscribeSnapshot();
+    } else {
+      // User is null, so clear the profile
+      setUserProfile(null);
+    }
+  }, [user]);
 
   return (
     <AuthContext.Provider value={{ user, userProfile, loading }}>
