@@ -20,8 +20,8 @@ import { useRouter } from 'next/navigation';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { UserPlus } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { setUserRoleAction } from '@/app/auth/actions';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -50,18 +50,26 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const { user } = userCredential;
       
-      const roleResult = await setUserRoleAction({ uid: user.uid, role: values.role });
-
-      if (!roleResult.success) {
-        throw new Error(roleResult.error);
-      }
+      // Use the client-side SDK to create the user's role document.
+      // This is secure because of the updated Firestore rules.
+      await setDoc(doc(db, 'users', user.uid), {
+        role: values.role,
+      });
       
       router.push('/');
     } catch (error: any) {
+      let description = 'An unexpected error occurred. Please try again.';
+      if (error.code === 'auth/email-already-in-use') {
+        description = 'This email is already registered.';
+      } else if (error.code === 'permission-denied') {
+        description = 'Could not set user role. Please ensure you have deployed the latest Firestore security rules.';
+      } else {
+        description = error.message;
+      }
       toast({
         variant: 'destructive',
         title: 'Sign Up Failed',
-        description: error.code === 'auth/email-already-in-use' ? 'This email is already registered.' : error.message,
+        description: description,
       });
     }
   }

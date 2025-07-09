@@ -1,15 +1,15 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId} {
-      // A user can read, update, and delete their own profile.
-      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      // Allow a user to create their own user document upon signup.
+      // The document must contain only the 'role' field, and the user must be the owner.
+      allow create: if request.auth != null && request.auth.uid == userId &&
+                       request.resource.data.keys().hasOnly(['role']) &&
+                       (request.resource.data.role == 'athlete' || request.resource.data.role == 'coach');
       
-      // The signup action can create a user profile, but only with a valid role.
-      // This is secure because it strictly limits the initial document's content.
-      allow create: if request.resource.data.keys().hasOnly(['role'])
-                    && request.resource.data.role in ['athlete', 'coach'];
+      // Allow an authenticated user to read, update, or delete their own document.
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
