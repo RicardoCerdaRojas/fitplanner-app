@@ -64,13 +64,14 @@ export async function getGymUsersAction(gymId: string) {
             return { success: true, data: [] };
         }
         
-        const users = (usersSnapshot.docs
+        const mappedUsers = usersSnapshot.docs
             .map(doc => ({
                 id: doc.id,
                 ...doc.data(),
             }))
-            .filter(user => user.role && user.role !== null)) // Filter out users pending gym creation
-            as { id: string, email: string, role: 'athlete' | 'coach' | 'gym-admin', status?: string }[];
+            .filter(user => user.role && user.role !== null); // Filter out users pending gym creation
+            
+        const users = mappedUsers as { id: string, email: string, role: 'athlete' | 'coach' | 'gym-admin', status?: string }[];
 
         return { success: true, data: users };
     } catch (error) {
