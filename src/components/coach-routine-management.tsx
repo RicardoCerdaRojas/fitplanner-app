@@ -16,7 +16,7 @@ import type { Timestamp } from 'firebase/firestore';
 
 
 // A more robust, combined type for routines being managed.
-export type ManagedRoutine = Omit<Routine, 'routineDate'> & Omit<CoachRoutine, 'routineDate'> & {
+export type ManagedRoutine = Omit<Routine & CoachRoutine, 'routineDate'> & {
     routineDate: Date;
     createdAt: Timestamp;
 };
