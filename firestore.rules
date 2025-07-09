@@ -1,17 +1,19 @@
+rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId} {
-      allow read, write: if request.auth.uid == userId;
+      allow read, update, delete: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId
+                    && request.resource.data.keys().hasOnly(['role', 'email'])
+                    && (request.resource.data.role == 'athlete' || request.resource.data.role == 'coach')
+                    && request.resource.data.email == request.auth.token.email;
     }
-
+    
     match /routines/{routineId} {
-      // The creator must be a coach and the coachId in the document must match the creator's UID.
-      allow create: if request.auth.uid == request.resource.data.coachId 
-                      && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'coach';
-      
-      // The owning coach can read, update, and delete it.
-      // In the future, assigned athletes could be given read access.
-      allow read, update, delete: if request.auth.uid == resource.data.coachId;
+      allow read: if request.auth != null;
+      allow create: if request.auth.uid != null 
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'coach';
     }
   }
 }

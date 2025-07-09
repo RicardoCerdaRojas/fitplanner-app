@@ -19,6 +19,7 @@ const blockSchema = z.object({
 });
 
 const routineSchema = z.object({
+  athleteId: z.string().min(1, 'Client ID is required.'),
   userName: z.string().min(2, 'Client name is required.'),
   routineDate: z.date(),
   blocks: z.array(blockSchema).min(1),
@@ -43,4 +44,24 @@ export async function saveRoutineAction(routineData: z.infer<typeof routineSchem
         console.error("Error saving routine:", error);
         return { success: false, error: "Could not save the routine to the database." };
     }
+}
+
+export async function getAthletesAction() {
+  try {
+    const athletesSnapshot = await adminDb.collection('users').where('role', '==', 'athlete').get();
+    if (athletesSnapshot.empty) {
+      return { success: true, data: [] };
+    }
+    const athletes = athletesSnapshot.docs.map(doc => ({
+      uid: doc.id,
+      ...doc.data(),
+    })) as { uid: string; email: string; role: 'athlete' }[];
+    
+    const athleteData = athletes.map(athlete => ({ uid: athlete.uid, name: athlete.email }));
+
+    return { success: true, data: athleteData };
+  } catch (error) {
+    console.error("Error fetching athletes:", error);
+    return { success: false, error: "Could not fetch athletes." };
+  }
 }

@@ -22,6 +22,7 @@ export type CoachBlock = {
 };
 
 export type CoachRoutine = {
+  athleteId: string;
   userName: string;
   routineDate: Date;
   blocks: CoachBlock[];
@@ -32,7 +33,7 @@ type CoachWorkoutDisplayProps = {
 };
 
 export function CoachWorkoutDisplay({ routine }: CoachWorkoutDisplayProps) {
-  if (!routine) {
+  if (!routine || !routine.userName) {
     return null;
   }
 

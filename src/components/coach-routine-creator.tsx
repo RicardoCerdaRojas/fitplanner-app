@@ -14,11 +14,13 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { CoachRoutine } from './coach-workout-display';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { saveRoutineAction } from '@/app/coach/actions';
+import type { Athlete } from '@/app/coach/page';
 
 const exerciseSchema = z.object({
   name: z.string().min(2, 'Exercise name is required.'),
@@ -51,7 +53,7 @@ const blockSchema = z.object({
 });
 
 const routineSchema = z.object({
-  userName: z.string().min(2, 'Client name is required.'),
+  athleteId: z.string({ required_error: "Please select a client." }).min(1, 'Please select a client.'),
   routineDate: z.date({
     required_error: "A date for the routine is required.",
   }),
@@ -62,9 +64,10 @@ type FormValues = z.infer<typeof routineSchema>;
 
 type CoachRoutineCreatorProps = {
   onRoutineCreated: (routine: CoachRoutine | null) => void;
+  athletes: Athlete[];
 };
 
-export function CoachRoutineCreator({ onRoutineCreated }: CoachRoutineCreatorProps) {
+export function CoachRoutineCreator({ onRoutineCreated, athletes }: CoachRoutineCreatorProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -72,8 +75,8 @@ export function CoachRoutineCreator({ onRoutineCreated }: CoachRoutineCreatorPro
   const form = useForm<FormValues>({
     resolver: zodResolver(routineSchema),
     defaultValues: {
-      userName: '',
-      routineDate: undefined,
+      athleteId: '',
+      routineDate: new Date(),
       blocks: [{ name: 'Block A', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' }] }],
     },
   });
@@ -93,27 +96,36 @@ export function CoachRoutineCreator({ onRoutineCreated }: CoachRoutineCreatorPro
       return;
     }
     
-    setIsSubmitting(true);
-    onRoutineCreated(values); // Show preview immediately
+    const selectedAthlete = athletes.find(a => a.uid === values.athleteId);
+    if (!selectedAthlete) {
+        toast({ variant: 'destructive', title: 'Invalid Client', description: 'The selected client could not be found.' });
+        return;
+    }
 
-    const result = await saveRoutineAction({
-      ...values,
-      coachId: user.uid,
-    });
+    const routineData: CoachRoutine & { coachId: string } = {
+        ...values,
+        userName: selectedAthlete.name,
+        coachId: user.uid
+    };
+    
+    setIsSubmitting(true);
+    onRoutineCreated(routineData);
+
+    const result = await saveRoutineAction(routineData);
     
     setIsSubmitting(false);
 
     if (result.success) {
       toast({
         title: 'Routine Saved!',
-        description: `The routine for ${values.userName} has been saved successfully.`,
+        description: `The routine for ${routineData.userName} has been saved successfully.`,
       });
       form.reset({
-        userName: '',
-        routineDate: undefined,
+        athleteId: '',
+        routineDate: new Date(),
         blocks: [{ name: 'Block A', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' }] }],
       });
-      onRoutineCreated(null); // Clear the preview after saving
+      onRoutineCreated(null);
     } else {
       toast({
         variant: 'destructive',
@@ -140,13 +152,26 @@ export function CoachRoutineCreator({ onRoutineCreated }: CoachRoutineCreatorPro
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
-                  name="userName"
+                  name="athleteId"
                   render={({ field }) => (
                       <FormItem>
                       <FormLabel>Client's Name</FormLabel>
-                      <FormControl>
-                          <Input placeholder="e.g., Jane Doe" {...field} />
-                      </FormControl>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a client to assign the routine" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            {athletes.length === 0 ? (
+                                <SelectItem value="none" disabled>No athletes found</SelectItem>
+                            ) : (
+                                athletes.map(athlete => (
+                                    <SelectItem key={athlete.uid} value={athlete.uid}>{athlete.name}</SelectItem>
+                                ))
+                            )}
+                            </SelectContent>
+                        </Select>
                       <FormMessage />
                       </FormItem>
                   )}
@@ -198,9 +223,11 @@ export function CoachRoutineCreator({ onRoutineCreated }: CoachRoutineCreatorPro
                         <CardHeader className='p-2'>
                           <div className='flex justify-between items-center'>
                             <CardTitle>Block #{blockIndex + 1}</CardTitle>
-                            <Button type="button" variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => removeBlock(blockIndex)}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {blockFields.length > 1 && (
+                                <Button type="button" variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => removeBlock(blockIndex)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            )}
                           </div>
                         </CardHeader>
                         <CardContent className='p-2 space-y-4'>
@@ -242,10 +269,14 @@ function ExercisesArray({ blockIndex, form }: { blockIndex: number, form: any })
       <h4 className="text-md font-medium">Exercises</h4>
       {fields.map((field, index) => (
         <div key={field.id} className="p-3 border rounded-md space-y-4 relative bg-background/50">
-           <h5 className="font-semibold text-sm">Exercise #{index + 1}</h5>
-            <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => remove(index)}>
-                <Trash2 className="h-4 w-4" />
-            </Button>
+           <div className='flex justify-between items-center'>
+            <h5 className="font-semibold text-sm">Exercise #{index + 1}</h5>
+            {fields.length > 1 && (
+                <Button type="button" variant="destructive" size="icon" className="h-7 w-7" onClick={() => remove(index)}>
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+            )}
+           </div>
             <FormField
                 control={form.control} name={`blocks.${blockIndex}.exercises.${index}.name`}
                 render={({ field }) => (<FormItem><FormLabel>Exercise Name</FormLabel><FormControl><Input placeholder="e.g., Bench Press" {...field} /></FormControl><FormMessage /></FormItem>)}

@@ -7,6 +7,7 @@ import { auth, db } from '@/lib/firebase';
 
 type UserProfile = {
   role: 'athlete' | 'coach' | null;
+  email?: string;
 };
 
 type AuthContextType = {

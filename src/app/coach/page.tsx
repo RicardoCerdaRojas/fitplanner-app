@@ -7,11 +7,18 @@ import { CoachRoutineCreator } from '@/components/coach-routine-creator';
 import { CoachWorkoutDisplay, type CoachRoutine } from '@/components/coach-workout-display';
 import { AppHeader } from '@/components/app-header';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getAthletesAction } from './actions';
+
+export type Athlete = {
+  uid: string;
+  name: string;
+};
 
 export default function CoachPage() {
   const { user, userProfile, loading } = useAuth();
   const router = useRouter();
   const [routine, setRoutine] = useState<CoachRoutine | null>(null);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
 
   useEffect(() => {
     if (!loading) {
@@ -22,6 +29,21 @@ export default function CoachPage() {
       }
     }
   }, [user, userProfile, loading, router]);
+
+  useEffect(() => {
+    async function fetchAthletes() {
+        const result = await getAthletesAction();
+        if (result.success && result.data) {
+            setAthletes(result.data);
+        } else {
+            console.error("Failed to fetch athletes:", result.error);
+        }
+    }
+    if (userProfile?.role === 'coach') {
+        fetchAthletes();
+    }
+  }, [userProfile]);
+
 
   if (loading || !user || userProfile?.role !== 'coach') {
     return (
@@ -42,7 +64,7 @@ export default function CoachPage() {
         <AppHeader />
         
         <div className="w-full max-w-4xl">
-          <CoachRoutineCreator onRoutineCreated={setRoutine} />
+          <CoachRoutineCreator onRoutineCreated={setRoutine} athletes={athletes} />
           <CoachWorkoutDisplay routine={routine} />
         </div>
       </main>

@@ -54,6 +54,7 @@ export default function SignupPage() {
       // This is secure because of the updated Firestore rules.
       await setDoc(doc(db, 'users', user.uid), {
         role: values.role,
+        email: values.email,
       });
       
       router.push('/');
