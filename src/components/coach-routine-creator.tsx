@@ -235,7 +235,8 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
                   control={form.control}
                   name="routineDate"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col"><FormLabel>Routine Date</FormLabel>
+                    <FormItem>
+                      <FormLabel>Routine Date</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -390,5 +391,7 @@ function ExerciseEditor({ blockIndex, control, watch }: { blockIndex: number, co
     </div>
   )
 }
+
+    
 
     
