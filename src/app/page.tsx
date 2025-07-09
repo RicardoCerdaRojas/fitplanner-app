@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { User, Building, WandSparkles } from 'lucide-react';
+import { User, Building } from 'lucide-react';
 import type { Routine as AthleteRoutine } from '@/components/athlete-routine-list';
 import { AthleteRoutineList } from '@/components/athlete-routine-list';
+import { AthleteNav } from '@/components/athlete-nav';
 
 
 function AthleteDashboard() {
@@ -38,8 +39,7 @@ function AthleteDashboard() {
                     blocks: data.blocks,
                     coachId: data.coachId,
                 } as AthleteRoutine;
-            });
-            fetchedRoutines.sort((a, b) => b.routineDate.getTime() - a.routineDate.getTime());
+            }).sort((a, b) => b.routineDate.getTime() - a.routineDate.getTime());
             setRoutines(fetchedRoutines);
             setIsLoading(false);
         }, (error) => {
@@ -52,11 +52,7 @@ function AthleteDashboard() {
 
     return (
         <div className="w-full max-w-4xl space-y-8">
-            <div className="text-center">
-                <h1 className="text-3xl md:text-4xl font-bold font-headline">Your Dashboard</h1>
-                <p className="text-muted-foreground mt-2">Here are the latest workouts assigned by your coach.</p>
-            </div>
-            
+            <AthleteNav />
             {isLoading ? (
                 <div className="space-y-4">
                     <Skeleton className="h-20 w-full" />
@@ -66,16 +62,6 @@ function AthleteDashboard() {
             ) : (
                 <AthleteRoutineList routines={routines} />
             )}
-
-            <div className="w-full pt-8 mt-8 border-t text-center">
-                 <h2 className="text-xl font-headline mb-4">Need something different?</h2>
-                 <Button asChild size="lg" className="bg-accent hover:bg-accent/90">
-                    <Link href="/generate-routine">
-                        <WandSparkles className="mr-2 h-5 w-5" />
-                        Generate one with AI
-                    </Link>
-                </Button>
-            </div>
         </div>
     );
 }

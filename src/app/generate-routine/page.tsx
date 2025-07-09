@@ -5,12 +5,10 @@ import type { GenerateWorkoutRoutineOutput } from '@/ai/flows/generate-workout-r
 import { AIWorkoutGenerator } from '@/components/ai-workout-generator';
 import { WorkoutDisplay } from '@/components/workout-display';
 import { AppHeader } from '@/components/app-header';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AthleteNav } from '@/components/athlete-nav';
 
 export default function GenerateRoutinePage() {
     const [aiRoutine, setAiRoutine] = useState<GenerateWorkoutRoutineOutput | null>(null);
@@ -21,8 +19,8 @@ export default function GenerateRoutinePage() {
         return (
              <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
                 <AppHeader />
-                <div className="w-full max-w-2xl space-y-8 mt-4">
-                    <Skeleton className="h-12 w-40" />
+                <div className="w-full max-w-4xl space-y-8 mt-4">
+                    <Skeleton className="h-16 w-full" />
                     <Skeleton className="h-96 w-full" />
                 </div>
             </div>
@@ -38,13 +36,8 @@ export default function GenerateRoutinePage() {
         <div className="flex flex-col min-h-screen">
              <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
                 <AppHeader />
-                <div className="w-full max-w-2xl space-y-8">
-                    <Button asChild variant="outline" className="self-start">
-                        <Link href="/">
-                            <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back to Dashboard
-                        </Link>
-                    </Button>
+                <div className="w-full max-w-4xl space-y-8">
+                    <AthleteNav />
                     <AIWorkoutGenerator onRoutineGenerated={setAiRoutine} />
                     <WorkoutDisplay routine={aiRoutine} />
                 </div>
