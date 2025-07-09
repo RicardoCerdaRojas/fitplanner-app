@@ -113,14 +113,14 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
     }
 
     const selectedAthlete = athletes.find((a) => a.uid === values.athleteId);
-    if (!selectedAthlete) {
+    if (!selectedAthlete && !isEditing) {
       toast({ variant: 'destructive', title: 'Invalid Client', description: 'The selected client could not be found.' });
       return;
     }
     
     const routineData = {
         ...values,
-        userName: selectedAthlete.name,
+        userName: isEditing && routineToEdit ? routineToEdit.userName : selectedAthlete!.name,
         coachId: user.uid,
         gymId: gymId,
     };
@@ -174,26 +174,35 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
                   control={form.control}
                   name="athleteId"
                   render={({ field }) => (
-                      <FormItem>
+                    <FormItem>
                       <FormLabel>Client's Name</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={isEditing}>
-                            <FormControl>
+                      {isEditing && routineToEdit ? (
+                        <FormControl>
+                          <Input
+                            value={routineToEdit.userName}
+                            disabled
+                          />
+                        </FormControl>
+                      ) : (
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select a client to assign the routine" />
+                              <SelectValue placeholder="Select a client to assign the routine" />
                             </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
+                          </FormControl>
+                          <SelectContent>
                             {athletes.length === 0 ? (
-                                <SelectItem value="none" disabled>No athletes found in your gym</SelectItem>
+                              <SelectItem value="none" disabled>No athletes found in your gym</SelectItem>
                             ) : (
-                                athletes.map(athlete => (
-                                    <SelectItem key={athlete.uid} value={athlete.uid}>{athlete.name}</SelectItem>
-                                ))
+                              athletes.map(athlete => (
+                                <SelectItem key={athlete.uid} value={athlete.uid}>{athlete.name}</SelectItem>
+                              ))
                             )}
-                            </SelectContent>
+                          </SelectContent>
                         </Select>
+                      )}
                       <FormMessage />
-                      </FormItem>
+                    </FormItem>
                   )}
                 />
                 <FormField
