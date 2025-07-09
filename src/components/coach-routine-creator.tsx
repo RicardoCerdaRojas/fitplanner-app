@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from "date-fns";
 import { Plus, ClipboardPlus, Calendar as CalendarIcon, Edit, X, Minus } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -76,13 +76,6 @@ type CoachRoutineCreatorProps = {
   onRoutineSaved: () => void;
 };
 
-const defaultFormValues = {
-  routineTypeId: '',
-  athleteId: '',
-  routineDate: new Date(),
-  blocks: [{ name: 'Warm-up', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '10', weight: '', videoUrl: '' }] }],
-};
-
 export function CoachRoutineCreator({ athletes, routineTypes, gymId, routineToEdit, onRoutineSaved }: CoachRoutineCreatorProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
@@ -91,9 +84,25 @@ export function CoachRoutineCreator({ athletes, routineTypes, gymId, routineToEd
   
   const isEditing = !!routineToEdit;
 
+  const defaultValues = useMemo(() => {
+    return routineToEdit 
+      ? {
+          routineTypeId: routineToEdit.routineTypeId || '',
+          athleteId: routineToEdit.athleteId,
+          routineDate: routineToEdit.routineDate,
+          blocks: routineToEdit.blocks,
+        }
+      : {
+          routineTypeId: '',
+          athleteId: '',
+          routineDate: new Date(),
+          blocks: [{ name: 'Warm-up', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '10', weight: '', videoUrl: '' }] }],
+        };
+  }, [routineToEdit]);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(routineSchema),
-    defaultValues: defaultFormValues,
+    defaultValues,
   });
 
   const { fields: blockFields, append: appendBlock, remove: removeBlock } = useFieldArray({
@@ -103,22 +112,6 @@ export function CoachRoutineCreator({ athletes, routineTypes, gymId, routineToEd
   
   const [activeBlockId, setActiveBlockId] = useState<string | undefined>();
   const [lastBlockCount, setLastBlockCount] = useState(blockFields.length);
-
-  // Effect to reset the form when the routineToEdit prop changes
-  useEffect(() => {
-    if (routineToEdit) {
-        form.reset({
-            routineTypeId: routineToEdit.routineTypeId || '',
-            athleteId: routineToEdit.athleteId,
-            routineDate: routineToEdit.routineDate,
-            blocks: routineToEdit.blocks,
-        });
-    } else {
-        form.reset(defaultFormValues);
-    }
-    // After reset, we want to reset the active block, the effect below will pick the first one.
-    setActiveBlockId(undefined); 
-  }, [routineToEdit, form.reset]);
   
   // Effect to manage the active block tab
   useEffect(() => {
