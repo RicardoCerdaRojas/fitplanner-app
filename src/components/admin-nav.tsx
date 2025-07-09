@@ -1,15 +1,17 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Users, ClipboardList } from 'lucide-react';
+import { Users, ClipboardList, Layers } from 'lucide-react';
 
 export function AdminNav() {
   const pathname = usePathname();
 
   const links = [
     { href: '/admin', label: 'Manage Members', icon: Users },
+    { href: '/admin/routine-types', label: 'Routine Types', icon: Layers },
     { href: '/coach', label: 'Create Routines', icon: ClipboardList },
   ];
 

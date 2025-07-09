@@ -88,16 +88,10 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     ), [routine.blocks]);
   
     const [currentIndex, setCurrentIndex] = useState(() => {
-        // Find the index of the first exercise that is not marked as completed.
         const firstUncompletedIndex = allExercises.findIndex(exercise => {
             const key = `${exercise.blockIndex}-${exercise.exerciseIndex}`;
-            // An exercise is uncompleted if it's not in progress or its completed flag is false.
             return !routine.progress?.[key]?.completed;
         });
-
-        // If findIndex returns -1, it means all exercises are completed or there are no exercises.
-        // In this case, we'll start from the beginning (index 0).
-        // Otherwise, we start at the first uncompleted exercise found.
         return firstUncompletedIndex === -1 ? 0 : firstUncompletedIndex;
     });
     const [showVideo, setShowVideo] = useState(false);
@@ -147,7 +141,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     return (
         <DialogContent className="max-w-5xl h-[95vh] flex flex-col p-0 gap-0">
             <DialogHeader className="p-4 border-b pr-12">
-                <DialogTitle className="font-headline text-xl">{routine.routineName}</DialogTitle>
+                <DialogTitle className="font-headline text-xl">{routine.routineTypeName || routine.routineName}</DialogTitle>
                 <div className="space-y-1 mt-2">
                     <Progress value={progressPercentage} />
                     <p className="text-xs text-muted-foreground text-center">Exercise {currentIndex + 1} of {allExercises.length}</p>

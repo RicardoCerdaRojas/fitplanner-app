@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,6 +20,7 @@ type StatsData = {
   totalExercisesLogged: number;
   difficultyBreakdown: { name: string; value: number }[];
   workoutPerformance: { date: string; completed: number }[];
+  routineTypeBreakdown: { name: string; value: number; fill: string }[];
 };
 
 const chartConfig: ChartConfig = {
@@ -31,6 +33,13 @@ const chartConfig: ChartConfig = {
   hard: { label: 'Hard', color: 'hsl(var(--chart-3))' },
 };
 
+const routineTypeColors = [
+    'hsl(var(--chart-1))',
+    'hsl(var(--chart-2))',
+    'hsl(var(--chart-3))',
+    'hsl(var(--chart-4))',
+    'hsl(var(--chart-5))',
+];
 
 export default function StatsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -55,6 +64,7 @@ export default function StatsPage() {
             return {
                 id: doc.id,
                 routineName: data.routineName,
+                routineTypeName: data.routineTypeName,
                 routineDate: (data.routineDate as Timestamp).toDate(),
                 blocks: data.blocks,
                 coachId: data.coachId,
@@ -73,11 +83,17 @@ export default function StatsPage() {
   useEffect(() => {
     if (routines.length > 0) {
       const difficultyCounts = { easy: 0, medium: 0, hard: 0 };
+      const routineTypeCounts: { [key: string]: number } = {};
       let totalExercisesLogged = 0;
 
       const workoutPerformance = routines.map(routine => {
         const completedCount = Object.values(routine.progress || {}).filter(p => p.completed).length;
         totalExercisesLogged += completedCount;
+
+        const routineTypeName = routine.routineTypeName || routine.routineName || 'Uncategorized';
+        if (completedCount > 0) {
+            routineTypeCounts[routineTypeName] = (routineTypeCounts[routineTypeName] || 0) + 1;
+        }
 
         Object.values(routine.progress || {}).forEach(p => {
           if (p.difficulty) {
@@ -101,6 +117,11 @@ export default function StatsPage() {
           { name: 'hard', value: difficultyCounts.hard },
         ].filter(d => d.value > 0),
         workoutPerformance,
+        routineTypeBreakdown: Object.entries(routineTypeCounts).map(([name, value], index) => ({
+            name,
+            value,
+            fill: routineTypeColors[index % routineTypeColors.length],
+        })),
       });
     }
   }, [routines]);
@@ -196,7 +217,7 @@ export default function StatsPage() {
                                       return ( <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-xs font-bold"> {`${(percent * 100).toFixed(0)}%`} </text> );
                                 }}>
                                     {stats.difficultyBreakdown.map((entry) => (
-                                        <Cell key={`cell-${entry.name}`} fill={`var(--color-${entry.name.toLowerCase()})`} />
+                                        <Cell key={`cell-${entry.name}`} fill={`var(--color-${entry.name})`} />
                                     ))}
                                 </Pie>
                                 <ChartLegend content={<ChartLegendContent nameKey="name" />} />
@@ -205,6 +226,38 @@ export default function StatsPage() {
                     </CardContent>
                   </Card>
               </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Workout Distribution</CardTitle>
+                  <CardDescription>Breakdown of completed workouts by type.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex items-center justify-center">
+                    {stats.routineTypeBreakdown.length > 0 ? (
+                        <ChartContainer config={{}} className="h-[300px] w-full">
+                            <PieChart>
+                                <Tooltip content={<ChartTooltipContent nameKey="name" />} />
+                                <Pie
+                                    data={stats.routineTypeBreakdown}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    cx="50%"
+                                    cy="50%"
+                                    outerRadius={110}
+                                    labelLine={false}
+                                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                >
+                                    {stats.routineTypeBreakdown.map((entry) => (
+                                        <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                                    ))}
+                                </Pie>
+                                <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                            </PieChart>
+                        </ChartContainer>
+                    ) : (
+                        <p className="text-muted-foreground">No workout types recorded yet.</p>
+                    )}
+                </CardContent>
+              </Card>
             </>
           )}
 

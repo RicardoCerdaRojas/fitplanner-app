@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -98,7 +99,7 @@ export function CoachRoutineManagement({ routines, onEdit, initialAthleteId }: P
                                         <div className="flex items-center justify-between w-full">
                                             <AccordionTrigger className="flex-1 py-3 px-2 text-left hover:no-underline">
                                                 <div className="flex flex-col items-start">
-                                                    <span className="font-semibold">{routine.routineName || 'Untitled Routine'}</span>
+                                                    <span className="font-semibold">{routine.routineTypeName || routine.routineName || 'Untitled Routine'}</span>
                                                     <span className="text-sm text-muted-foreground font-normal">
                                                         {format(routine.routineDate, 'PPP')}
                                                     </span>

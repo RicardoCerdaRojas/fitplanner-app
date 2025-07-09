@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,12 +8,13 @@ import { CoachRoutineCreator } from '@/components/coach-routine-creator';
 import { AppHeader } from '@/components/app-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AdminNav } from '@/components/admin-nav';
-import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, Timestamp, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { CoachRoutineManagement, type ManagedRoutine } from '@/components/coach-routine-management';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ClipboardPlus, ClipboardList } from 'lucide-react';
+import type { RoutineType } from '@/app/admin/routine-types/page';
 
 export type Athlete = {
   uid: string;
@@ -25,14 +27,14 @@ export default function CoachPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [athletes, setAthletes] = useState<Athlete[]>([]);
-  const [isLoadingAthletes, setIsLoadingAthletes] = useState(true);
+  const [routineTypes, setRoutineTypes] = useState<RoutineType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [routines, setRoutines] = useState<ManagedRoutine[]>([]);
   const [isLoadingRoutines, setIsLoadingRoutines] = useState(true);
   const [editingRoutine, setEditingRoutine] = useState<ManagedRoutine | null>(null);
   
   const initialAthleteId = searchParams.get('athleteId');
   const [activeTab, setActiveTab] = useState(initialAthleteId ? 'manage' : 'create');
-
 
   useEffect(() => {
     if (!loading) {
@@ -44,42 +46,54 @@ export default function CoachPage() {
     }
   }, [user, userProfile, loading, router]);
 
-  // Fetch athletes
+  // Fetch athletes and routine types
   useEffect(() => {
     if (loading || !userProfile?.gymId) {
-      setIsLoadingAthletes(false);
+      setIsLoading(false);
       return;
     }
 
-    setIsLoadingAthletes(true);
+    setIsLoading(true);
+    
+    // Fetch Athletes
     const athletesQuery = query(
       collection(db, 'users'),
       where('gymId', '==', userProfile.gymId),
       where('role', '==', 'athlete')
     );
-
-    const unsubscribe = onSnapshot(athletesQuery, (snapshot) => {
+    const unsubscribeAthletes = onSnapshot(athletesQuery, (snapshot) => {
       const fetchedAthletes = snapshot.docs.map(doc => {
         const data = doc.data();
-        return {
-          uid: doc.id,
-          name: data.name || data.email,
-        };
-      }).filter(athlete => athlete.name);
-      
-      setAthletes(fetchedAthletes as Athlete[]);
-      setIsLoadingAthletes(false);
+        return { uid: doc.id, name: data.name || data.email };
+      }).filter(athlete => athlete.name) as Athlete[];
+      setAthletes(fetchedAthletes);
     }, (error) => {
       console.error("Error fetching athletes: ", error);
       toast({
           variant: 'destructive',
           title: 'Database Error',
-          description: 'Could not fetch the athletes list. The database may require an index. Please check the browser console for a link to create it.',
+          description: 'Could not fetch the athletes list.',
       });
-      setIsLoadingAthletes(false);
     });
 
-    return () => unsubscribe();
+    // Fetch Routine Types
+    const typesQuery = query(collection(db, 'routineTypes'), where('gymId', '==', userProfile.gymId), orderBy('name'));
+    const unsubscribeTypes = onSnapshot(typesQuery, (snapshot) => {
+        const fetchedTypes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RoutineType));
+        setRoutineTypes(fetchedTypes);
+    }, (error) => {
+        console.error("Error fetching routine types:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch routine types.' });
+    });
+
+    Promise.all([new Promise(res => onSnapshot(athletesQuery, res)), new Promise(res => onSnapshot(typesQuery, res))])
+      .finally(() => setIsLoading(false));
+
+
+    return () => {
+      unsubscribeAthletes();
+      unsubscribeTypes();
+    };
   }, [userProfile?.gymId, loading, toast]);
 
   // Fetch routines for management
@@ -98,7 +112,6 @@ export default function CoachPage() {
     const unsubscribe = onSnapshot(routinesQuery, (snapshot) => {
         const fetchedRoutines = snapshot.docs.map(doc => {
             const data = doc.data();
-            // Ensure data has the required fields before casting
             if (data.athleteId && data.userName && data.routineDate) {
                 return {
                     id: doc.id,
@@ -107,7 +120,7 @@ export default function CoachPage() {
                 } as ManagedRoutine;
             }
             return null;
-        }).filter((r): r is ManagedRoutine => r !== null) // Filter out nulls
+        }).filter((r): r is ManagedRoutine => r !== null)
           .sort((a, b) => b.routineDate.getTime() - a.routineDate.getTime());
         setRoutines(fetchedRoutines);
         setIsLoadingRoutines(false);
@@ -131,7 +144,7 @@ export default function CoachPage() {
   };
   
   const handleRoutineSaved = () => {
-    setEditingRoutine(null); // Clear editing state
+    setEditingRoutine(null);
     setActiveTab('manage');
   };
 
@@ -174,8 +187,8 @@ export default function CoachPage() {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="create">
-              {isLoadingAthletes ? <Skeleton className="h-96 w-full mt-4"/> : (
-                userProfile?.gymId && <CoachRoutineCreator athletes={athletes} gymId={userProfile.gymId} routineToEdit={editingRoutine} onRoutineSaved={handleRoutineSaved} />
+              {isLoading ? <Skeleton className="h-96 w-full mt-4"/> : (
+                userProfile?.gymId && <CoachRoutineCreator athletes={athletes} routineTypes={routineTypes} gymId={userProfile.gymId} routineToEdit={editingRoutine} onRoutineSaved={handleRoutineSaved} />
               )}
             </TabsContent>
             <TabsContent value="manage">

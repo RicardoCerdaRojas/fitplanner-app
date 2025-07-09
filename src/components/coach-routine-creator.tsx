@@ -24,6 +24,7 @@ import type { Athlete } from '@/app/coach/page';
 import { addDoc, collection, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { ManagedRoutine } from './coach-routine-management';
+import type { RoutineType } from '@/app/admin/routine-types/page';
 
 
 const exerciseSchema = z.object({
@@ -57,7 +58,7 @@ const blockSchema = z.object({
 });
 
 const routineSchema = z.object({
-  routineName: z.string().min(3, 'Routine name must be at least 3 characters.'),
+  routineTypeId: z.string({ required_error: "Please select a routine type." }),
   athleteId: z.string({ required_error: "Please select a client." }).min(1, 'Please select a client.'),
   routineDate: z.date({
     required_error: "A date for the routine is required.",
@@ -69,19 +70,20 @@ type FormValues = z.infer<typeof routineSchema>;
 
 type CoachRoutineCreatorProps = {
   athletes: Athlete[];
+  routineTypes: RoutineType[];
   gymId: string;
   routineToEdit?: ManagedRoutine | null;
   onRoutineSaved: () => void;
 };
 
 const defaultFormValues = {
-  routineName: '',
+  routineTypeId: '',
   athleteId: '',
   routineDate: new Date(),
   blocks: [{ name: 'Warm-up', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '10', weight: '', videoUrl: '' }] }],
 };
 
-export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineSaved }: CoachRoutineCreatorProps) {
+export function CoachRoutineCreator({ athletes, routineTypes, gymId, routineToEdit, onRoutineSaved }: CoachRoutineCreatorProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -104,7 +106,7 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
   useEffect(() => {
     if (routineToEdit) {
         form.reset({
-            routineName: routineToEdit.routineName || '',
+            routineTypeId: routineToEdit.routineTypeId || '',
             athleteId: routineToEdit.athleteId,
             routineDate: routineToEdit.routineDate,
             blocks: routineToEdit.blocks,
@@ -117,13 +119,11 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
   }, [routineToEdit, form]);
   
   useEffect(() => {
-    // When a block is added, switch to it
     if (blockFields.length > lastBlockCount) {
         setActiveBlockId(blockFields[blockFields.length - 1].id);
     }
     setLastBlockCount(blockFields.length);
 
-    // If active tab is deleted, switch to the last one
     if (activeBlockId && !blockFields.some(field => field.id === activeBlockId)) {
       setActiveBlockId(blockFields[Math.max(0, blockFields.length - 1)]?.id);
     }
@@ -148,8 +148,15 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
       return;
     }
     
+    const selectedRoutineType = routineTypes.find((rt) => rt.id === values.routineTypeId);
+    if (!selectedRoutineType) {
+        toast({ variant: 'destructive', title: 'Invalid Routine Type', description: 'Please select a valid routine type.' });
+        return;
+    }
+    
     const routineData = {
         ...values,
+        routineTypeName: selectedRoutineType.name,
         userName: isEditing && routineToEdit ? routineToEdit.userName : selectedAthlete!.name,
         coachId: user.uid,
         gymId: gymId,
@@ -158,7 +165,7 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
     const docToWrite = {
         ...routineData,
         routineDate: Timestamp.fromDate(routineData.routineDate),
-        createdAt: isEditing && routineToEdit ? routineToEdit.createdAt : Timestamp.now(), // Keep original creation date
+        createdAt: isEditing && routineToEdit ? routineToEdit.createdAt : Timestamp.now(),
         updatedAt: Timestamp.now(),
     };
     delete (docToWrite as any).id;
@@ -216,12 +223,12 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
                         <Select onValueChange={field.onChange} value={field.value || ''}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a client to assign the routine" />
+                              <SelectValue placeholder="Select a client" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             {athletes.length === 0 ? (
-                              <SelectItem value="none" disabled>No athletes found in your gym</SelectItem>
+                              <SelectItem value="none" disabled>No athletes found</SelectItem>
                             ) : (
                               athletes.map(athlete => (
                                 <SelectItem key={athlete.uid} value={athlete.uid}>{athlete.name}</SelectItem>
@@ -236,13 +243,26 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
                 />
                 <FormField
                   control={form.control}
-                  name="routineName"
+                  name="routineTypeId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Routine Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., Upper Body Focus" {...field} />
-                      </FormControl>
+                      <FormLabel>Routine Type</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a routine type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                           {routineTypes.length === 0 ? (
+                              <SelectItem value="none" disabled>No routine types found</SelectItem>
+                            ) : (
+                              routineTypes.map(type => (
+                                <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                              ))
+                            )}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -250,7 +270,7 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
                   control={form.control}
                   name="routineDate"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem>
                       <FormLabel>Routine Date</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
