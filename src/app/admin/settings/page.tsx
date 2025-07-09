@@ -7,9 +7,8 @@ import { z } from 'zod';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { themes } from '@/lib/themes';
 import { cn } from '@/lib/utils';
@@ -22,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
 import { Upload, Palette } from 'lucide-react';
+import { getSignedUrlAction } from './actions';
 
 const formSchema = z.object({
   theme: z.string({ required_error: 'Please select a theme for your gym.' }),
@@ -79,9 +79,8 @@ export default function GymSettingsPage() {
         
         setIsSubmitting(true);
         const { gymId } = userProfile;
-        const gymRef = doc(db, 'gyms', gymId);
         
-        const selectedTheme = themes.find(t => t.id === values.theme)
+        const selectedTheme = themes.find(t => t.id === values.theme);
         if (!selectedTheme) {
              toast({ variant: 'destructive', title: 'Error', description: 'Invalid theme selected.' });
              setIsSubmitting(false);
@@ -93,19 +92,40 @@ export default function GymSettingsPage() {
         };
 
         try {
+            // Handle logo upload using the new signed URL action
             if (logoFile) {
-                const storageRef = ref(storage, `logos/${gymId}/${Date.now()}_${logoFile.name}`);
-                await uploadBytes(storageRef, logoFile);
-                const logoUrl = await getDownloadURL(storageRef);
-                updateData.logoUrl = logoUrl;
+                // 1. Get the signed URL from the server action
+                const signedUrlResult = await getSignedUrlAction(gymId, logoFile.type, logoFile.size);
+
+                if (signedUrlResult.failure) {
+                    throw new Error(signedUrlResult.failure);
+                }
+                
+                const { signedUrl, publicUrl } = signedUrlResult.success;
+
+                // 2. Upload the file to the signed URL using fetch
+                const uploadResponse = await fetch(signedUrl, {
+                    method: 'PUT',
+                    body: logoFile,
+                    headers: { 'Content-Type': logoFile.type },
+                });
+
+                if (!uploadResponse.ok) {
+                    throw new Error('Failed to upload logo.');
+                }
+
+                // 3. If upload is successful, add the public URL to the data to be saved in Firestore.
+                updateData.logoUrl = publicUrl;
             }
             
+            // Update Firestore with theme and new logo URL if applicable
+            const gymRef = doc(db, 'gyms', gymId);
             await updateDoc(gymRef, updateData);
             
             toast({ title: 'Success!', description: 'Your gym settings have been updated.' });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error updating gym settings:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not update settings.' });
+            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Could not update settings.' });
         } finally {
             setIsSubmitting(false);
             setLogoFile(null);
