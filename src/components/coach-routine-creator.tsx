@@ -1,10 +1,10 @@
 'use client';
 
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch, Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from "date-fns";
-import { PlusCircle, Trash2, ClipboardCheck, Calendar as CalendarIcon, Edit } from 'lucide-react';
+import { Plus, Trash2, ClipboardCheck, Calendar as CalendarIcon, Edit, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
@@ -74,7 +75,7 @@ type CoachRoutineCreatorProps = {
 const defaultFormValues = {
   athleteId: '',
   routineDate: new Date(),
-  blocks: [{ name: 'Block A', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' }] }],
+  blocks: [{ name: 'Warm-up', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' }] }],
 };
 
 export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineSaved }: CoachRoutineCreatorProps) {
@@ -88,23 +89,51 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
     resolver: zodResolver(routineSchema),
     defaultValues: defaultFormValues,
   });
-  
-  useEffect(() => {
-      if (routineToEdit) {
-          form.reset({
-              athleteId: routineToEdit.athleteId,
-              routineDate: routineToEdit.routineDate,
-              blocks: routineToEdit.blocks,
-          });
-      } else {
-          form.reset(defaultFormValues);
-      }
-  }, [routineToEdit, form]);
 
   const { fields: blockFields, append: appendBlock, remove: removeBlock } = useFieldArray({
     control: form.control,
     name: 'blocks',
   });
+  
+  const [activeBlockId, setActiveBlockId] = useState<string | undefined>(blockFields[0]?.id);
+  const [lastBlockCount, setLastBlockCount] = useState(blockFields.length);
+
+  useEffect(() => {
+    if (routineToEdit) {
+        form.reset({
+            athleteId: routineToEdit.athleteId,
+            routineDate: routineToEdit.routineDate,
+            blocks: routineToEdit.blocks,
+        });
+        setActiveBlockId(routineToEdit.blocks[0]?.name); // Using name as ID is not ideal, but field ID will change. Let's reset to first tab.
+    } else {
+        form.reset(defaultFormValues);
+        setActiveBlockId(defaultFormValues.blocks[0]?.name);
+    }
+  }, [routineToEdit, form]);
+  
+  useEffect(() => {
+    // Select first tab on initial load or if the active one is deleted
+    if (activeBlockId === undefined && blockFields.length > 0) {
+      setActiveBlockId(blockFields[0].id);
+    } else if (activeBlockId && !blockFields.some(field => field.id === activeBlockId)) {
+      setActiveBlockId(blockFields[Math.max(0, blockFields.length - 1)]?.id);
+    }
+  }, [blockFields, activeBlockId]);
+
+  useEffect(() => {
+      // When a block is added, switch to it
+      if (blockFields.length > lastBlockCount) {
+          setActiveBlockId(blockFields[blockFields.length - 1].id);
+      }
+      setLastBlockCount(blockFields.length);
+  }, [blockFields, lastBlockCount]);
+
+
+  const handleAddBlock = () => {
+    appendBlock({ name: `Block ${blockFields.length + 1}`, sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' }] });
+  };
+
 
   async function onSubmit(values: FormValues) {
     if (!user) {
@@ -131,11 +160,9 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
         createdAt: isEditing && routineToEdit ? routineToEdit.createdAt : Timestamp.now(), // Keep original creation date
         updatedAt: Timestamp.now(),
     };
-    // This is a Firestore object, remove non-serializable fields if they exist
     delete (docToWrite as any).id;
 
     setIsSubmitting(true);
-
     try {
         if(isEditing && routineToEdit) {
             const routineRef = doc(db, 'routines', routineToEdit.id);
@@ -146,7 +173,7 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
             toast({ title: 'Routine Saved!', description: `The routine for ${routineData.userName} has been saved successfully.` });
         }
       
-      onRoutineSaved(); // This will clear the editing state and switch tab in parent
+      onRoutineSaved();
     } catch (error: any) {
       console.error('Error saving routine:', error);
       toast({ variant: 'destructive', title: 'Save Failed', description: error.message || 'An unexpected error occurred.' });
@@ -176,11 +203,12 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Client's Name</FormLabel>
-                      {isEditing && routineToEdit ? (
+                       {isEditing && routineToEdit ? (
                         <FormControl>
                           <Input
                             value={routineToEdit.userName}
                             disabled
+                            className="font-semibold"
                           />
                         </FormControl>
                       ) : (
@@ -209,35 +237,17 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
                   control={form.control}
                   name="routineDate"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Routine Date</FormLabel>
+                    <FormItem className="flex flex-col"><FormLabel>Routine Date</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
+                            <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!field.value && "text-muted-foreground")}>
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
+                              {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                          />
-                        </PopoverContent>
+                        <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
                       </Popover>
                       <FormMessage />
                     </FormItem>
@@ -245,39 +255,43 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
                 />
             </div>
             
-            <div className="space-y-6">
-                <h3 className="text-xl font-medium">Workout Blocks</h3>
-                {blockFields.map((blockField, blockIndex) => (
-                    <Card key={blockField.id} className="p-4 bg-card/60 relative">
-                        <CardHeader className='p-2'>
-                          <div className='flex justify-between items-center'>
-                            <CardTitle>Block #{blockIndex + 1}</CardTitle>
-                            {blockFields.length > 1 && (
-                                <Button type="button" variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => removeBlock(blockIndex)}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            )}
-                          </div>
-                        </CardHeader>
-                        <CardContent className='p-2 space-y-4'>
+            <div>
+              <FormLabel>Workout Blocks</FormLabel>
+              <Tabs value={activeBlockId} onValueChange={setActiveBlockId} className="w-full mt-2">
+                <div className="flex items-center gap-2 pb-2 mb-4 overflow-x-auto">
+                    <TabsList className="relative">
+                        {blockFields.map((field, index) => (
+                            <TabsTrigger key={field.id} value={field.id} className="relative pr-7">
+                                Block {index + 1}
+                                {blockFields.length > 1 && (
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeBlock(index);}} className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-muted-foreground/20">
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                )}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                    <Button type="button" size="sm" variant="outline" onClick={handleAddBlock}>
+                        <Plus className="mr-2 h-4 w-4" /> Add Block
+                    </Button>
+                </div>
+
+                {blockFields.map((field, index) => (
+                    <TabsContent key={field.id} value={field.id} className="mt-0">
+                        <div className="p-4 border rounded-lg bg-card/60 space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField control={form.control} name={`blocks.${blockIndex}.name`} render={({ field }) => (<FormItem><FormLabel>Block Name</FormLabel><FormControl><Input placeholder="e.g., Warm-up" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (<FormItem><FormLabel>Sets / Rounds</FormLabel><FormControl><Input placeholder="e.g., 3 Sets" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name={`blocks.${index}.name`} render={({ field }) => (<FormItem><FormLabel>Block Name</FormLabel><FormControl><Input placeholder="e.g., Warm-up" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name={`blocks.${index}.sets`} render={({ field }) => (<FormItem><FormLabel>Sets / Rounds</FormLabel><FormControl><Input placeholder="e.g., 3 Sets" {...field} /></FormControl><FormMessage /></FormItem>)} />
                           </div>
-                          
-                          <ExercisesArray blockIndex={blockIndex} form={form} />
-                        </CardContent>
-                    </Card>
+                          <ExerciseEditor blockIndex={index} control={form.control} watch={form.watch} />
+                        </div>
+                    </TabsContent>
                 ))}
-                <Button type="button" variant="outline" size="sm" onClick={() => appendBlock({ name: `Block ${blockFields.length + 1}`, sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' }] })}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Block
-                </Button>
+              </Tabs>
             </div>
 
-            <div className="flex justify-end items-center gap-4">
-              {isEditing && (
-                  <Button type="button" variant="outline" onClick={onRoutineSaved}>Cancel Edit</Button>
-              )}
+            <div className="flex justify-end items-center gap-4 pt-4 border-t">
+              {isEditing && (<Button type="button" variant="outline" onClick={onRoutineSaved}>Cancel Edit</Button>)}
               <Button type="submit" className="w-auto bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg py-6" disabled={isSubmitting}>
                 {isSubmitting ? 'Saving...' : (isEditing ? 'Update Routine' : 'Create and Save Routine')}
               </Button>
@@ -290,57 +304,92 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
 }
 
 
-function ExercisesArray({ blockIndex, form }: { blockIndex: number, form: any }) {
+function ExerciseEditor({ blockIndex, control, watch }: { blockIndex: number, control: Control<FormValues>, watch: any }) {
   const { fields, append, remove } = useFieldArray({
-    control: form.control,
+    control,
     name: `blocks.${blockIndex}.exercises`,
   });
 
+  const [activeExerciseId, setActiveExerciseId] = useState<string | undefined>(fields[0]?.id);
+  const [lastExerciseCount, setLastExerciseCount] = useState(fields.length);
+
+  useEffect(() => {
+    if (activeExerciseId === undefined && fields.length > 0) {
+      setActiveExerciseId(fields[0].id);
+    } else if (activeExerciseId && !fields.some(field => field.id === activeExerciseId)) {
+      setActiveExerciseId(fields[Math.max(0, fields.length - 1)]?.id);
+    }
+  }, [fields, activeExerciseId]);
+  
+  useEffect(() => {
+    if (fields.length > lastExerciseCount) {
+        setActiveExerciseId(fields[fields.length - 1].id);
+    }
+    setLastExerciseCount(fields.length);
+  }, [fields, lastExerciseCount]);
+
+  const handleAddExercise = () => {
+    append({ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' });
+  };
+  
+  if (fields.length === 0) {
+      return (
+          <div className="text-center p-4">
+              <p className="text-muted-foreground mb-2">This block has no exercises.</p>
+              <Button type="button" size="sm" variant="outline" onClick={handleAddExercise}>
+                <Plus className="mr-2 h-4 w-4" /> Add First Exercise
+              </Button>
+          </div>
+      )
+  }
+
   return (
-    <div className='space-y-4 pl-4 border-l-2 border-primary/20'>
-      <h4 className="text-md font-medium">Exercises</h4>
-      {fields.map((field, index) => (
-        <div key={field.id} className="p-3 border rounded-md space-y-4 relative bg-background/50">
-           <div className='flex justify-between items-center'>
-            <h5 className="font-semibold text-sm">Exercise #{index + 1}</h5>
-            {fields.length > 1 && (
-                <Button type="button" variant="destructive" size="icon" className="h-7 w-7" onClick={() => remove(index)}>
-                    <Trash2 className="h-4 w-4" />
-                </Button>
-            )}
-           </div>
-            <FormField
-                control={form.control} name={`blocks.${blockIndex}.exercises.${index}.name`}
-                render={({ field }) => (<FormItem><FormLabel>Exercise Name</FormLabel><FormControl><Input placeholder="e.g., Bench Press" {...field} /></FormControl><FormMessage /></FormItem>)}
-            />
-            <FormField
-                control={form.control} name={`blocks.${blockIndex}.exercises.${index}.repType`}
-                render={({ field }) => (
-                    <FormItem className="space-y-2"><FormLabel>Repetitions or Duration?</FormLabel>
-                    <FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
-                        <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="reps" /></FormControl><FormLabel className="font-normal">Reps</FormLabel></FormItem>
-                        <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="duration" /></FormControl><FormLabel className="font-normal">Duration (minutes)</FormLabel></FormItem>
-                    </RadioGroup></FormControl><FormMessage /></FormItem>
-                )}
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {form.watch(`blocks.${blockIndex}.exercises.${index}.repType`) === 'reps' && (
-                    <FormField control={form.control} name={`blocks.${blockIndex}.exercises.${index}.reps`} render={({ field }) => (<FormItem><FormLabel>Reps</FormLabel><FormControl><Input placeholder="e.g., 3x12" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                )}
-                {form.watch(`blocks.${blockIndex}.exercises.${index}.repType`) === 'duration' && (
-                    <FormField control={form.control} name={`blocks.${blockIndex}.exercises.${index}.duration`} render={({ field }) => (<FormItem><FormLabel>Duration (minutes)</FormLabel><FormControl><Input type="number" placeholder="e.g., 10" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                )}
-                 <FormField control={form.control} name={`blocks.${blockIndex}.exercises.${index}.weight`} render={({ field }) => (<FormItem><FormLabel>Weight</FormLabel><FormControl><Input placeholder="e.g., 50kg or Bodyweight" {...field} /></FormControl><FormMessage /></FormItem>)} />
-            </div>
-            <FormField
-                control={form.control} name={`blocks.${blockIndex}.exercises.${index}.videoUrl`}
-                render={({ field }) => (<FormItem><FormLabel>Example Video URL</FormLabel><FormControl><Input placeholder="https://example.com/video.mp4" {...field} /></FormControl><FormMessage /></FormItem>)}
-            />
+    <div className='space-y-4 pt-4 border-t'>
+      <FormLabel>Exercises</FormLabel>
+      <Tabs value={activeExerciseId} onValueChange={setActiveExerciseId} className="w-full">
+        <div className="flex items-center gap-2 pb-2 mb-4 overflow-x-auto">
+            <TabsList>
+                {fields.map((field, index) => (
+                    <TabsTrigger key={field.id} value={field.id} className="relative pr-7">
+                        Exercise {index + 1}
+                        {fields.length > 1 && (
+                             <button type="button" onClick={(e) => { e.stopPropagation(); e.preventDefault(); remove(index);}} className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-muted-foreground/20">
+                                <X className="h-3 w-3" />
+                            </button>
+                        )}
+                    </TabsTrigger>
+                ))}
+            </TabsList>
+             <Button type="button" size="sm" variant="outline" onClick={handleAddExercise}>
+                <Plus className="mr-2 h-4 w-4" /> Add Exercise
+            </Button>
         </div>
-      ))}
-      <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' })}>
-        <PlusCircle className="mr-2 h-4 w-4" /> Add Exercise to Block
-      </Button>
+
+         {fields.map((field, index) => (
+            <TabsContent key={field.id} value={field.id} className="mt-0">
+                <div className="p-3 border rounded-md space-y-4 bg-background/50">
+                    <FormField control={control} name={`blocks.${blockIndex}.exercises.${index}.name`} render={({ field }) => (<FormItem><FormLabel>Exercise Name</FormLabel><FormControl><Input placeholder="e.g., Bench Press" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={control} name={`blocks.${blockIndex}.exercises.${index}.repType`} render={({ field }) => (
+                        <FormItem className="space-y-2"><FormLabel>Repetitions or Duration?</FormLabel>
+                        <FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
+                            <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="reps" /></FormControl><FormLabel className="font-normal">Reps</FormLabel></FormItem>
+                            <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="duration" /></FormControl><FormLabel className="font-normal">Duration (minutes)</FormLabel></FormItem>
+                        </RadioGroup></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {watch(`blocks.${blockIndex}.exercises.${index}.repType`) === 'reps' && (
+                            <FormField control={control} name={`blocks.${blockIndex}.exercises.${index}.reps`} render={({ field }) => (<FormItem><FormLabel>Reps</FormLabel><FormControl><Input placeholder="e.g., 3x12" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        )}
+                        {watch(`blocks.${blockIndex}.exercises.${index}.repType`) === 'duration' && (
+                            <FormField control={control} name={`blocks.${blockIndex}.exercises.${index}.duration`} render={({ field }) => (<FormItem><FormLabel>Duration (minutes)</FormLabel><FormControl><Input type="number" placeholder="e.g., 10" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        )}
+                         <FormField control={control} name={`blocks.${blockIndex}.exercises.${index}.weight`} render={({ field }) => (<FormItem><FormLabel>Weight</FormLabel><FormControl><Input placeholder="e.g., 50kg or Bodyweight" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    </div>
+                    <FormField control={control} name={`blocks.${blockIndex}.exercises.${index}.videoUrl`} render={({ field }) => (<FormItem><FormLabel>Example Video URL</FormLabel><FormControl><Input placeholder="https://example.com/video.mp4" {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                </div>
+            </TabsContent>
+         ))}
+      </Tabs>
     </div>
   )
 }
