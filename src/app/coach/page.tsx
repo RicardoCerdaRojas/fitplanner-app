@@ -24,7 +24,7 @@ export default function CoachPage() {
     if (!loading) {
       if (!user) {
         router.push('/login');
-      } else if (userProfile?.role !== 'coach') {
+      } else if (userProfile?.role !== 'coach' && userProfile?.role !== 'gym-admin') {
         router.push('/');
       }
     }
@@ -40,13 +40,13 @@ export default function CoachPage() {
           console.error("Failed to fetch athletes:", result.error);
       }
     }
-    if (userProfile?.role === 'coach') {
+    if (userProfile?.role === 'coach' || userProfile?.role === 'gym-admin') {
         fetchAthletes();
     }
   }, [userProfile]);
 
 
-  if (loading || !user || userProfile?.role !== 'coach') {
+  if (loading || !user || (userProfile?.role !== 'coach' && userProfile?.role !== 'gym-admin')) {
     return (
         <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
             <AppHeader />
@@ -54,7 +54,7 @@ export default function CoachPage() {
                 <Skeleton className="h-72 w-full" />
                 <Skeleton className="h-96 w-full" />
             </div>
-            <p className='mt-8 text-lg text-muted-foreground'>Verifying coach access...</p>
+            <p className='mt-8 text-lg text-muted-foreground'>Verifying access...</p>
         </div>
     );
   }

@@ -116,12 +116,17 @@ function AdminDashboard() {
             <Card className="p-8">
                 <CardHeader>
                     <CardTitle className="text-3xl font-headline">Admin Dashboard</CardTitle>
-                    <CardDescription>Manage your gym, coaches, and athletes from here.</CardDescription>
+                    <CardDescription>Manage your gym, or create routines for your clients.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                     <Button asChild size="lg" className="bg-accent hover:bg-accent/90">
+                <CardContent className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-4">
+                     <Button asChild size="lg">
                         <Link href="/admin">
-                            <Building className="mr-2 h-4 w-4" /> Go to Gym Management
+                            <Building className="mr-2 h-4 w-4" /> Manage Gym
+                        </Link>
+                    </Button>
+                    <Button asChild size="lg" variant="outline">
+                        <Link href="/coach">
+                            <User className="mr-2 h-4 w-4" /> Create Routines
                         </Link>
                     </Button>
                 </CardContent>
