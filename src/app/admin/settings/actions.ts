@@ -8,32 +8,33 @@ export async function getSignedUrlAction(gymId: string, fileType: string, fileSi
   if (!gymId) {
     return { failure: 'Missing Gym ID.' };
   }
+  
+  if (!adminUid) {
+    // This case should be prevented by client-side checks, but we'll handle it.
+    return { failure: 'User is not authenticated.' };
+  }
 
   // --- Verification Logic ---
-  let isAuthorized = false;
-  if (adminUid) {
-    try {
-      const userDoc = await adminDb.collection('users').doc(adminUid).get();
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        if (userData?.role === 'gym-admin' && userData?.gymId === gymId) {
-          isAuthorized = true;
-        } else {
-           console.error(`Authorization failed: Role or GymID mismatch. User Role: ${userData?.role}, User GymID: ${userData?.gymId}, Target GymID: ${gymId}`);
-        }
-      } else {
-        console.error(`Authorization failed: User document not found for UID ${adminUid}.`);
-      }
-    } catch (error) {
-      console.error('Error during admin verification inside action:', error);
-      isAuthorized = false;
+  try {
+    const userDoc = await adminDb.collection('users').doc(adminUid).get();
+    
+    if (!userDoc.exists()) {
+      console.error(`Authorization failed: User document not found for UID ${adminUid}.`);
+      return { failure: 'User is not authorized to upload to this gym.' };
     }
+    
+    const userData = userDoc.data();
+    const isAuthorized = userData?.role === 'gym-admin' && userData?.gymId === gymId;
+
+    if (!isAuthorized) {
+        console.error(`Authorization failed: Role or GymID mismatch. User Role: ${userData?.role}, User GymID: ${userData?.gymId}, Target GymID: ${gymId}`);
+        return { failure: 'User is not authorized to upload to this gym.' };
+    }
+  } catch (error) {
+      console.error('Error during admin verification inside action:', error);
+      return { failure: 'An unexpected error occurred during verification.' };
   }
   // --- End Verification ---
-
-  if (!isAuthorized) {
-    return { failure: 'User is not authorized to upload to this gym.' };
-  }
   
   if (!fileType.startsWith('image/')) {
     return { failure: 'Invalid file type. Only images are allowed.' };

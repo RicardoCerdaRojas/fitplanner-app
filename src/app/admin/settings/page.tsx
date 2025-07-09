@@ -93,7 +93,12 @@ export default function GymSettingsPage() {
 
         try {
             if (logoFile) {
-                const signedUrlResult = await getSignedUrlAction(gymId, logoFile.type, logoFile.size, user.uid);
+                const adminUid = user.uid;
+                if (!adminUid) {
+                    throw new Error("User authentication error: UID is missing.");
+                }
+
+                const signedUrlResult = await getSignedUrlAction(gymId, logoFile.type, logoFile.size, adminUid);
 
                 if (signedUrlResult.failure) {
                     throw new Error(signedUrlResult.failure);
