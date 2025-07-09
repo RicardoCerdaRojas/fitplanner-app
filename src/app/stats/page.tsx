@@ -12,7 +12,7 @@ import { AppHeader } from '@/components/app-header';
 import { AthleteNav } from '@/components/athlete-nav';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChartConfig, ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { ChartConfig, ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 
 type StatsData = {
   totalWorkouts: number;
@@ -21,20 +21,14 @@ type StatsData = {
   workoutPerformance: { date: string; completed: number }[];
 };
 
-const COLORS = {
-    easy: 'hsl(var(--chart-1))',
-    medium: 'hsl(var(--chart-2))',
-    hard: 'hsl(var(--chart-3))'
-};
-
 const chartConfig: ChartConfig = {
   completed: {
     label: 'Exercises Completed',
     color: 'hsl(var(--primary))',
   },
-  easy: { label: 'Easy', color: COLORS.easy },
-  medium: { label: 'Medium', color: COLORS.medium },
-  hard: { label: 'Hard', color: COLORS.hard },
+  easy: { label: 'Easy', color: 'hsl(var(--chart-1))' },
+  medium: { label: 'Medium', color: 'hsl(var(--chart-2))' },
+  hard: { label: 'Hard', color: 'hsl(var(--chart-3))' },
 };
 
 
@@ -177,16 +171,25 @@ export default function StatsPage() {
                        <ChartContainer config={chartConfig} className="h-[300px] w-full">
                             <PieChart>
                                 <Tooltip content={<ChartTooltipContent nameKey="name" />} />
-                                <Pie data={stats.difficultyBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} labelLine={false} label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                                <Pie 
+                                    data={stats.difficultyBreakdown} 
+                                    dataKey="value" 
+                                    nameKey="name" 
+                                    cx="50%" 
+                                    cy="50%" 
+                                    outerRadius={110} 
+                                    labelLine={false} 
+                                    label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
                                       const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
                                       const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
                                       const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
                                       return ( <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-xs font-bold"> {`${(percent * 100).toFixed(0)}%`} </text> );
                                 }}>
-                                    {stats.difficultyBreakdown.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[entry.name.toLowerCase() as keyof typeof COLORS]} />
+                                    {stats.difficultyBreakdown.map((entry) => (
+                                        <Cell key={`cell-${entry.name}`} fill={`var(--color-${entry.name.toLowerCase()})`} />
                                     ))}
                                 </Pie>
+                                <ChartLegend content={<ChartLegendContent nameKey="name" />} />
                             </PieChart>
                         </ChartContainer>
                     </CardContent>
