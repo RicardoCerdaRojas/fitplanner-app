@@ -124,9 +124,29 @@ export function CoachRoutineManagement({ routines, onEdit }: Props) {
                                                             <h4 className="font-semibold text-card-foreground">{block.name}</h4>
                                                             <span className="text-xs font-semibold text-accent bg-accent/10 px-2 py-0.5 rounded-full">{block.sets}</span>
                                                         </div>
-                                                        <ul className="space-y-1 list-disc list-inside text-sm text-muted-foreground">
-                                                            {block.exercises.map((ex, exIndex) => <li key={exIndex}>{ex.name}</li>)}
-                                                        </ul>
+                                                        <div className="space-y-1 text-sm">
+                                                            {block.exercises.map((ex, exIndex) => {
+                                                                const details = [];
+                                                                if (ex.repType === 'reps' && ex.reps) {
+                                                                    details.push(ex.reps);
+                                                                }
+                                                                if (ex.repType === 'duration' && ex.duration) {
+                                                                    details.push(`${ex.duration} min`);
+                                                                }
+                                                                if (ex.weight) {
+                                                                    details.push(ex.weight);
+                                                                }
+
+                                                                return (
+                                                                    <div key={exIndex} className="flex justify-between items-center py-1 border-b border-dashed border-border/50 last:border-b-0">
+                                                                        <span className="text-card-foreground/90">{ex.name}</span>
+                                                                        {details.length > 0 && (
+                                                                            <span className="text-xs font-mono bg-muted text-muted-foreground px-2 py-0.5 rounded">{details.join(' / ')}</span>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
