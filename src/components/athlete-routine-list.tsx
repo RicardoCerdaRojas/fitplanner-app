@@ -16,7 +16,8 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { Calendar, ClipboardList, PlaySquare, Dumbbell, Repeat, Clock } from 'lucide-react';
+import { Calendar, ClipboardList, PlaySquare, Dumbbell, Repeat, Clock, Rocket } from 'lucide-react';
+import { WorkoutSession } from './workout-session';
 
 export type ExerciseProgress = {
   [key: string]: {
@@ -55,6 +56,7 @@ type AthleteRoutineListProps = {
 
 export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [sessionRoutine, setSessionRoutine] = useState<Routine | null>(null);
   const { toast } = useToast();
 
   const handleProgressChange = async (
@@ -100,6 +102,17 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!sessionRoutine} onOpenChange={(isOpen) => { if (!isOpen) setSessionRoutine(null); }}>
+          {sessionRoutine && (
+              <WorkoutSession 
+                  key={sessionRoutine.id}
+                  routine={sessionRoutine}
+                  onSessionEnd={() => setSessionRoutine(null)}
+                  onProgressChange={handleProgressChange}
+              />
+          )}
+      </Dialog>
+
       <Accordion type="single" collapsible className="w-full space-y-4">
         {routines.map((routine, index) => (
           <AccordionItem value={`item-${index}`} key={routine.id} className='border-2 rounded-lg data-[state=open]:border-primary/50 border-b-2'>
@@ -113,7 +126,12 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
               </div>
             </AccordionTrigger>
             <AccordionContent className='px-4'>
-              <div className="space-y-4 pt-2">
+               <div className="flex justify-start pt-4 pb-4 border-b">
+                  <Button onClick={() => setSessionRoutine(routine)} className="bg-accent hover:bg-accent/90">
+                      <Rocket className="w-4 h-4 mr-2" /> Start Workout Session
+                  </Button>
+              </div>
+              <div className="space-y-4 pt-4">
                 {routine.blocks.map((block, blockIndex) => (
                   <div key={blockIndex} className="p-4 border rounded-lg bg-card/50">
                     <div className="flex justify-between items-center w-full mb-3">
