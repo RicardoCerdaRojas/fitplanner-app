@@ -4,7 +4,7 @@ import { useForm, useFieldArray, useWatch, Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from "date-fns";
-import { Plus, ClipboardCheck, Calendar as CalendarIcon, Edit, X } from 'lucide-react';
+import { Plus, ClipboardPlus, Calendar as CalendarIcon, Edit, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -186,7 +186,7 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
     <Card className="w-full max-w-4xl mx-auto mt-4 shadow-lg border-0">
       <CardHeader>
         <div className="flex items-center gap-3">
-          {isEditing ? <Edit className="w-8 h-8 text-primary" /> : <ClipboardCheck className="w-8 h-8 text-primary" />}
+          {isEditing ? <Edit className="w-8 h-8 text-primary" /> : <ClipboardPlus className="w-8 h-8 text-primary" />}
           <div>
             <CardTitle className="font-headline text-2xl">{isEditing ? 'Edit Routine' : 'Create a New Routine'}</CardTitle>
             <CardDescription>{isEditing && routineToEdit ? `You are editing a routine for ${routineToEdit.userName}.` : 'Design a personalized workout session for a client.'}</CardDescription>
@@ -196,7 +196,7 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 <FormField
                   control={form.control}
                   name="athleteId"
@@ -259,12 +259,12 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
               <FormLabel>Workout Blocks</FormLabel>
               <Tabs value={activeBlockId} onValueChange={setActiveBlockId} className="w-full mt-2">
                 <div className="flex items-center gap-2 pb-2 mb-4 overflow-x-auto border-b">
-                    <TabsList className="relative">
+                    <TabsList className="relative bg-transparent p-0">
                         {blockFields.map((field, index) => (
-                            <TabsTrigger key={field.id} value={field.id} className="relative pr-7">
+                            <TabsTrigger key={field.id} value={field.id} className="relative pr-8 border border-input data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:text-primary">
                                 Block {index + 1}
                                 {blockFields.length > 1 && (
-                                    <div role="button" aria-label={`Remove Block ${index + 1}`} onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeBlock(index);}} className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-muted-foreground/20 cursor-pointer">
+                                    <div role="button" aria-label={`Remove Block ${index + 1}`} onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeBlock(index);}} className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-sm p-0.5 hover:bg-destructive/20 hover:text-destructive cursor-pointer">
                                         <X className="h-3 w-3" />
                                     </div>
                                 )}
@@ -348,12 +348,12 @@ function ExerciseEditor({ blockIndex, control, watch }: { blockIndex: number, co
       <FormLabel>Exercises</FormLabel>
       <Tabs value={activeExerciseId} onValueChange={setActiveExerciseId} className="w-full">
         <div className="flex items-center gap-2 pb-2 mb-2 overflow-x-auto border-b">
-            <TabsList>
+            <TabsList className="relative bg-transparent p-0">
                 {fields.map((field, index) => (
-                    <TabsTrigger key={field.id} value={field.id} className="relative pr-7">
+                    <TabsTrigger key={field.id} value={field.id} className="relative pr-8 border border-input data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:text-primary">
                         Exercise {index + 1}
                         {fields.length > 1 && (
-                             <div role="button" aria-label={`Remove Exercise ${index + 1}`} onClick={(e) => { e.stopPropagation(); e.preventDefault(); remove(index);}} className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-muted-foreground/20 cursor-pointer">
+                             <div role="button" aria-label={`Remove Exercise ${index + 1}`} onClick={(e) => { e.stopPropagation(); e.preventDefault(); remove(index);}} className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-sm p-0.5 hover:bg-destructive/20 hover:text-destructive cursor-pointer">
                                 <X className="h-3 w-3" />
                             </div>
                         )}
@@ -376,7 +376,7 @@ function ExerciseEditor({ blockIndex, control, watch }: { blockIndex: number, co
                             <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="duration" /></FormControl><FormLabel className="font-normal">Duration (minutes)</FormLabel></FormItem>
                         </RadioGroup></FormControl><FormMessage /></FormItem>
                     )}/>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                         {watch(`blocks.${blockIndex}.exercises.${index}.repType`) === 'reps' && (
                             <FormField control={control} name={`blocks.${blockIndex}.exercises.${index}.reps`} render={({ field }) => (<FormItem><FormLabel>Reps</FormLabel><FormControl><Input placeholder="e.g., 3x12" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         )}
