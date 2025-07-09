@@ -52,18 +52,20 @@ export async function getAthletesAction(gymId: string) {
     return { success: false, error: "Gym ID is required." };
   }
   try {
-    const athletesSnapshot = await adminDb.collection('users')
+    const gymUsersSnapshot = await adminDb.collection('users')
       .where('gymId', '==', gymId)
-      .where('role', '==', 'athlete')
       .get();
 
-    if (athletesSnapshot.empty) {
+    if (gymUsersSnapshot.empty) {
       return { success: true, data: [] };
     }
-    const athletes = athletesSnapshot.docs.map(doc => ({
-      uid: doc.id,
-      ...doc.data(),
-    })) as { uid: string; email: string; name?: string; role: 'athlete' }[];
+
+    const athletes = gymUsersSnapshot.docs
+        .map(doc => ({
+            uid: doc.id,
+            ...doc.data(),
+        }))
+        .filter(user => user.role === 'athlete') as { uid: string; email: string; name?: string; role: 'athlete' }[];
     
     const athleteData = athletes.map(athlete => ({ uid: athlete.uid, name: athlete.name || athlete.email }));
 
