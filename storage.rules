@@ -1,0 +1,11 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow public read for logos so they can be displayed in the app.
+    match /logos/{gymId}/{allPaths=**} {
+      allow read;
+      // All writes must go through the signed URL action, so direct writes are denied.
+      allow write: if false;
+    }
+  }
+}

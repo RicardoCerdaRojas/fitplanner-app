@@ -92,10 +92,8 @@ export default function GymSettingsPage() {
         };
 
         try {
-            // Handle logo upload using the new signed URL action
             if (logoFile) {
-                // 1. Get the signed URL from the server action
-                const signedUrlResult = await getSignedUrlAction(gymId, logoFile.type, logoFile.size);
+                const signedUrlResult = await getSignedUrlAction(gymId, logoFile.type, logoFile.size, user.uid);
 
                 if (signedUrlResult.failure) {
                     throw new Error(signedUrlResult.failure);
@@ -103,7 +101,6 @@ export default function GymSettingsPage() {
                 
                 const { signedUrl, publicUrl } = signedUrlResult.success;
 
-                // 2. Upload the file to the signed URL using fetch
                 const uploadResponse = await fetch(signedUrl, {
                     method: 'PUT',
                     body: logoFile,
@@ -113,12 +110,10 @@ export default function GymSettingsPage() {
                 if (!uploadResponse.ok) {
                     throw new Error('Failed to upload logo.');
                 }
-
-                // 3. If upload is successful, add the public URL to the data to be saved in Firestore.
+                
                 updateData.logoUrl = publicUrl;
             }
             
-            // Update Firestore with theme and new logo URL if applicable
             const gymRef = doc(db, 'gyms', gymId);
             await updateDoc(gymRef, updateData);
             

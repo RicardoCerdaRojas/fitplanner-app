@@ -2,15 +2,12 @@
 
 import { getStorage } from 'firebase-admin/storage';
 import { adminDb } from '@/lib/firebase-admin';
-import { auth } from '@/lib/firebase';
+import { auth } from 'firebase-admin';
 import { v4 as uuidv4 } from 'uuid';
 
-// Helper function to verify if the current user is the admin of the specified gym.
-// This is a crucial security check before generating a signed URL.
-async function verifyAdmin(gymId: string): Promise<boolean> {
-  const adminUid = auth.currentUser?.uid;
+async function verifyAdmin(gymId: string, adminUid: string | undefined): Promise<boolean> {
   if (!adminUid) {
-    console.error('Authentication check failed: No current user.');
+    console.error('Authentication check failed: No current user UID provided.');
     return false;
   }
 
@@ -24,7 +21,7 @@ async function verifyAdmin(gymId: string): Promise<boolean> {
     if (userData?.role === 'gym-admin' && userData?.gymId === gymId) {
       return true;
     }
-    console.error(`Admin verification failed: User ${adminUid} is not an admin for gym ${gymId}.`);
+    console.error(`Admin verification failed: User ${adminUid} is not an admin for gym ${gymId}. Role: ${userData?.role}, GymID: ${userData?.gymId}`);
     return false;
   } catch (error) {
     console.error('Error during admin verification:', error);
@@ -32,20 +29,16 @@ async function verifyAdmin(gymId: string): Promise<boolean> {
   }
 }
 
-// This server action generates a secure, short-lived URL that the client can use
-// to upload the gym logo directly to Firebase Storage.
-export async function getSignedUrlAction(gymId: string, fileType: string, fileSize: number) {
+export async function getSignedUrlAction(gymId: string, fileType: string, fileSize: number, adminUid: string | undefined) {
   if (!gymId) {
     return { failure: 'Missing Gym ID.' };
   }
 
-  // Security Check: Ensure the user requesting the URL is the admin of the gym.
-  const isAuthorized = await verifyAdmin(gymId);
+  const isAuthorized = await verifyAdmin(gymId, adminUid);
   if (!isAuthorized) {
     return { failure: 'User is not authorized to upload to this gym.' };
   }
   
-  // File validation
   if (!fileType.startsWith('image/')) {
     return { failure: 'Invalid file type. Only images are allowed.' };
   }
@@ -69,7 +62,6 @@ export async function getSignedUrlAction(gymId: string, fileType: string, fileSi
 
     const [url] = await file.getSignedUrl(options);
     
-    // Construct the public URL that will be stored in Firestore after the upload is complete.
     const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filePath)}?alt=media`;
 
     return { success: { signedUrl: url, publicUrl: publicUrl } };
