@@ -4,17 +4,23 @@ import Link from 'next/link';
 import { Button } from './ui/button';
 import { useAuth } from '@/contexts/auth-context';
 import { auth } from '@/lib/firebase';
-import { Dumbbell, LogOut, LogIn, UserPlus } from 'lucide-react';
+import { Dumbbell, LogOut, LogIn, UserPlus, Moon, Sun } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { useRouter } from 'next/navigation';
+import { useTheme } from '@/contexts/theme-provider';
 
 export function AppHeader() {
     const { user, loading } = useAuth();
     const router = useRouter();
+    const { theme, setTheme } = useTheme();
 
     const handleLogout = async () => {
         await auth.signOut();
         router.push('/login');
+    };
+
+    const toggleTheme = () => {
+        setTheme(theme === 'dark' ? 'light' : 'dark');
     };
 
     return (
@@ -26,6 +32,11 @@ export function AppHeader() {
                 </h1>
             </Link>
             <div className="flex items-center gap-2">
+                 <Button variant="outline" size="icon" onClick={toggleTheme}>
+                    <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                    <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                    <span className="sr-only">Toggle theme</span>
+                </Button>
                 {loading ? (
                     <Skeleton className="h-10 w-40 rounded-md" />
                 ) : user ? (
