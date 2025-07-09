@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { collection, query, where, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { GenerateWorkoutRoutineOutput } from '@/ai/flows/generate-workout-routine';
 import { AIWorkoutGenerator } from '@/components/ai-workout-generator';
@@ -31,8 +31,7 @@ function AthleteDashboard() {
         setIsLoading(true);
         const routinesQuery = query(
             collection(db, 'routines'),
-            where('athleteId', '==', user.uid),
-            orderBy('routineDate', 'desc')
+            where('athleteId', '==', user.uid)
         );
 
         const unsubscribe = onSnapshot(routinesQuery, (snapshot) => {
@@ -45,6 +44,7 @@ function AthleteDashboard() {
                     coachId: data.coachId,
                 } as AthleteRoutine;
             });
+            fetchedRoutines.sort((a, b) => b.routineDate.getTime() - a.routineDate.getTime());
             setRoutines(fetchedRoutines);
             setIsLoading(false);
         }, (error) => {
