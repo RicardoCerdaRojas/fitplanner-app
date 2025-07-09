@@ -7,8 +7,10 @@ import { z } from 'zod';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast';
 import { themes } from '@/lib/themes';
 import { cn } from '@/lib/utils';
@@ -21,7 +23,6 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
 import { Upload, Palette } from 'lucide-react';
-import { getSignedUrlAction } from './actions';
 
 const formSchema = z.object({
   theme: z.string({ required_error: 'Please select a theme for your gym.' }),
@@ -69,6 +70,14 @@ export default function GymSettingsPage() {
     const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                toast({ variant: 'destructive', title: 'Error', description: 'File size cannot exceed 5MB.' });
+                return;
+            }
+            if (!file.type.startsWith('image/')) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Invalid file type. Only images are allowed.' });
+                return;
+            }
             setLogoFile(file);
             setLogoPreview(URL.createObjectURL(file));
         }
@@ -93,30 +102,14 @@ export default function GymSettingsPage() {
 
         try {
             if (logoFile) {
-                const adminUid = user.uid;
-                if (!adminUid) {
-                    throw new Error("User authentication error: UID is missing.");
-                }
-
-                const signedUrlResult = await getSignedUrlAction(gymId, logoFile.type, logoFile.size, adminUid);
-
-                if (signedUrlResult.failure) {
-                    throw new Error(signedUrlResult.failure);
-                }
-                
-                const { signedUrl, publicUrl } = signedUrlResult.success;
-
-                const uploadResponse = await fetch(signedUrl, {
-                    method: 'PUT',
-                    body: logoFile,
-                    headers: { 'Content-Type': logoFile.type },
-                });
-
-                if (!uploadResponse.ok) {
-                    throw new Error('Failed to upload logo.');
-                }
-                
-                updateData.logoUrl = publicUrl;
+                const fileExtension = logoFile.name.split('.').pop();
+                const fileName = `${uuidv4()}.${fileExtension}`;
+                const filePath = `logos/${gymId}/${fileName}`;
+                const storageRef = ref(storage, filePath);
+    
+                await uploadBytes(storageRef, logoFile);
+                const downloadURL = await getDownloadURL(storageRef);
+                updateData.logoUrl = downloadURL;
             }
             
             const gymRef = doc(db, 'gyms', gymId);
@@ -125,7 +118,11 @@ export default function GymSettingsPage() {
             toast({ title: 'Success!', description: 'Your gym settings have been updated.' });
         } catch (error: any) {
             console.error("Error updating gym settings:", error);
-            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Could not update settings.' });
+            if (error.code === 'storage/unauthorized') {
+              toast({ variant: 'destructive', title: 'Upload Failed', description: 'Permission denied. Please ensure you are an admin and check storage rules.' });
+            } else {
+              toast({ variant: 'destructive', title: 'Error', description: error.message || 'Could not update settings.' });
+            }
         } finally {
             setIsSubmitting(false);
             setLogoFile(null);
@@ -171,7 +168,7 @@ export default function GymSettingsPage() {
                                 <div className="flex-1 w-full">
                                     <FormLabel htmlFor="logo-upload">Upload new logo</FormLabel>
                                     <Input id="logo-upload" type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={handleLogoChange} />
-                                    <p className="text-xs text-muted-foreground mt-2">Recommended size: 200x100px. PNG, JPG or SVG.</p>
+                                    <p className="text-xs text-muted-foreground mt-2">Recommended size: 200x100px. Max 5MB. PNG, JPG or SVG.</p>
                                 </div>
                             </CardContent>
                         </Card>
