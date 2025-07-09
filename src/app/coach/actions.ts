@@ -59,15 +59,23 @@ export async function getAthletesAction(gymId: string) {
     if (gymUsersSnapshot.empty) {
       return { success: true, data: [] };
     }
-
-    const athletes = gymUsersSnapshot.docs
-        .map(doc => ({
-            uid: doc.id,
-            ...doc.data(),
-        }))
-        .filter(user => user.role === 'athlete') as { uid: string; email: string; name?: string; role: 'athlete' }[];
     
-    const athleteData = athletes.map(athlete => ({ uid: athlete.uid, name: athlete.name || athlete.email }));
+    const users = gymUsersSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            uid: doc.id,
+            name: data.name,
+            email: data.email,
+            role: data.role
+        };
+    });
+
+    const athletes = users.filter(user => user.role === 'athlete');
+    
+    const athleteData = athletes.map(athlete => ({
+        uid: athlete.uid,
+        name: athlete.name || athlete.email
+    })).filter(athlete => athlete.name);
 
     return { success: true, data: athleteData };
   } catch (error) {
