@@ -1,0 +1,205 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/auth-context';
+import { useRouter } from 'next/navigation';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Bar, BarChart, CartesianGrid, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
+import type { Routine } from '@/components/athlete-routine-list';
+
+import { AppHeader } from '@/components/app-header';
+import { AthleteNav } from '@/components/athlete-nav';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ChartConfig, ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+
+type StatsData = {
+  totalWorkouts: number;
+  totalExercisesLogged: number;
+  difficultyBreakdown: { name: string; value: number }[];
+  workoutPerformance: { date: string; completed: number }[];
+};
+
+const COLORS = {
+    easy: 'hsl(var(--chart-1))',
+    medium: 'hsl(var(--chart-2))',
+    hard: 'hsl(var(--chart-3))'
+};
+
+const chartConfig: ChartConfig = {
+  completed: {
+    label: 'Exercises Completed',
+    color: 'hsl(var(--primary))',
+  },
+  easy: { label: 'Easy', color: COLORS.easy },
+  medium: { label: 'Medium', color: COLORS.medium },
+  hard: { label: 'Hard', color: COLORS.hard },
+};
+
+
+export default function StatsPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [routines, setRoutines] = useState<Routine[]>([]);
+  const [stats, setStats] = useState<StatsData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    setLoading(true);
+    const routinesQuery = query(collection(db, 'routines'), where('athleteId', '==', user.uid));
+    const unsubscribe = onSnapshot(routinesQuery, (snapshot) => {
+      const fetchedRoutines = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() } as Routine))
+        .sort((a, b) => a.routineDate.getTime() - b.routineDate.getTime());
+      setRoutines(fetchedRoutines);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user, authLoading, router]);
+
+
+  useEffect(() => {
+    if (routines.length > 0) {
+      const difficultyCounts = { easy: 0, medium: 0, hard: 0 };
+      let totalExercisesLogged = 0;
+
+      const workoutPerformance = routines.map(routine => {
+        const completedCount = Object.values(routine.progress || {}).filter(p => p.completed).length;
+        totalExercisesLogged += completedCount;
+
+        Object.values(routine.progress || {}).forEach(p => {
+          if (p.difficulty) {
+            difficultyCounts[p.difficulty]++;
+          }
+        });
+        
+        return {
+          date: new Date(routine.routineDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          completed: completedCount,
+        };
+      }).filter(item => item.completed > 0);
+
+
+      setStats({
+        totalWorkouts: routines.length,
+        totalExercisesLogged: totalExercisesLogged,
+        difficultyBreakdown: [
+          { name: 'Easy', value: difficultyCounts.easy },
+          { name: 'Medium', value: difficultyCounts.medium },
+          { name: 'Hard', value: difficultyCounts.hard },
+        ].filter(d => d.value > 0),
+        workoutPerformance,
+      });
+    }
+  }, [routines]);
+
+  if (authLoading || loading) {
+    return (
+      <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
+        <AppHeader />
+        <div className="w-full max-w-4xl space-y-8 mt-4">
+          <Skeleton className="h-16 w-full" />
+          <div className="grid gap-4 md:grid-cols-3">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Skeleton className="h-80 w-full" />
+            <Skeleton className="h-80 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
+        <AppHeader />
+        <div className="w-full max-w-5xl space-y-8">
+          <AthleteNav />
+
+          {!stats || routines.length === 0 ? (
+            <Card className="text-center py-12">
+              <CardHeader>
+                <CardTitle>No Data Yet</CardTitle>
+                <CardDescription>Complete some workouts to see your stats here!</CardDescription>
+              </CardHeader>
+            </Card>
+          ) : (
+            <>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <Card>
+                      <CardHeader><CardTitle>Total Workouts</CardTitle></CardHeader>
+                      <CardContent><p className="text-4xl font-bold">{stats.totalWorkouts}</p></CardContent>
+                  </Card>
+                   <Card>
+                      <CardHeader><CardTitle>Exercises Logged</CardTitle></CardHeader>
+                      <CardContent><p className="text-4xl font-bold">{stats.totalExercisesLogged}</p></CardContent>
+                  </Card>
+                   <Card>
+                      <CardHeader><CardTitle>Avg. Exercises / Workout</CardTitle></CardHeader>
+                      <CardContent><p className="text-4xl font-bold">{(stats.totalExercisesLogged / stats.totalWorkouts).toFixed(1)}</p></CardContent>
+                  </Card>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
+                 <Card>
+                    <CardHeader><CardTitle>Workout Performance</CardTitle><CardDescription>Completed exercises over time.</CardDescription></CardHeader>
+                    <CardContent>
+                      <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                        <BarChart data={stats.workoutPerformance} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                          <CartesianGrid vertical={false} />
+                          <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+                          <YAxis />
+                          <Tooltip content={<ChartTooltipContent />} />
+                          <Bar dataKey="completed" fill="var(--color-completed)" radius={4} />
+                        </BarChart>
+                      </ChartContainer>
+                    </CardContent>
+                  </Card>
+
+                 <Card>
+                    <CardHeader><CardTitle>Difficulty Breakdown</CardTitle><CardDescription>How you've rated your exercises.</CardDescription></CardHeader>
+                    <CardContent className="flex items-center justify-center">
+                       <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                            <PieChart>
+                                <Tooltip content={<ChartTooltipContent nameKey="name" />} />
+                                <Pie data={stats.difficultyBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} labelLine={false} label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                                      const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                                      const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+                                      const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+                                      return ( <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-xs font-bold"> {`${(percent * 100).toFixed(0)}%`} </text> );
+                                }}>
+                                    {stats.difficultyBreakdown.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[entry.name.toLowerCase() as keyof typeof COLORS]} />
+                                    ))}
+                                </Pie>
+                            </PieChart>
+                        </ChartContainer>
+                    </CardContent>
+                  </Card>
+              </div>
+            </>
+          )}
+
+        </div>
+      </main>
+      <footer className="w-full text-center p-4 text-muted-foreground text-sm">
+        <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
+      </footer>
+    </div>
+  );
+}

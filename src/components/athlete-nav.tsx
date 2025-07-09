@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ClipboardList, WandSparkles } from 'lucide-react';
+import { ClipboardList, WandSparkles, BarChart3 } from 'lucide-react';
 
 export function AthleteNav() {
   const pathname = usePathname();
 
   const links = [
     { href: '/', label: 'My Routines', icon: ClipboardList },
+    { href: '/stats', label: 'My Stats', icon: BarChart3 },
     { href: '/generate-routine', label: 'AI Generator', icon: WandSparkles },
   ];
 

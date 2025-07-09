@@ -39,6 +39,7 @@ function AthleteDashboard() {
                     routineDate: (data.routineDate as Timestamp).toDate(),
                     blocks: data.blocks,
                     coachId: data.coachId,
+                    progress: data.progress,
                 } as AthleteRoutine;
             }).sort((a, b) => b.routineDate.getTime() - a.routineDate.getTime());
             setRoutines(fetchedRoutines);
