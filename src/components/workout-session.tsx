@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, X, Video } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 
 // Timer Component
@@ -119,12 +119,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     return (
         <DialogContent className="max-w-5xl h-[95vh] flex flex-col p-0 gap-0">
             <DialogHeader className="p-4 border-b">
-                <div className="flex justify-between items-center">
-                    <DialogTitle className="font-headline text-xl">{routine.routineName}</DialogTitle>
-                    <Button variant="ghost" size="icon" onClick={onSessionEnd} className="rounded-full">
-                        <X className="h-4 w-4" />
-                    </Button>
-                </div>
+                <DialogTitle className="font-headline text-xl pr-8">{routine.routineName}</DialogTitle>
                 <div className="space-y-1 mt-2">
                     <Progress value={progressPercentage} />
                     <p className="text-xs text-muted-foreground text-center">Exercise {currentIndex + 1} of {allExercises.length}</p>
