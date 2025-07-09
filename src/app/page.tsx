@@ -5,9 +5,6 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { GenerateWorkoutRoutineOutput } from '@/ai/flows/generate-workout-routine';
-import { AIWorkoutGenerator } from '@/components/ai-workout-generator';
-import { WorkoutDisplay } from '@/components/workout-display';
 import { AppHeader } from '@/components/app-header';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -16,14 +13,12 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { User, Building, WandSparkles } from 'lucide-react';
 import type { Routine as AthleteRoutine } from '@/components/athlete-routine-list';
 import { AthleteRoutineList } from '@/components/athlete-routine-list';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 
 function AthleteDashboard() {
     const { user } = useAuth();
     const [routines, setRoutines] = useState<AthleteRoutine[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [aiRoutine, setAiRoutine] = useState<GenerateWorkoutRoutineOutput | null>(null);
 
     useEffect(() => {
         if (!user) return;
@@ -72,20 +67,15 @@ function AthleteDashboard() {
                 <AthleteRoutineList routines={routines} />
             )}
 
-            <Accordion type="single" collapsible className="w-full pt-4 border-t">
-                <AccordionItem value="item-1" className="border-b-0">
-                    <AccordionTrigger className="text-xl font-headline hover:no-underline">
-                        <div className="flex items-center gap-2">
-                           <WandSparkles className="w-6 h-6 text-primary" />
-                           <span>Need something different? Generate one with AI</span>
-                        </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-4">
-                        <AIWorkoutGenerator onRoutineGenerated={setAiRoutine} />
-                        <WorkoutDisplay routine={aiRoutine} />
-                    </AccordionContent>
-                </AccordionItem>
-            </Accordion>
+            <div className="w-full pt-8 mt-8 border-t text-center">
+                 <h2 className="text-xl font-headline mb-4">Need something different?</h2>
+                 <Button asChild size="lg" className="bg-accent hover:bg-accent/90">
+                    <Link href="/generate-routine">
+                        <WandSparkles className="mr-2 h-5 w-5" />
+                        Generate one with AI
+                    </Link>
+                </Button>
+            </div>
         </div>
     );
 }
