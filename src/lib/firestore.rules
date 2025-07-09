@@ -1,0 +1,25 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can only read, write, and create their own user document.
+    match /users/{userId} {
+      allow read, update, delete: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId;
+    }
+    
+    // An authenticated user can create a gym if they are not already part of one,
+    // and they are setting themselves as the admin.
+    match /gyms/{gymId} {
+      allow create: if request.auth != null 
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId == null
+                    && request.resource.data.adminUid == request.auth.uid;
+    }
+    
+    // Coaches can create routines.
+    match /routines/{routineId} {
+      allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'coach';
+    }
+  }
+}
