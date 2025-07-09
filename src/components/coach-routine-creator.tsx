@@ -19,8 +19,9 @@ import { cn } from '@/lib/utils';
 import type { CoachRoutine } from './coach-workout-display';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { saveRoutineAction } from '@/app/coach/actions';
 import type { Athlete } from '@/app/coach/page';
+import { addDoc, collection, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const exerciseSchema = z.object({
   name: z.string().min(2, 'Exercise name is required.'),
@@ -96,13 +97,17 @@ export function CoachRoutineCreator({ onRoutineCreated, athletes, gymId }: Coach
       });
       return;
     }
-    
-    const selectedAthlete = athletes.find(a => a.uid === values.athleteId);
-    if (!selectedAthlete) {
-        toast({ variant: 'destructive', title: 'Invalid Client', description: 'The selected client could not be found.' });
-        return;
-    }
 
+    const selectedAthlete = athletes.find((a) => a.uid === values.athleteId);
+    if (!selectedAthlete) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Client',
+        description: 'The selected client could not be found.',
+      });
+      return;
+    }
+    
     const routineData = {
         ...values,
         userName: selectedAthlete.name,
@@ -110,14 +115,22 @@ export function CoachRoutineCreator({ onRoutineCreated, athletes, gymId }: Coach
         gymId: gymId,
     };
     
-    setIsSubmitting(true);
+    // The preview component expects a standard Date object.
     onRoutineCreated(routineData);
 
-    const result = await saveRoutineAction(routineData);
-    
-    setIsSubmitting(false);
+    const docToWrite = {
+        ...routineData,
+        routineDate: Timestamp.fromDate(routineData.routineDate),
+        createdAt: Timestamp.now(),
+    };
 
-    if (result.success) {
+    setIsSubmitting(true);
+
+    try {
+      await addDoc(collection(db, 'routines'), docToWrite);
+
+      setIsSubmitting(false);
+
       toast({
         title: 'Routine Saved!',
         description: `The routine for ${routineData.userName} has been saved successfully.`,
@@ -125,14 +138,26 @@ export function CoachRoutineCreator({ onRoutineCreated, athletes, gymId }: Coach
       form.reset({
         athleteId: '',
         routineDate: new Date(),
-        blocks: [{ name: 'Block A', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' }] }],
+        blocks: [
+          {
+            name: 'Block A',
+            sets: '3 Sets',
+            exercises: [
+              { name: '', repType: 'reps', reps: '12', duration: '', weight: '', videoUrl: '' },
+            ],
+          },
+        ],
       });
       onRoutineCreated(null);
-    } else {
+    } catch (error: any) {
+      setIsSubmitting(false);
+      console.error('Error saving routine:', error);
       toast({
         variant: 'destructive',
         title: 'Save Failed',
-        description: result.error || 'An unexpected error occurred.',
+        description:
+          error.message ||
+          'An unexpected error occurred while saving the routine.',
       });
     }
   }
