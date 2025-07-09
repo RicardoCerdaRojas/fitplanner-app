@@ -4,7 +4,7 @@ import { useForm, useFieldArray, useWatch, Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from "date-fns";
-import { Plus, Trash2, ClipboardCheck, Calendar as CalendarIcon, Edit, X } from 'lucide-react';
+import { Plus, ClipboardCheck, Calendar as CalendarIcon, Edit, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
