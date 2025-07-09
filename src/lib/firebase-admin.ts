@@ -1,5 +1,3 @@
-'use server';
-
 const admin = require('firebase-admin');
 
 if (!admin.apps.length) {
