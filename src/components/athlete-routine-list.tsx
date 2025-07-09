@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Calendar, ClipboardList, PlaySquare, Dumbbell, Repeat, Clock, Rocket } from 'lucide-react';
 import { WorkoutSession } from './workout-session';
+import { getYouTubeEmbedUrl } from '@/lib/utils';
 
 export type ExerciseProgress = {
   [key: string]: {
@@ -79,6 +80,8 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
     }
   };
 
+  const embedUrl = videoUrl ? getYouTubeEmbedUrl(videoUrl) : null;
+
   if (routines.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg">
@@ -96,11 +99,20 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
           <DialogHeader>
             <DialogTitle>Exercise Example</DialogTitle>
           </DialogHeader>
-          {videoUrl && (
+          {embedUrl ? (
+            <iframe
+              src={embedUrl}
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="w-full rounded-lg aspect-video bg-black"
+            ></iframe>
+          ) : videoUrl ? (
              <video controls autoPlay src={videoUrl} className="w-full rounded-lg aspect-video bg-black" key={videoUrl}>
               Your browser does not support the video tag.
             </video>
-          )}
+          ) : null}
         </DialogContent>
       </Dialog>
 
