@@ -17,7 +17,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { UserPlus } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
@@ -26,9 +25,6 @@ import { auth, db } from '@/lib/firebase';
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-  role: z.enum(['athlete', 'coach'], {
-    required_error: 'You need to select a role.',
-  }),
 });
 
 export default function SignupPage() {
@@ -40,7 +36,6 @@ export default function SignupPage() {
     defaultValues: {
       email: '',
       password: '',
-      role: undefined,
     },
   });
 
@@ -50,11 +45,10 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const { user } = userCredential;
       
-      // Use the client-side SDK to create the user's role document.
-      // This is secure because of the updated Firestore rules.
       await setDoc(doc(db, 'users', user.uid), {
-        role: values.role,
         email: values.email,
+        role: null,
+        gymId: null,
       });
       
       router.push('/');
@@ -62,8 +56,6 @@ export default function SignupPage() {
       let description = 'An unexpected error occurred. Please try again.';
       if (error.code === 'auth/email-already-in-use') {
         description = 'This email is already registered.';
-      } else if (error.code === 'permission-denied') {
-        description = 'Could not set user role. Please ensure you have deployed the latest Firestore security rules.';
       } else {
         description = error.message;
       }
@@ -83,7 +75,7 @@ export default function SignupPage() {
                 <UserPlus className="w-8 h-8 text-primary" />
                 <CardTitle className="text-3xl font-headline">Create an Account</CardTitle>
             </div>
-          <CardDescription>Join Fitness Flow as an Athlete or a Coach</CardDescription>
+          <CardDescription>Join Fitness Flow and set up your gym.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -109,40 +101,6 @@ export default function SignupPage() {
                     <FormLabel>Password</FormLabel>
                     <FormControl>
                       <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>What's your role?</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-2"
-                      >
-                        <FormItem className="flex items-center space-x-3 space-y-0 p-3 border rounded-md has-[[data-state=checked]]:bg-primary/10 has-[[data-state=checked]]:border-primary transition-colors">
-                          <FormControl>
-                            <RadioGroupItem value="athlete" />
-                          </FormControl>
-                          <FormLabel className="font-normal cursor-pointer">
-                            Athlete - I want to get fit and use AI workouts.
-                          </FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0 p-3 border rounded-md has-[[data-state=checked]]:bg-primary/10 has-[[data-state=checked]]:border-primary transition-colors">
-                          <FormControl>
-                            <RadioGroupItem value="coach" />
-                          </FormControl>
-                          <FormLabel className="font-normal cursor-pointer">
-                            Coach - I want to create routines for my clients.
-                          </FormLabel>
-                        </FormItem>
-                      </RadioGroup>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

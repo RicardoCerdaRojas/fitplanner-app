@@ -24,6 +24,7 @@ const routineSchema = z.object({
   routineDate: z.date(),
   blocks: z.array(blockSchema).min(1),
   coachId: z.string().min(1, 'Coach ID is required.'),
+  gymId: z.string().min(1, 'Gym ID is required.'),
 });
 
 export async function saveRoutineAction(routineData: z.infer<typeof routineSchema>) {
@@ -46,9 +47,16 @@ export async function saveRoutineAction(routineData: z.infer<typeof routineSchem
     }
 }
 
-export async function getAthletesAction() {
+export async function getAthletesAction(gymId: string) {
+  if (!gymId) {
+    return { success: false, error: "Gym ID is required." };
+  }
   try {
-    const athletesSnapshot = await adminDb.collection('users').where('role', '==', 'athlete').get();
+    const athletesSnapshot = await adminDb.collection('users')
+      .where('gymId', '==', gymId)
+      .where('role', '==', 'athlete')
+      .get();
+
     if (athletesSnapshot.empty) {
       return { success: true, data: [] };
     }

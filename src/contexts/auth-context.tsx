@@ -2,12 +2,13 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
 type UserProfile = {
-  role: 'athlete' | 'coach' | null;
+  role: 'athlete' | 'coach' | 'gym-admin' | null;
   email?: string;
+  gymId?: string | null;
 };
 
 type AuthContextType = {
@@ -24,29 +25,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setLoading(true);
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUser(user);
-        try {
-            const userDoc = await getDoc(doc(db, 'users', user.uid));
-            if (userDoc.exists()) {
-                setUserProfile(userDoc.data() as UserProfile);
-            } else {
-                setUserProfile({ role: null });
-            }
-        } catch (e) {
-            console.error("Error fetching user profile", e)
-            setUserProfile({ role: null });
-        }
+        setLoading(true);
+        const userDocRef = doc(db, 'users', user.uid);
+        const unsubscribeSnapshot = onSnapshot(userDocRef, (doc) => {
+          if (doc.exists()) {
+            setUserProfile(doc.data() as UserProfile);
+          } else {
+            setUserProfile({ role: null, gymId: null });
+          }
+          setLoading(false);
+        }, (error) => {
+            console.error("Error fetching user profile:", error);
+            setUserProfile({ role: null, gymId: null });
+            setLoading(false);
+        });
+
+        // Detach snapshot listener when user logs out
+        return () => unsubscribeSnapshot();
       } else {
         setUser(null);
         setUserProfile(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, []);
 
   return (

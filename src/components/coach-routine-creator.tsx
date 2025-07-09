@@ -65,9 +65,10 @@ type FormValues = z.infer<typeof routineSchema>;
 type CoachRoutineCreatorProps = {
   onRoutineCreated: (routine: CoachRoutine | null) => void;
   athletes: Athlete[];
+  gymId: string;
 };
 
-export function CoachRoutineCreator({ onRoutineCreated, athletes }: CoachRoutineCreatorProps) {
+export function CoachRoutineCreator({ onRoutineCreated, athletes, gymId }: CoachRoutineCreatorProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -102,10 +103,11 @@ export function CoachRoutineCreator({ onRoutineCreated, athletes }: CoachRoutine
         return;
     }
 
-    const routineData: CoachRoutine & { coachId: string } = {
+    const routineData = {
         ...values,
         userName: selectedAthlete.name,
-        coachId: user.uid
+        coachId: user.uid,
+        gymId: gymId,
     };
     
     setIsSubmitting(true);
@@ -164,7 +166,7 @@ export function CoachRoutineCreator({ onRoutineCreated, athletes }: CoachRoutine
                             </FormControl>
                             <SelectContent>
                             {athletes.length === 0 ? (
-                                <SelectItem value="none" disabled>No athletes found</SelectItem>
+                                <SelectItem value="none" disabled>No athletes found in your gym</SelectItem>
                             ) : (
                                 athletes.map(athlete => (
                                     <SelectItem key={athlete.uid} value={athlete.uid}>{athlete.name}</SelectItem>

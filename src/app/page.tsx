@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
+import { useRouter } from 'next/navigation';
 import type { GenerateWorkoutRoutineOutput } from '@/ai/flows/generate-workout-routine';
 import { AIWorkoutGenerator } from '@/components/ai-workout-generator';
 import { WorkoutDisplay } from '@/components/workout-display';
@@ -10,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { User } from 'lucide-react';
+import { User, Building } from 'lucide-react';
 
 function AthleteDashboard() {
     const [routine, setRoutine] = useState<GenerateWorkoutRoutineOutput | null>(null);
@@ -42,13 +43,29 @@ function CoachDashboard() {
     );
 }
 
+function AdminDashboard() {
+    return (
+        <div className="w-full max-w-2xl text-center">
+            <Card className="p-8">
+                <CardHeader>
+                    <CardTitle className="text-3xl font-headline">Admin Dashboard</CardTitle>
+                    <CardDescription>Welcome! Manage your gym, coaches, and athletes from here.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground">(Admin features coming soon)</p>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
 function GuestLandingPage() {
   return (
     <div className="w-full max-w-4xl text-center">
         <Card className="p-8 sm:p-12 bg-card/50 border-2 border-primary/20 shadow-lg">
             <CardHeader>
                 <CardTitle className="text-4xl md:text-5xl font-headline">Welcome to Fitness Flow</CardTitle>
-                <CardDescription className="text-lg md:text-xl mt-2">Your personal AI fitness partner. Get personalized workouts or create routines for your clients.</CardDescription>
+                <CardDescription className="text-lg md:text-xl mt-2">The ultimate platform for gyms, coaches, and athletes.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-4">
                  <Button asChild size="lg">
@@ -65,6 +82,54 @@ function GuestLandingPage() {
 
 export default function Home() {
     const { user, userProfile, loading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!loading && user && !userProfile?.gymId) {
+            router.push('/create-gym');
+        }
+    }, [user, userProfile, loading, router]);
+
+
+    const renderContent = () => {
+        if (loading) {
+            return (
+                <div className="w-full max-w-2xl space-y-4">
+                    <Skeleton className="h-48 w-full" />
+                    <Skeleton className="h-12 w-1/3" />
+                    <Skeleton className="h-64 w-full" />
+                </div>
+            );
+        }
+
+        if (!user) {
+            return <GuestLandingPage />;
+        }
+
+        if (!userProfile?.gymId) {
+             return <p>Redirecting to gym setup...</p>;
+        }
+
+        switch (userProfile.role) {
+            case 'gym-admin':
+                return <AdminDashboard />;
+            case 'coach':
+                return <CoachDashboard />;
+            case 'athlete':
+                return <AthleteDashboard />;
+            default:
+                return (
+                    <div className="w-full max-w-2xl text-center">
+                        <Card className="p-8">
+                            <CardHeader>
+                                <CardTitle className="text-3xl font-headline">Welcome!</CardTitle>
+                                <CardDescription>Your account is pending configuration by your gym administrator.</CardDescription>
+                            </CardHeader>
+                        </Card>
+                    </div>
+                );
+        }
+    };
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -72,25 +137,7 @@ export default function Home() {
                 <AppHeader />
                 
                 <div className="flex-grow flex items-center justify-center w-full">
-                    {loading ? (
-                        <div className="w-full max-w-2xl space-y-4">
-                            <Skeleton className="h-48 w-full" />
-                            <Skeleton className="h-12 w-1/3" />
-                            <Skeleton className="h-64 w-full" />
-                        </div>
-                    ) : !user ? (
-                        <GuestLandingPage />
-                    ) : userProfile?.role === 'athlete' ? (
-                        <AthleteDashboard />
-                    ) : userProfile?.role === 'coach' ? (
-                        <CoachDashboard />
-                    ) : (
-                       <div className="w-full max-w-2xl space-y-4">
-                            <Skeleton className="h-48 w-full" />
-                            <Skeleton className="h-12 w-1/3" />
-                            <Skeleton className="h-64 w-full" />
-                        </div>
-                    )}
+                    {renderContent()}
                 </div>
             </main>
             <footer className="w-full text-center p-4 text-muted-foreground text-sm">

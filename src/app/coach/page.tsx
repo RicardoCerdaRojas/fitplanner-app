@@ -32,12 +32,13 @@ export default function CoachPage() {
 
   useEffect(() => {
     async function fetchAthletes() {
-        const result = await getAthletesAction();
-        if (result.success && result.data) {
-            setAthletes(result.data);
-        } else {
-            console.error("Failed to fetch athletes:", result.error);
-        }
+      if (!userProfile?.gymId) return;
+      const result = await getAthletesAction(userProfile.gymId);
+      if (result.success && result.data) {
+          setAthletes(result.data);
+      } else {
+          console.error("Failed to fetch athletes:", result.error);
+      }
     }
     if (userProfile?.role === 'coach') {
         fetchAthletes();
@@ -64,7 +65,7 @@ export default function CoachPage() {
         <AppHeader />
         
         <div className="w-full max-w-4xl">
-          <CoachRoutineCreator onRoutineCreated={setRoutine} athletes={athletes} />
+          {userProfile?.gymId && <CoachRoutineCreator onRoutineCreated={setRoutine} athletes={athletes} gymId={userProfile.gymId} />}
           <CoachWorkoutDisplay routine={routine} />
         </div>
       </main>
