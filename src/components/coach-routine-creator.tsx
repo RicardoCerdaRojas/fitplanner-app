@@ -183,7 +183,7 @@ export function CoachRoutineCreator({ athletes, gymId, routineToEdit, onRoutineS
   }
 
   return (
-    <Card className="w-full max-w-4xl mx-auto mt-4 shadow-lg border-2 border-primary/20">
+    <Card className="w-full max-w-4xl mx-auto mt-4 shadow-lg border-0">
       <CardHeader>
         <div className="flex items-center gap-3">
           {isEditing ? <Edit className="w-8 h-8 text-primary" /> : <ClipboardCheck className="w-8 h-8 text-primary" />}
@@ -347,7 +347,7 @@ function ExerciseEditor({ blockIndex, control, watch }: { blockIndex: number, co
     <div className='space-y-4 pt-4 border-t'>
       <FormLabel>Exercises</FormLabel>
       <Tabs value={activeExerciseId} onValueChange={setActiveExerciseId} className="w-full">
-        <div className="flex items-center gap-2 pb-2 mb-4 overflow-x-auto">
+        <div className="flex items-center gap-2 pb-2 mb-2 overflow-x-auto">
             <TabsList>
                 {fields.map((field, index) => (
                     <TabsTrigger key={field.id} value={field.id} className="relative pr-7">
@@ -367,7 +367,7 @@ function ExerciseEditor({ blockIndex, control, watch }: { blockIndex: number, co
 
          {fields.map((field, index) => (
             <TabsContent key={field.id} value={field.id} className="mt-0">
-                <div className="p-3 border rounded-md space-y-4 bg-background/50">
+                <div className="p-4 border rounded-md space-y-4 bg-background/50">
                     <FormField control={control} name={`blocks.${blockIndex}.exercises.${index}.name`} render={({ field }) => (<FormItem><FormLabel>Exercise Name</FormLabel><FormControl><Input placeholder="e.g., Bench Press" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={control} name={`blocks.${blockIndex}.exercises.${index}.repType`} render={({ field }) => (
                         <FormItem className="space-y-2"><FormLabel>Repetitions or Duration?</FormLabel>
