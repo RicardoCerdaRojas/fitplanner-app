@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Users, ClipboardList, Layers } from 'lucide-react';
+import { Users, ClipboardList, Layers, Palette } from 'lucide-react';
 
 export function AdminNav() {
   const pathname = usePathname();
@@ -12,11 +12,12 @@ export function AdminNav() {
   const links = [
     { href: '/admin', label: 'Manage Members', icon: Users },
     { href: '/admin/routine-types', label: 'Routine Types', icon: Layers },
+    { href: '/admin/settings', label: 'Gym Branding', icon: Palette },
     { href: '/coach', label: 'Create Routines', icon: ClipboardList },
   ];
 
   return (
-    <nav className="flex items-center gap-2 mb-8 border-b pb-4">
+    <nav className="flex items-center gap-2 mb-8 border-b pb-4 flex-wrap">
       {links.map(({ href, label, icon: Icon }) => (
         <Button
           key={href}

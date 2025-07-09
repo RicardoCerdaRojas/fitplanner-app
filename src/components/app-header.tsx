@@ -8,9 +8,10 @@ import { Dumbbell, LogOut, LogIn, UserPlus, Moon, Sun } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/contexts/theme-provider';
+import Image from 'next/image';
 
 export function AppHeader() {
-    const { user, loading } = useAuth();
+    const { user, gymProfile, loading } = useAuth();
     const router = useRouter();
     const { theme, setTheme } = useTheme();
 
@@ -26,7 +27,11 @@ export function AppHeader() {
     return (
         <header className="w-full max-w-5xl flex items-center justify-between mb-10">
             <Link href="/" className="flex items-center gap-4 group">
-                <Dumbbell className="w-10 h-10 text-primary group-hover:animate-bounce" />
+                {gymProfile?.logoUrl ? (
+                    <Image src={gymProfile.logoUrl} alt={gymProfile.name ? `${gymProfile.name} Logo` : 'Gym Logo'} width={100} height={50} className="object-contain h-12 w-auto" priority />
+                ) : (
+                    <Dumbbell className="w-10 h-10 text-primary group-hover:animate-bounce" />
+                )}
                 <h1 className="font-headline text-4xl font-bold text-card-foreground">
                     Fitness Flow
                 </h1>

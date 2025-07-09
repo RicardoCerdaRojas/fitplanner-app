@@ -1,0 +1,216 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import Image from 'next/image';
+import { useAuth } from '@/contexts/auth-context';
+import { useRouter } from 'next/navigation';
+import { db, storage } from '@/lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useToast } from '@/hooks/use-toast';
+import { themes } from '@/lib/themes';
+import { cn } from '@/lib/utils';
+import { AppHeader } from '@/components/app-header';
+import { AdminNav } from '@/components/admin-nav';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Button } from '@/components/ui/button';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Input } from '@/components/ui/input';
+import { Upload, Palette } from 'lucide-react';
+
+const formSchema = z.object({
+  theme: z.string({ required_error: 'Please select a theme for your gym.' }),
+});
+type FormValues = z.infer<typeof formSchema>;
+
+export default function GymSettingsPage() {
+    const { toast } = useToast();
+    const router = useRouter();
+    const { user, userProfile, gymProfile, loading } = useAuth();
+    
+    const [logoFile, setLogoFile] = useState<File | null>(null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const form = useForm<FormValues>({
+        resolver: zodResolver(formSchema),
+        defaultValues: { theme: 'slate-mint' },
+    });
+
+    useEffect(() => {
+        if (!loading) {
+            if (!user) {
+                router.push('/login');
+            } else if (userProfile?.role !== 'gym-admin') {
+                router.push('/');
+            }
+        }
+    }, [user, userProfile, loading, router]);
+    
+    useEffect(() => {
+        if (gymProfile?.theme) {
+            const currentTheme = themes.find(t => 
+                Object.entries(t.colors).every(([key, value]) => gymProfile.theme?.[key as keyof typeof t.colors] === value)
+            );
+            if (currentTheme) {
+                form.setValue('theme', currentTheme.id);
+            }
+        }
+        if (gymProfile?.logoUrl) {
+            setLogoPreview(gymProfile.logoUrl);
+        }
+    }, [gymProfile, form]);
+
+    const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            setLogoFile(file);
+            setLogoPreview(URL.createObjectURL(file));
+        }
+    };
+
+    async function onSubmit(values: FormValues) {
+        if (!user || !userProfile?.gymId) return;
+        
+        setIsSubmitting(true);
+        const { gymId } = userProfile;
+        const gymRef = doc(db, 'gyms', gymId);
+        
+        const selectedTheme = themes.find(t => t.id === values.theme)
+        if (!selectedTheme) {
+             toast({ variant: 'destructive', title: 'Error', description: 'Invalid theme selected.' });
+             setIsSubmitting(false);
+             return;
+        }
+
+        const updateData: { theme: typeof selectedTheme.colors; logoUrl?: string } = { 
+            theme: selectedTheme.colors
+        };
+
+        try {
+            if (logoFile) {
+                const storageRef = ref(storage, `logos/${gymId}/${Date.now()}_${logoFile.name}`);
+                await uploadBytes(storageRef, logoFile);
+                const logoUrl = await getDownloadURL(storageRef);
+                updateData.logoUrl = logoUrl;
+            }
+            
+            await updateDoc(gymRef, updateData);
+            
+            toast({ title: 'Success!', description: 'Your gym settings have been updated.' });
+        } catch (error) {
+            console.error("Error updating gym settings:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not update settings.' });
+        } finally {
+            setIsSubmitting(false);
+            setLogoFile(null);
+        }
+    }
+
+    if (loading || !user || userProfile?.role !== 'gym-admin') {
+        return (
+            <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
+                <AppHeader />
+                <div className="w-full max-w-6xl space-y-8 mt-4">
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-96 w-full" />
+                </div>
+                 <p className='mt-8 text-lg text-muted-foreground'>Verifying admin access...</p>
+            </div>
+        );
+    }
+    
+    return (
+        <div className="flex flex-col min-h-screen">
+            <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
+                <AppHeader />
+                <div className="w-full max-w-4xl">
+                    <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
+                    <AdminNav />
+
+                    <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Upload /> Gym Logo</CardTitle>
+                                <CardDescription>Upload a logo for your gym. It will be displayed in the header.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex flex-col sm:flex-row items-center gap-6">
+                                <div className="w-48 h-24 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/50">
+                                    {logoPreview ? (
+                                        <Image src={logoPreview} alt="Logo preview" width={180} height={90} className="object-contain h-full w-full p-2" />
+                                    ) : (
+                                        <span className="text-sm text-muted-foreground">Logo Preview</span>
+                                    )}
+                                </div>
+                                <div className="flex-1 w-full">
+                                    <FormLabel htmlFor="logo-upload">Upload new logo</FormLabel>
+                                    <Input id="logo-upload" type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={handleLogoChange} />
+                                    <p className="text-xs text-muted-foreground mt-2">Recommended size: 200x100px. PNG, JPG or SVG.</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                             <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Palette /> Color Theme</CardTitle>
+                                <CardDescription>Select a color theme for the light mode of the application.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <FormField
+                                    control={form.control}
+                                    name="theme"
+                                    render={({ field }) => (
+                                    <FormItem className="space-y-3">
+                                        <FormControl>
+                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {themes.map(theme => (
+                                                <FormItem key={theme.id} className="w-full">
+                                                    <FormControl><RadioGroupItem value={theme.id} id={theme.id} className="sr-only" /></FormControl>
+                                                    <FormLabel 
+                                                        htmlFor={theme.id}
+                                                        className={cn(
+                                                            "flex flex-col items-start w-full p-4 rounded-lg border-2 cursor-pointer transition-all",
+                                                            field.value === theme.id ? "border-primary shadow-md" : "border-muted"
+                                                        )}
+                                                    >
+                                                        <div className="flex justify-between items-center w-full">
+                                                            <div className="font-bold text-card-foreground">{theme.name}</div>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="h-5 w-5 rounded-full" style={{backgroundColor: `hsl(${theme.colors.primary})`}}/>
+                                                                <div className="h-5 w-5 rounded-full" style={{backgroundColor: `hsl(${theme.colors.accent})`}}/>
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-sm text-muted-foreground mt-1">{theme.description}</p>
+                                                    </FormLabel>
+                                                </FormItem>
+                                            ))}
+                                        </RadioGroup>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                            </CardContent>
+                        </Card>
+                        
+                        <div className="flex justify-end">
+                            <Button type="submit" size="lg" disabled={isSubmitting}>
+                                {isSubmitting ? 'Saving...' : 'Save Settings'}
+                            </Button>
+                        </div>
+                    </form>
+                    </Form>
+                </div>
+            </main>
+            <footer className="w-full text-center p-4 text-muted-foreground text-sm">
+                <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
+            </footer>
+        </div>
+    );
+}
