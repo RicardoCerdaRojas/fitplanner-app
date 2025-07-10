@@ -36,7 +36,7 @@ const formSchema = z.object({
 export default function CreateGymPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user, userProfile, loading, memberships } = useAuth();
+  const { user, userProfile, loading, activeMembership } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -47,10 +47,10 @@ export default function CreateGymPage() {
   });
 
   useEffect(() => {
-    if (!loading && memberships.length > 0) {
+    if (!loading && activeMembership) {
       router.push('/');
     }
-  }, [loading, memberships, router]);
+  }, [loading, activeMembership, router]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user || !userProfile) {
@@ -92,8 +92,9 @@ export default function CreateGymPage() {
         await batch.commit();
         
         toast({ title: 'Success!', description: 'Your gym has been created. Redirecting...' });
-        router.push('/');
-        router.refresh();
+        
+        // Force a full page reload to ensure the AuthContext is re-initialized with the new membership
+        window.location.href = '/';
 
     } catch (error: any) {
       console.error("Error creating gym:", error);
