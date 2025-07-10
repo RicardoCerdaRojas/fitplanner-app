@@ -14,6 +14,7 @@ import { AthleteNav } from '@/components/athlete-nav';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChartConfig, ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
+import { Dumbbell, ClipboardCheck, TrendingUp } from 'lucide-react';
 
 type StatsData = {
   totalWorkouts: number;
@@ -93,8 +94,6 @@ export default function StatsPage() {
       let totalSetsLogged = 0;
       let totalVolumeLifted = 0;
       
-      const completedRoutines = new Set<string>();
-
       const volumeByDate = routines.map(routine => {
         let completedSetsCount = 0;
         let routineVolume = 0;
@@ -138,15 +137,12 @@ export default function StatsPage() {
 
         if (completedSetsCount > 0) {
             const routineTypeName = routine.routineTypeName || routine.routineName || 'Uncategorized';
-            if (!completedRoutines.has(routineTypeName)) {
-                routineTypeCounts[routineTypeName] = (routineTypeCounts[routineTypeName] || 0) + 1;
-                completedRoutines.add(routineTypeName);
-            }
+            routineTypeCounts[routineTypeName] = (routineTypeCounts[routineTypeName] || 0) + 1;
         }
         
         return {
           date: new Date(routine.routineDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          completed: completedSetsCount, // this is now sets completed per workout
+          completed: completedSetsCount,
           volume: routineVolume,
         };
       });
@@ -179,9 +175,9 @@ export default function StatsPage() {
         <div className="w-full max-w-4xl space-y-8 mt-4">
           <Skeleton className="h-16 w-full" />
           <div className="grid gap-4 md:grid-cols-3">
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <Skeleton className="h-80 w-full" />
@@ -213,22 +209,43 @@ export default function StatsPage() {
             <>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   <Card>
-                      <CardHeader><CardTitle>Total Workouts</CardTitle></CardHeader>
-                      <CardContent><p className="text-4xl font-bold">{stats.totalWorkouts}</p></CardContent>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">Total Workouts</CardTitle>
+                          <Dumbbell className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                          <p className="text-2xl font-bold">{stats.totalWorkouts}</p>
+                          <p className="text-xs text-muted-foreground">Completed sessions</p>
+                      </CardContent>
                   </Card>
                    <Card>
-                      <CardHeader><CardTitle>Total Sets Logged</CardTitle></CardHeader>
-                      <CardContent><p className="text-4xl font-bold">{stats.totalSetsLogged}</p></CardContent>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">Total Sets Logged</CardTitle>
+                          <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                          <p className="text-2xl font-bold">{stats.totalSetsLogged}</p>
+                          <p className="text-xs text-muted-foreground">Across all workouts</p>
+                      </CardContent>
                   </Card>
                   <Card>
-                      <CardHeader><CardTitle>Total Volume Lifted (kg)</CardTitle></CardHeader>
-                      <CardContent><p className="text-4xl font-bold">{stats.totalVolumeLifted.toLocaleString()}</p></CardContent>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">Total Volume Lifted</CardTitle>
+                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                          <p className="text-2xl font-bold">{stats.totalVolumeLifted.toLocaleString()} kg</p>
+                          <p className="text-xs text-muted-foreground">Total weight moved</p>
+                      </CardContent>
                   </Card>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2">
                  <Card>
-                    <CardHeader><CardTitle>Workout Performance</CardTitle><CardDescription>Completed sets over time.</CardDescription></CardHeader>
+                    <CardHeader>
+                        <CardTitle>Workout Performance</CardTitle>
+                        <CardDescription>Completed sets over time.</CardDescription>
+                    </CardHeader>
                     <CardContent>
                       <ChartContainer config={chartConfig} className="h-[300px] w-full">
                         <BarChart data={stats.workoutPerformance} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
@@ -241,9 +258,11 @@ export default function StatsPage() {
                       </ChartContainer>
                     </CardContent>
                   </Card>
-
                  <Card>
-                    <CardHeader><CardTitle>Difficulty Breakdown</CardTitle><CardDescription>How you've rated your sets.</CardDescription></CardHeader>
+                    <CardHeader>
+                        <CardTitle>Difficulty Breakdown</CardTitle>
+                        <CardDescription>How you've rated your completed sets.</CardDescription>
+                    </CardHeader>
                     <CardContent className="flex items-center justify-center">
                        <ChartContainer config={chartConfig} className="h-[300px] w-full">
                             <PieChart>
@@ -254,7 +273,9 @@ export default function StatsPage() {
                                     nameKey="name" 
                                     cx="50%" 
                                     cy="50%" 
-                                    outerRadius={110} 
+                                    outerRadius={90}
+                                    innerRadius={60}
+                                    paddingAngle={2}
                                     labelLine={false} 
                                     label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
                                       const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
@@ -271,58 +292,58 @@ export default function StatsPage() {
                         </ChartContainer>
                     </CardContent>
                   </Card>
-              </div>
-              
-              <Card>
-                <CardHeader>
-                    <CardTitle>Total Workout Volume (kg)</CardTitle>
-                    <CardDescription>Total weight lifted (Reps x Weight) per workout.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                        <LineChart data={stats.volumeByDate} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                            <CartesianGrid vertical={false} />
-                            <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
-                            <YAxis />
-                            <Tooltip content={<ChartTooltipContent />} />
-                            <Line type="monotone" dataKey="volume" stroke="var(--color-volume)" strokeWidth={2} dot={false} />
-                        </LineChart>
-                    </ChartContainer>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Workout Distribution</CardTitle>
-                  <CardDescription>Breakdown of completed workouts by type.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex items-center justify-center">
-                    {stats.routineTypeBreakdown.length > 0 ? (
-                        <ChartContainer config={{}} className="h-[300px] w-full">
-                            <PieChart>
-                                <Tooltip content={<ChartTooltipContent nameKey="name" />} />
-                                <Pie
-                                    data={stats.routineTypeBreakdown}
-                                    dataKey="value"
-                                    nameKey="name"
-                                    cx="50%"
-                                    cy="50%"
-                                    outerRadius={110}
-                                    labelLine={false}
-                                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                >
-                                    {stats.routineTypeBreakdown.map((entry) => (
-                                        <Cell key={`cell-${entry.name}`} fill={entry.fill} />
-                                    ))}
-                                </Pie>
-                                <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-                            </PieChart>
+                  <Card>
+                    <CardHeader>
+                        <CardTitle>Total Workout Volume</CardTitle>
+                        <CardDescription>Total weight lifted (Reps x Weight) per workout in kg.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                            <LineChart data={stats.volumeByDate} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                                <CartesianGrid vertical={false} />
+                                <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+                                <YAxis />
+                                <Tooltip content={<ChartTooltipContent />} />
+                                <Line type="monotone" dataKey="volume" stroke="var(--color-volume)" strokeWidth={2} dot={false} />
+                            </LineChart>
                         </ChartContainer>
-                    ) : (
-                        <p className="text-muted-foreground">No workout types recorded yet.</p>
-                    )}
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Workout Type Distribution</CardTitle>
+                      <CardDescription>Breakdown of your completed workouts.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center">
+                        {stats.routineTypeBreakdown.length > 0 ? (
+                            <ChartContainer config={{}} className="h-[300px] w-full">
+                                <PieChart>
+                                    <Tooltip content={<ChartTooltipContent nameKey="name" />} />
+                                    <Pie
+                                        data={stats.routineTypeBreakdown}
+                                        dataKey="value"
+                                        nameKey="name"
+                                        cx="50%"
+                                        cy="50%"
+                                        outerRadius={90}
+                                        innerRadius={60}
+                                        paddingAngle={2}
+                                        labelLine={false}
+                                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                                    >
+                                        {stats.routineTypeBreakdown.map((entry) => (
+                                            <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                                        ))}
+                                    </Pie>
+                                    <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                                </PieChart>
+                            </ChartContainer>
+                        ) : (
+                            <p className="text-muted-foreground">No workout types recorded yet.</p>
+                        )}
+                    </CardContent>
+                  </Card>
+              </div>
             </>
           )}
 
