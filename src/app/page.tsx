@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -146,14 +147,14 @@ function GuestLandingPage() {
       quote: "Fitness Flow revolutionized how I train my clients. The routine creator is a game-changer and saves me hours every week.",
       name: "Alex R.",
       role: "Head Coach, Velocity Gym",
-      avatar: "https://placehold.co/100x100.png",
+      avatar: "/testimonial-avatar-1.jpg",
       aiHint: "man face"
     },
     {
       quote: "As an athlete, having my workouts on my phone and tracking my progress so easily has been incredibly motivating. The AI generator is brilliant for my off-days!",
       name: "Samantha B.",
       role: "Athlete",
-      avatar: "https://placehold.co/100x100.png",
+      avatar: "/testimonial-avatar-2.jpg",
       aiHint: "woman face"
     },
   ];
@@ -164,7 +165,7 @@ function GuestLandingPage() {
       <div className="relative">
         <div className="absolute inset-0">
           <Image
-            src="https://placehold.co/1920x1080.png"
+            src="/hero-background.jpg"
             alt="Fitness motivation"
             layout="fill"
             objectFit="cover"
@@ -249,7 +250,7 @@ function GuestLandingPage() {
           </div>
           <div className="animate-fade-in [animation-delay:200ms]">
             <Image
-              src="https://placehold.co/1200x900.png"
+              src="/app-dashboard-preview.png"
               alt="App Dashboard Preview"
               width={1200}
               height={900}
