@@ -16,7 +16,8 @@ import { Activity } from 'lucide-react';
 export default function LiveActivityPage() {
     const { user, userProfile, loading } = useAuth();
     const router = useRouter();
-    const [sessions, setSessions] = useState<WorkoutSessionData[]>([]);
+    const [allSessions, setAllSessions] = useState<WorkoutSessionData[]>([]);
+    const [displaySessions, setDisplaySessions] = useState<WorkoutSessionData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -29,18 +30,16 @@ export default function LiveActivityPage() {
         }
     }, [user, userProfile, loading, router]);
 
+    // Effect to fetch all active sessions from Firestore
     useEffect(() => {
         if (!userProfile?.gymId) return;
 
         setIsLoading(true);
 
-        const thirtySecondsAgo = new Date(Date.now() - 30000);
-
         const sessionsQuery = query(
             collection(db, 'workoutSessions'),
             where('gymId', '==', userProfile.gymId),
-            where('status', '==', 'active'),
-            where('lastUpdateTime', '>', Timestamp.fromDate(thirtySecondsAgo))
+            where('status', '==', 'active')
         );
 
         const unsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
@@ -48,7 +47,7 @@ export default function LiveActivityPage() {
                 id: doc.id,
                 ...doc.data(),
             } as WorkoutSessionData));
-            setSessions(fetchedSessions);
+            setAllSessions(fetchedSessions);
             setIsLoading(false);
         }, (error) => {
             console.error("Error fetching live sessions:", error);
@@ -57,6 +56,24 @@ export default function LiveActivityPage() {
 
         return () => unsubscribe();
     }, [userProfile?.gymId]);
+
+    // Effect to filter displayed sessions based on real-time inactivity check
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const now = new Date();
+            const thirtySecondsAgo = now.getTime() - 30000;
+            
+            const filtered = allSessions.filter(session => {
+                if (session.lastUpdateTime && session.lastUpdateTime.toMillis) {
+                    return session.lastUpdateTime.toMillis() > thirtySecondsAgo;
+                }
+                return false;
+            });
+            setDisplaySessions(filtered);
+        }, 1000); // Check every second
+
+        return () => clearInterval(interval);
+    }, [allSessions]);
 
 
     if (loading || !user || userProfile?.role !== 'gym-admin') {
@@ -90,9 +107,9 @@ export default function LiveActivityPage() {
                             <Skeleton className="h-64 w-full" />
                             <Skeleton className="h-64 w-full" />
                         </div>
-                    ) : sessions.length > 0 ? (
+                    ) : displaySessions.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {sessions.map(session => (
+                            {displaySessions.map(session => (
                                 <LiveActivityCard key={session.id} session={session} />
                             ))}
                         </div>

@@ -216,8 +216,9 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         
         const intervalId = setInterval(() => {
             if (document.visibilityState === 'visible') {
-                updateDoc(sessionRef, { lastUpdateTime: Timestamp.now() }).catch(err => {
-                    console.warn("Heartbeat failed, session may have been cleaned up.", err);
+                updateDoc(sessionRef, { lastUpdateTime: Timestamp.now() }).catch(() => {
+                    // Session was likely cleaned up already, clear interval
+                    clearInterval(intervalId);
                 });
             }
         }, 15000); // Send heartbeat every 15 seconds
@@ -225,8 +226,8 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         return () => {
             clearInterval(intervalId);
             // On unmount, delete the session document
-            deleteDoc(sessionRef).catch(err => {
-                console.warn("Could not delete session doc on unmount", err);
+            deleteDoc(sessionRef).catch(() => {
+                 // Fails silently, session might already be gone
             });
         };
     }, [sessionId]);
