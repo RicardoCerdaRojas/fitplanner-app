@@ -29,6 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AdminBottomNav } from '@/components/admin-bottom-nav';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Type name must be at least 2 characters.'),
@@ -171,7 +172,7 @@ export default function RoutineTypesPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            <div className="flex flex-col min-h-screen">
+            <div className="flex flex-col min-h-screen pb-16 md:pb-0">
                 <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
                     <AppHeader />
                     <div className="w-full max-w-4xl">
@@ -253,6 +254,7 @@ export default function RoutineTypesPage() {
                             </div>
                         </div>
                     </div>
+                    <AdminBottomNav />
                 </main>
                 <footer className="w-full text-center p-4 text-muted-foreground text-sm">
                     <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>

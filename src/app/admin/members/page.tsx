@@ -1,3 +1,4 @@
+
 'use client';
 import { AppHeader } from '@/components/app-header';
 import { AdminUserManagement } from '@/components/admin-user-management';
@@ -6,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AdminNav } from '@/components/admin-nav';
+import { AdminBottomNav } from '@/components/admin-bottom-nav';
 
 export default function AdminMembersPage() {
     const { user, userProfile, loading } = useAuth();
@@ -35,7 +37,7 @@ export default function AdminMembersPage() {
     }
     
     return (
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col min-h-screen pb-16 md:pb-0">
             <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
                 <AppHeader />
                 <div className="w-full max-w-6xl">
@@ -43,6 +45,7 @@ export default function AdminMembersPage() {
                     <AdminNav />
                     {userProfile.gymId && <AdminUserManagement gymId={userProfile.gymId} />}
                 </div>
+                <AdminBottomNav />
             </main>
              <footer className="w-full text-center p-4 text-muted-foreground text-sm">
                 <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>

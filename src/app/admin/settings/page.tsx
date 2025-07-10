@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -23,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
 import { Upload, Palette } from 'lucide-react';
+import { AdminBottomNav } from '@/components/admin-bottom-nav';
 
 const formSchema = z.object({
   theme: z.string({ required_error: 'Please select a theme for your gym.' }),
@@ -143,7 +145,7 @@ export default function GymSettingsPage() {
     }
     
     return (
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col min-h-screen pb-16 md:pb-0">
             <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
                 <AppHeader />
                 <div className="w-full max-w-4xl">
@@ -224,6 +226,7 @@ export default function GymSettingsPage() {
                     </form>
                     </Form>
                 </div>
+                <AdminBottomNav />
             </main>
             <footer className="w-full text-center p-4 text-muted-foreground text-sm">
                 <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>

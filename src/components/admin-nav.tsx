@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -18,7 +19,7 @@ export function AdminNav() {
   ];
 
   return (
-    <nav className="grid grid-cols-2 gap-3 mb-8">
+    <nav className="hidden md:grid grid-cols-2 lg:grid-cols-5 gap-3 mb-8">
       {links.map((link) => {
         const isActive = pathname === link.href;
         return (
