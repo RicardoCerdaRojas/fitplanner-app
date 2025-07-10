@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { generateRoutineAction } from '@/app/actions';
 import type { GenerateWorkoutRoutineOutput } from '@/ai/flows/generate-workout-routine';
 import { useAuth } from '@/contexts/auth-context';
+import { Separator } from '@/components/ui/separator';
 
 const formSchema = z.object({
   fitnessLevel: z.enum(['beginner', 'intermediate', 'advanced'], {
@@ -41,6 +42,8 @@ export function AIWorkoutGenerator({ onRoutineGenerated }: AIWorkoutGeneratorPro
       goals: '',
     },
   });
+
+  const fitnessLevel = form.watch('fitnessLevel');
 
   function calculateAge(dob: Date | undefined): number {
     if (!dob) return 30; // Default age if not available for any reason
@@ -70,7 +73,16 @@ export function AIWorkoutGenerator({ onRoutineGenerated }: AIWorkoutGeneratorPro
     setIsLoading(false);
 
     if (result.success && result.data) {
-      onRoutineGenerated(result.data);
+       if (result.data.routine.trim() === '') {
+        toast({
+          variant: 'destructive',
+          title: 'Request out of scope',
+          description: "I can only generate workout routines. Please ask something fitness-related.",
+        });
+        onRoutineGenerated(null);
+      } else {
+        onRoutineGenerated(result.data);
+      }
     } else {
       const errorMessage = result.error?._errors?.join(', ') || 'An unexpected error occurred.';
       toast({
@@ -80,6 +92,14 @@ export function AIWorkoutGenerator({ onRoutineGenerated }: AIWorkoutGeneratorPro
       });
     }
   }
+
+  const handlePresetClick = (goal: string) => {
+    form.setValue('goals', goal);
+    // Use timeout to ensure the value is set before triggering validation
+    setTimeout(() => {
+        form.handleSubmit(onSubmit)();
+    }, 0);
+  };
 
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-lg border-2 border-primary/20">
@@ -95,46 +115,74 @@ export function AIWorkoutGenerator({ onRoutineGenerated }: AIWorkoutGeneratorPro
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="fitnessLevel"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fitness Level</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="fitnessLevel"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>1. Select Your Fitness Level</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your current fitness level" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="beginner">Beginner</SelectItem>
+                        <SelectItem value="intermediate">Intermediate</SelectItem>
+                        <SelectItem value="advanced">Advanced</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium">2. Choose an option</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <Button 
+                        type="button" 
+                        variant="outline"
+                        disabled={!fitnessLevel || isLoading}
+                        onClick={() => handlePresetClick('Generate a full upper body workout routine.')}>
+                        Upper Body Routine
+                    </Button>
+                    <Button 
+                        type="button"
+                        variant="outline"
+                        disabled={!fitnessLevel || isLoading}
+                        onClick={() => handlePresetClick('Generate a full lower body workout routine.')}>
+                        Lower Body Routine
+                    </Button>
+                </div>
+              </div>
+
+              <div className="relative">
+                  <Separator className="my-4" />
+                  <span className="absolute left-1/2 -translate-x-1/2 -top-2 bg-card px-2 text-sm text-muted-foreground">OR</span>
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="goals"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>3. Describe Your Own Goal</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your current fitness level" />
-                      </SelectTrigger>
+                      <Textarea
+                        placeholder="e.g., 'A 30-minute cardio session to burn calories' or 'Una rutina para fortalecer la espalda y los hombros'"
+                        className="resize-y min-h-[100px]"
+                        {...field}
+                      />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="beginner">Beginner</SelectItem>
-                      <SelectItem value="intermediate">Intermediate</SelectItem>
-                      <SelectItem value="advanced">Advanced</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="goals"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Your Fitness Goals</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="e.g., Lose weight, build muscle, improve cardio endurance, prepare for a marathon..."
-                      className="resize-y min-h-[100px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg py-6" disabled={isLoading}>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg py-6" disabled={isLoading || !fitnessLevel}>
               {isLoading ? (
                 <div className="flex items-center gap-2">
                   <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -144,7 +192,7 @@ export function AIWorkoutGenerator({ onRoutineGenerated }: AIWorkoutGeneratorPro
                   <span>Generating...</span>
                 </div>
               ) : (
-                'Generate Workout'
+                'Generate Custom Workout'
               )}
             </Button>
           </form>
