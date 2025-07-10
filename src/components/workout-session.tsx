@@ -6,8 +6,6 @@ import type { Routine, Exercise, ExerciseProgress } from './athlete-routine-list
 import { DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video } from 'lucide-react';
 import ReactPlayer from 'react-player/lazy';
 
@@ -160,11 +158,29 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         }
     };
     
+    const handleCompleteAndNext = () => {
+        if (!currentSetProgress?.completed) {
+            handleProgressUpdate({ completed: true });
+        }
+        handleNext();
+    };
+
     useEffect(() => {
         setShowVideo(false);
     }, [currentIndex]);
     
     const progressPercentage = ((currentIndex) / sessionPlaylist.length) * 100;
+    
+    const isLastItem = currentIndex === sessionPlaylist.length - 1;
+    const isCompleted = currentSetProgress?.completed || false;
+    let nextButtonText = 'Next';
+
+    if (isLastItem) {
+        nextButtonText = isCompleted ? 'Finish Workout' : 'Complete & Finish';
+    } else {
+        nextButtonText = isCompleted ? 'Next' : 'Complete & Next';
+    }
+
 
     return (
         <DialogContent className="max-w-5xl h-[95vh] flex flex-col p-0 gap-0">
@@ -226,36 +242,31 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                 )}
             </div>
 
-            <DialogFooter className="p-4 border-t bg-background flex flex-col sm:flex-row items-center gap-4 sm:justify-between">
-                <Button variant="outline" onClick={handlePrev} disabled={currentIndex === 0} className="w-full sm:w-auto">
-                    <ChevronLeft className="h-4 w-4 mr-2" /> Previous
-                </Button>
-                
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <Checkbox 
-                            id={`session-cb-${exerciseKey}`}
-                            checked={currentSetProgress?.completed || false}
-                            onCheckedChange={(checked) => handleProgressUpdate({ completed: !!checked })}
-                        />
-                        <label htmlFor={`session-cb-${exerciseKey}`} className="text-sm font-medium">Mark as Complete</label>
+            <DialogFooter className="p-4 border-t bg-background flex flex-col gap-4">
+                 <div className="w-full">
+                    <p className="text-sm font-medium text-center mb-2 text-muted-foreground">How was that set?</p>
+                    <div className="grid grid-cols-3 gap-2">
+                        {(['easy', 'medium', 'hard'] as const).map(difficulty => (
+                            <Button
+                                key={difficulty}
+                                variant={currentSetProgress?.difficulty === difficulty || (!currentSetProgress?.difficulty && difficulty === 'medium') ? 'default' : 'outline'}
+                                onClick={() => handleProgressUpdate({ difficulty })}
+                                className="capitalize h-12 text-base"
+                            >
+                                {difficulty}
+                            </Button>
+                        ))}
                     </div>
-                    <Select 
-                        onValueChange={(value: 'easy' | 'medium' | 'hard') => handleProgressUpdate({ difficulty: value })}
-                        value={currentSetProgress?.difficulty || 'medium'}
-                    >
-                        <SelectTrigger className="w-[140px] h-9 text-xs"><SelectValue placeholder="Rate Difficulty" /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="easy">Easy</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
-                            <SelectItem value="hard">Hard</SelectItem>
-                        </SelectContent>
-                    </Select>
-                 </div>
-                 
-                <Button onClick={handleNext} className="w-full sm:w-auto">
-                    {currentIndex === sessionPlaylist.length - 1 ? 'Finish Workout' : 'Next'} <ChevronRight className="h-4 w-4 ml-2" />
-                </Button>
+                </div>
+                <div className="flex w-full items-center gap-2">
+                    <Button variant="outline" onClick={handlePrev} disabled={currentIndex === 0} className="w-1/3 h-14">
+                        <ChevronLeft className="h-5 w-5" />
+                    </Button>
+                    <Button onClick={handleCompleteAndNext} className="flex-1 h-14 text-lg font-bold bg-accent hover:bg-accent/90">
+                        {nextButtonText}
+                        {!isLastItem && <ChevronRight className="h-5 w-5 ml-2" />}
+                    </Button>
+                </div>
             </DialogFooter>
         </DialogContent>
     );
