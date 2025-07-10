@@ -279,33 +279,12 @@ function GuestLandingPage() {
 
 
 export default function Home() {
-    const { user, userProfile, memberships, loading, activeMembership } = useAuth();
+    const { user, loading, activeMembership } = useAuth();
     const router = useRouter();
 
-    useEffect(() => {
-        if (loading) return; // Wait until loading is false
-
-        if (user && userProfile) { // User is logged in and profile exists
-            if (memberships.length === 0) {
-                // User has a profile but no gym memberships, send to create one
-                router.push('/create-gym');
-            } else if (activeMembership) {
-                // User has memberships, redirect based on active role
-                const currentPath = window.location.pathname;
-                switch (activeMembership.role) {
-                    case 'gym-admin':
-                        if (currentPath !== '/admin') router.push('/admin');
-                        break;
-                    case 'coach':
-                         if (currentPath !== '/coach') router.push('/coach');
-                        break;
-                    // Athlete stays on this page to see the athlete dashboard
-                    case 'athlete':
-                        break;
-                }
-            }
-        }
-    }, [user, userProfile, memberships, activeMembership, loading, router]);
+    // The redirection logic is now centralized in AuthContext.
+    // This component's responsibility is to show the correct content
+    // once the user is authenticated and on the correct page.
 
     if (loading) {
         return (
@@ -325,22 +304,40 @@ export default function Home() {
         return <GuestLandingPage />;
     }
 
-    // Default content for ATHLETE role, or if we are still waiting for redirection logic to run
+    // Determine which dashboard to render based on the active membership role.
     const renderDashboardContent = () => {
-       if (activeMembership?.role === 'athlete') {
-            return <AthleteDashboard />;
+       switch(activeMembership?.role) {
+            case 'athlete':
+                return <AthleteDashboard />;
+            case 'gym-admin':
+            case 'coach':
+                 // Redirecting is handled by AuthContext. If the user lands here,
+                 // it means this is their correct dashboard. We show a welcome/loading
+                 // state while the browser redirects.
+                return (
+                     <div className="w-full max-w-2xl text-center">
+                        <Card className="p-8">
+                            <CardHeader>
+                                <CardTitle className="text-3xl font-headline">Welcome, {activeMembership.role}!</CardTitle>
+                                <CardDescription>Redirecting to your dashboard...</CardDescription>
+                            </CardHeader>
+                        </Card>
+                    </div>
+                )
+            default:
+                 // This case handles users who are logged in but have no memberships.
+                 // The context will redirect them to /create-gym.
+                return (
+                    <div className="w-full max-w-2xl text-center">
+                        <Card className="p-8">
+                            <CardHeader>
+                                <CardTitle className="text-3xl font-headline">Welcome!</CardTitle>
+                                <CardDescription>Finalizing your setup...</CardDescription>
+                            </CardHeader>
+                        </Card>
+                    </div>
+                );
        }
-       // Fallback for unexpected states or roles without a specific dashboard
-       return (
-            <div className="w-full max-w-2xl text-center">
-                <Card className="p-8">
-                    <CardHeader>
-                        <CardTitle className="text-3xl font-headline">Welcome!</CardTitle>
-                        <CardDescription>Redirecting to your dashboard...</CardDescription>
-                    </CardHeader>
-                </Card>
-            </div>
-        );
     };
     
     const isAthlete = activeMembership?.role === 'athlete';

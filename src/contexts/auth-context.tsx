@@ -3,8 +3,9 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, onSnapshot, Timestamp, getDoc, runTransaction, collection, query, where } from 'firebase/firestore';
+import { doc, onSnapshot, Timestamp, getDoc, runTransaction, collection, query, where, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 
 // Global user profile, no gym-specific data
 type UserProfile = {
@@ -46,7 +47,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 
 // Consumes an invitation for a newly signed-up user by creating a membership document.
-const consumeInvitation = async (user: User, userProfile: UserProfile) => {
+const consumeInvitation = async (user: User) => {
     if (!user.email) return;
 
     const lowerCaseEmail = user.email.toLowerCase();
@@ -66,28 +67,27 @@ const consumeInvitation = async (user: User, userProfile: UserProfile) => {
             const gymName = gymSnap.exists() ? gymSnap.data().name : 'Unknown Gym';
 
             const membershipRef = doc(db, 'memberships', `${user.uid}_${inviteData.gymId}`);
+            
+            const userData = {
+                name: inviteData.name,
+                email: lowerCaseEmail,
+                createdAt: new Date(),
+            };
+
             const membershipData = {
                 userId: user.uid,
                 gymId: inviteData.gymId,
                 role: inviteData.role,
-                userName: userProfile.name,
+                userName: inviteData.name,
                 gymName: gymName,
                 status: 'active'
             };
 
-            // Use set with merge to create or update the membership
-            transaction.set(membershipRef, membershipData, { merge: true });
+            // This is an "upsert". It will create the user doc if it doesn't exist,
+            // or merge the data if it somehow already does. This avoids race conditions.
+            transaction.set(userDocRef, userData, { merge: true });
+            transaction.set(membershipRef, membershipData);
             transaction.delete(inviteRef);
-
-            // Ensure the user document is created/updated if needed
-            const userDocSnap = await transaction.get(userDocRef);
-            if (!userDocSnap.exists()) {
-                 transaction.set(userDocRef, {
-                    name: inviteData.name,
-                    email: lowerCaseEmail,
-                    createdAt: new Date(),
-                 });
-            }
         });
 
     } catch (error) {
@@ -103,11 +103,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [activeMembership, setActiveMembership] = useState<Membership | null>(null);
   const [gymProfile, setGymProfile] = useState<GymProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [membershipsLoaded, setMembershipsLoaded] = useState(false);
+  const router = useRouter();
+
 
   // Effect for auth state changes
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
       setLoading(true);
+      setMembershipsLoaded(false);
       setUser(authUser);
       if (!authUser) {
         // User logged out, reset everything
@@ -134,6 +138,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const profile = docSnap.data() as UserProfile;
             setUserProfile(profile);
         } else {
+            // This is key: if profile doesn't exist yet, we still set it to null
+            // to signal that this loading step is complete.
             setUserProfile(null);
         }
     }, (error) => {
@@ -152,24 +158,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onSnapshot(membershipsQuery, async (snapshot) => {
         const fetchedMemberships = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
         
-        // Logic to consume invitation on first login if no memberships exist
-        if (fetchedMemberships.length === 0 && userProfile) {
-            await consumeInvitation(user, userProfile);
-        } else {
-            setMemberships(fetchedMemberships);
+        // This is the logic that runs for a new user after registration.
+        // It consumes the invite and creates their first membership.
+        if (fetchedMemberships.length === 0 && !membershipsLoaded) {
+            await consumeInvitation(user);
         }
+        
+        setMemberships(fetchedMemberships);
+        setMembershipsLoaded(true); // Mark memberships as loaded
     }, (error) => {
         console.error("Error fetching memberships:", error);
-        setLoading(false);
+        setMembershipsLoaded(true); // Also mark as loaded on error to unblock loading state
     });
 
     return () => unsubscribe();
-  }, [user, userProfile]);
+  }, [user, membershipsLoaded]); // Depend on membershipsLoaded to prevent re-running consumeInvitation
 
   // Effect to set active membership
   useEffect(() => {
-    if (loading || !user) return;
-
     if (memberships.length > 0) {
         if (!activeMembership || !memberships.find(m => m.id === activeMembership.id)) {
             const sorted = [...memberships].sort((a, b) => {
@@ -179,14 +185,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setActiveMembership(sorted[0]);
         }
     }
-  }, [memberships, user, loading, activeMembership]);
+  }, [memberships, activeMembership]);
 
   // Effect to fetch active gym profile
   useEffect(() => {
     if (!activeMembership) {
-        if (user && !loading) {
-            setGymProfile(null);
-        }
+        setGymProfile(null);
         return;
     }
 
@@ -202,21 +206,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setGymProfile(null);
     });
     return () => unsubscribe();
-  }, [activeMembership, user, loading]);
+  }, [activeMembership]);
 
   // Final loading state determination
   useEffect(() => {
-    // Stop loading if user is logged out
-    if (!user) {
+    // If auth state is confirmed to be logged out, we're not loading.
+    if (!user && !auth.currentUser) {
         setLoading(false);
         return;
     }
-    // If user is logged in, stop loading only when we have a definitive state
-    // (i.e., we have memberships, or we have a profile and know there are no memberships)
-    if (user && userProfile !== null) {
+    // If user is logged in, loading is finished ONLY when we have both
+    // the user profile (even if null) AND the memberships have been loaded.
+    if (user && userProfile !== undefined && membershipsLoaded) {
         setLoading(false);
     }
-  }, [user, userProfile, memberships]);
+  }, [user, userProfile, membershipsLoaded]);
+
+  // New Effect for centralized redirection logic
+  useEffect(() => {
+    if (loading) return; // Do nothing until all data is loaded
+
+    const guestRoutes = ['/login', '/signup'];
+    const currentPath = window.location.pathname;
+
+    if (user) {
+        if (memberships.length === 0) {
+            if (currentPath !== '/create-gym') {
+                router.push('/create-gym');
+            }
+        } else if (activeMembership) {
+            const role = activeMembership.role;
+            if (role === 'gym-admin' && !currentPath.startsWith('/admin') && !currentPath.startsWith('/coach')) {
+                router.push('/admin');
+            } else if (role === 'coach' && !currentPath.startsWith('/coach')) {
+                router.push('/coach');
+            } else if (role === 'athlete' && (currentPath.startsWith('/admin') || currentPath.startsWith('/coach'))) {
+                router.push('/');
+            }
+        }
+    } else {
+        if (!guestRoutes.includes(currentPath) && !currentPath.startsWith('/hero-background.jpg')) { // Added check for background image
+            router.push('/');
+        }
+    }
+
+  }, [user, memberships, activeMembership, loading, router]);
+
 
   const contextValue: AuthContextType = {
     user,
