@@ -91,13 +91,15 @@ type WorkoutSessionProps = {
 
 export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: WorkoutSessionProps) {
     
-    // Create a "playlist" of all exercise sets in the correct order (station style)
+    // Create a "playlist" of all exercise sets in a circuit-style order
     const sessionPlaylist = useMemo(() => {
         const playlist: SessionExercise[] = [];
         routine.blocks.forEach((block, bIndex) => {
             const totalSets = parseInt(block.sets.match(/\d+/)?.[0] || '1', 10);
-            block.exercises.forEach((exercise, eIndex) => {
-                for (let sIndex = 0; sIndex < totalSets; sIndex++) {
+            // Loop through sets/rounds first (circuit-style)
+            for (let sIndex = 0; sIndex < totalSets; sIndex++) {
+                // Then loop through exercises for that round
+                block.exercises.forEach((exercise, eIndex) => {
                     playlist.push({
                         ...exercise,
                         blockName: block.name,
@@ -107,8 +109,8 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                         setIndex: sIndex,
                         totalSets: totalSets,
                     });
-                }
-            });
+                });
+            }
         });
         return playlist;
     }, [routine.blocks]);
