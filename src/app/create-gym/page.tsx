@@ -46,10 +46,9 @@ export default function CreateGymPage() {
   });
 
   useEffect(() => {
-    if (loading) return;
-
-    // If memberships load and user already has one, redirect them away.
-    if (memberships.length > 0) {
+    // This effect protects the page. If a user with a membership lands here,
+    // it redirects them to the home page, where the context will handle routing.
+    if (!loading && memberships.length > 0) {
       router.push('/');
     }
   }, [loading, memberships, router]);
@@ -92,7 +91,7 @@ export default function CreateGymPage() {
         });
 
         // 3. Update the user's document to reflect their new primary gym and role
-        // Note: This is denormalized data for convenience. The membership doc is the source of truth.
+        // This is denormalized data for convenience. The membership doc is the source of truth.
         transaction.update(userRef, {
             gymId: gymRef.id, // Set the primary gymId for the user
         });

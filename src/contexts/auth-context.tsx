@@ -5,6 +5,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, onSnapshot, Timestamp, collection, query, where } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+import { usePathname, useRouter } from 'next/navigation';
 
 type UserProfile = {
   name: string;
@@ -50,6 +51,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [gymProfile, setGymProfile] = useState<GymProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const router = useRouter();
+  const pathname = usePathname();
+
   // Handle user authentication state changes
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
@@ -83,12 +87,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const membershipsUnsub = onSnapshot(membershipsQuery, (snapshot) => {
       const fetchedMemberships = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
       setMemberships(fetchedMemberships);
-      
-      // Once memberships are fetched (even if empty), we have enough info to stop loading.
       setLoading(false); 
     }, (error) => {
         console.error("Error fetching memberships: ", error);
-        setLoading(false); // Stop loading even if there's an error
+        setLoading(false);
     });
 
     return () => {
@@ -99,8 +101,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Determine active membership
   useEffect(() => {
-    if (loading) return; // Don't determine active membership until all data is loaded
-
     if (memberships.length > 0) {
       const sorted = [...memberships].sort((a, b) => {
         const roles = { 'gym-admin': 0, 'coach': 1, 'athlete': 2 };
@@ -110,7 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else {
       setActiveMembership(null);
     }
-  }, [memberships, loading]);
+  }, [memberships]);
 
   // Fetch gym profile based on active membership
   useEffect(() => {
@@ -123,6 +123,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
     return () => unsubGym();
   }, [activeMembership]);
+
+  // Centralized redirection logic
+  useEffect(() => {
+    if (loading) {
+      return; // Do nothing while loading
+    }
+    
+    const isGuestPage = pathname === '/login' || pathname === '/signup';
+    const isCreateGymPage = pathname === '/create-gym';
+    
+    // If logged in...
+    if (user) {
+      // And has a membership...
+      if (activeMembership) {
+        // ...but is on a guest or create-gym page, redirect them away.
+        if (isGuestPage || isCreateGymPage) {
+          if (activeMembership.role === 'gym-admin') router.push('/admin');
+          else if (activeMembership.role === 'coach') router.push('/coach');
+          else router.push('/');
+        }
+        // ...and is on the home page but should be on a specific dashboard.
+        else if (pathname === '/') {
+          if (activeMembership.role === 'gym-admin') router.push('/admin');
+          else if (activeMembership.role === 'coach') router.push('/coach');
+        }
+      } 
+      // ...but has NO membership, send to create a gym, unless they are already there or on a guest page.
+      else if (!isCreateGymPage && !isGuestPage) {
+        router.push('/create-gym');
+      }
+    }
+    
+    // If not logged in and tries to access a protected page
+    else if (!isGuestPage) {
+        // Allow access to home page for guests
+        if (pathname !== '/') {
+           router.push('/login');
+        }
+    }
+
+  }, [user, activeMembership, loading, pathname, router]);
   
   const contextValue: AuthContextType = {
     user,

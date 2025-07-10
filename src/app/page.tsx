@@ -115,25 +115,10 @@ function AthleteDashboard() {
 
 export default function Home() {
     const { user, loading, activeMembership } = useAuth();
-    const router = useRouter();
-
-    useEffect(() => {
-        if (loading) {
-            return; // Do nothing while loading
-        }
-
-        if (user && !activeMembership) {
-             // User is logged in but has no gym, redirect to create one
-            router.push('/create-gym');
-        } else if (activeMembership?.role === 'gym-admin') {
-            router.push('/admin');
-        } else if (activeMembership?.role === 'coach') {
-            router.push('/coach');
-        }
-        // If athlete, stay on this page. If guest, stay on this page.
-    }, [user, activeMembership, loading, router]);
-
-
+    
+    // The redirection logic is now handled by the AuthContext to avoid race conditions.
+    // This component's responsibility is to render the correct view based on the final auth state.
+    
     if (loading) {
         return <LoadingScreen />;
     }
@@ -146,6 +131,6 @@ export default function Home() {
         return <AthleteDashboard />;
     }
     
-    // Fallback for edge cases (e.g., during redirection)
+    // Fallback for admin/coach during redirection or for users without a role yet.
     return <LoadingScreen />;
 }
