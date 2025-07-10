@@ -8,9 +8,8 @@ import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video, CheckCircle2, Circle } from 'lucide-react';
 import ReactPlayer from 'react-player/lazy';
 import { useAuth } from '@/contexts/auth-context';
-import { db, rtdb } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
-import { ref, onDisconnect, set, serverTimestamp, remove } from 'firebase/database';
 
 
 // A type for the items in our session "playlist"
@@ -183,78 +182,68 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
     const [showVideo, setShowVideo] = useState(false);
     const [progress, setProgress] = useState<ExerciseProgress>(routine.progress || {});
+    
+    const sessionDocRef = useMemo(() => {
+        if (!sessionId) return null;
+        return doc(db, "workoutSessions", sessionId);
+    }, [sessionId]);
 
-    // Effect to manage the session document in Firestore and presence in RTDB
+
     useEffect(() => {
-        if (!sessionId || !user || !userProfile?.gymId) return;
-
-        const firestoreSessionRef = doc(db, "workoutSessions", sessionId);
-        const rtdbSessionRef = ref(rtdb, `activeSessions/${sessionId}`);
-        const currentItem = sessionPlaylist[currentIndex];
+        let heartbeatInterval: NodeJS.Timeout | null = null;
         
-        const sessionData = {
-            userId: user.uid,
-            userName: userProfile.name || user.email || 'Unknown User',
-            gymId: userProfile.gymId,
-            routineId: routine.id,
-            routineName: routine.routineTypeName || routine.routineName || 'Untitled Routine',
-            startTime: Timestamp.now(),
-            status: 'active' as const,
-            currentExerciseName: currentItem.name,
-            currentSetIndex: currentIndex,
-            totalSetsInSession: sessionPlaylist.length,
-            lastReportedDifficulty: progress[`${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`]?.difficulty || null,
+        const updateSessionDocument = async () => {
+            if (!sessionDocRef || !user || !userProfile?.gymId) return;
+
+            const currentItem = sessionPlaylist[currentIndex];
+            if (!currentItem) return;
+
+            const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
+            const sessionData = {
+                userId: user.uid,
+                userName: userProfile.name || user.email || 'Unknown User',
+                gymId: userProfile.gymId,
+                routineId: routine.id,
+                routineName: routine.routineTypeName || routine.routineName || 'Untitled Routine',
+                startTime: Timestamp.now(),
+                status: 'active' as const,
+                currentExerciseName: currentItem.name,
+                currentSetIndex: currentIndex,
+                totalSetsInSession: sessionPlaylist.length,
+                lastReportedDifficulty: progress[exerciseKey]?.difficulty || null,
+                lastUpdateTime: Timestamp.now(),
+            };
+            
+            try {
+                await setDoc(sessionDocRef, sessionData, { merge: true });
+            } catch (error) {
+                console.error("Error creating/updating session document:", error);
+            }
         };
 
-        // Create the session in both places
-        setDoc(firestoreSessionRef, sessionData);
-        set(rtdbSessionRef, { active: true, firestoreId: sessionId });
+        // Create/update the session doc immediately
+        updateSessionDocument();
 
-        // When the client disconnects, remove the session from RTDB.
-        // A cloud function would then listen to RTDB to remove from Firestore.
-        // For this app, we'll also clean up Firestore on graceful unmount.
-        onDisconnect(rtdbSessionRef).remove();
+        // Set up the heartbeat
+        heartbeatInterval = setInterval(updateSessionDocument, 15000); // 15 seconds
 
+        // Cleanup function
         return () => {
-            // Graceful cleanup
-            remove(rtdbSessionRef);
-            deleteDoc(firestoreSessionRef);
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+            }
+            // Remove the session doc on graceful unmount
+            if (sessionDocRef) {
+                deleteDoc(sessionDocRef);
+            }
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [sessionId]); // Run only once when the session starts
-
-    // Update Firestore with progress
-    useEffect(() => {
-        if (!sessionId) return;
-        const sessionRef = doc(db, "workoutSessions", sessionId);
-        const currentItem = sessionPlaylist[currentIndex];
-        if (!currentItem) return;
-
-        const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
-
-        // Using updateDoc to avoid overwriting the whole document
-        updateDoc(sessionRef, {
-            currentExerciseName: currentItem.name,
-            currentSetIndex: currentIndex,
-            lastReportedDifficulty: progress[exerciseKey]?.difficulty || null,
-        }).catch(err => {
-            console.warn("Could not update session doc, it might have been deleted:", err);
-        });
-
-    }, [currentIndex, progress, sessionId, sessionPlaylist]);
+    }, [sessionDocRef, user, userProfile, routine, sessionPlaylist, currentIndex, progress]);
 
 
     const handleSessionEnd = async () => {
-        if (!sessionId) {
-            onSessionEnd();
-            return;
+        if (sessionDocRef) {
+            await deleteDoc(sessionDocRef);
         }
-        const rtdbSessionRef = ref(rtdb, `activeSessions/${sessionId}`);
-        const firestoreSessionRef = doc(db, "workoutSessions", sessionId);
-        
-        onDisconnect(rtdbSessionRef).cancel(); // Important to cancel the hook
-        await remove(rtdbSessionRef);
-        await deleteDoc(firestoreSessionRef);
         onSessionEnd();
     };
 

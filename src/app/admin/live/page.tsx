@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { db, rtdb } from '@/lib/firebase';
-import { collection, doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { ref, onValue } from 'firebase/database';
+import { db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 import { AppHeader } from '@/components/app-header';
 import { AdminNav } from '@/components/admin-nav';
@@ -19,6 +18,8 @@ export default function LiveActivityPage() {
     const router = useRouter();
     const [activeSessions, setActiveSessions] = useState<WorkoutSessionData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const sessionsRef = useRef<WorkoutSessionData[]>([]);
+    const intervalRef = useRef<NodeJS.Timeout>();
 
     useEffect(() => {
         if (!loading) {
@@ -30,65 +31,56 @@ export default function LiveActivityPage() {
         }
     }, [user, userProfile, loading, router]);
 
-    // Effect to listen for active session IDs from RTDB and then fetch from Firestore
     useEffect(() => {
         if (!userProfile?.gymId) return;
 
-        const activeSessionsRef = ref(rtdb, 'activeSessions');
-        
-        // Listen to RTDB for the list of active session IDs
-        const unsubscribeRtdb = onValue(activeSessionsRef, (snapshot) => {
-            const activeIdsData = snapshot.val();
-            const activeIds = activeIdsData ? Object.keys(activeIdsData) : [];
+        const sessionsQuery = query(
+            collection(db, 'workoutSessions'),
+            where('gymId', '==', userProfile.gymId),
+            where('status', '==', 'active')
+        );
+
+        const unsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
+            const fetchedSessions = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+            } as WorkoutSessionData));
             
-            if (activeIds.length === 0) {
-                setActiveSessions([]);
-                setIsLoading(false);
-                return;
-            }
+            sessionsRef.current = fetchedSessions;
 
-            // For each active ID, listen to its Firestore document
-            const unsubscribers = activeIds.map(sessionId => {
-                const sessionDocRef = doc(db, 'workoutSessions', sessionId);
-                return onSnapshot(sessionDocRef, (docSnapshot) => {
-                    setActiveSessions(prevSessions => {
-                        const existingSessionIndex = prevSessions.findIndex(s => s.id === docSnapshot.id);
-                        const newSessionData = { id: docSnapshot.id, ...docSnapshot.data() } as WorkoutSessionData;
-
-                        if (!docSnapshot.exists()) {
-                            // Remove session if it has been deleted from Firestore
-                            return prevSessions.filter(s => s.id !== docSnapshot.id);
-                        }
-
-                        if (existingSessionIndex > -1) {
-                            // Update existing session
-                            const updatedSessions = [...prevSessions];
-                            updatedSessions[existingSessionIndex] = newSessionData;
-                            return updatedSessions;
-                        } else {
-                            // Add new session
-                             return [...prevSessions, newSessionData];
-                        }
-                    });
+            if (isLoading) {
+                 const initialFilteredSessions = sessionsRef.current.filter(session => {
+                    const now = new Date();
+                    const lastUpdate = session.lastUpdateTime.toDate();
+                    return (now.getTime() - lastUpdate.getTime()) < 30000;
                 });
-            });
-            
-            // Cleanup function for listeners to Firestore documents
-            return () => unsubscribers.forEach(unsub => unsub());
-
-        }, (error) => {
-            console.error("Error fetching live session IDs from RTDB:", error);
-            setIsLoading(false);
+                setActiveSessions(initialFilteredSessions);
+                setIsLoading(false);
+            }
         });
 
-        const initialLoadTimer = setTimeout(() => setIsLoading(false), 2000); // Failsafe loading state
+        return () => unsubscribe();
+    }, [userProfile?.gymId, isLoading]);
 
-        // Cleanup RTDB listener
+
+    useEffect(() => {
+        intervalRef.current = setInterval(() => {
+            const now = new Date();
+            const filtered = sessionsRef.current.filter(session => {
+                if (!session.lastUpdateTime) return false;
+                const lastUpdate = session.lastUpdateTime.toDate();
+                const diffSeconds = (now.getTime() - lastUpdate.getTime()) / 1000;
+                return diffSeconds < 30;
+            });
+            setActiveSessions(filtered);
+        }, 1000);
+
         return () => {
-            unsubscribeRtdb();
-            clearTimeout(initialLoadTimer);
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
         };
-    }, [userProfile?.gymId]);
+    }, []);
 
 
     if (loading || !user || userProfile?.role !== 'gym-admin') {
