@@ -9,7 +9,6 @@ import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video } from 'lucide-react';
-import { Card, CardContent } from './ui/card';
 import ReactPlayer from 'react-player/lazy';
 
 
@@ -46,8 +45,8 @@ const Timer = ({ durationString, isCurrent }: { durationString: string; isCurren
             interval = setInterval(() => {
                 setSecondsLeft(seconds => seconds - 1);
             }, 1000);
-        } else if (secondsLeft === 0) {
-            setIsActive(false);
+        } else if (!isActive && secondsLeft !== 0 && interval) {
+             clearInterval(interval);
         }
         return () => {
             if (interval) clearInterval(interval);
@@ -165,7 +164,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         setShowVideo(false);
     }, [currentIndex]);
     
-    const progressPercentage = ((currentIndex + 1) / sessionPlaylist.length) * 100;
+    const progressPercentage = ((currentIndex) / sessionPlaylist.length) * 100;
 
     return (
         <DialogContent className="max-w-5xl h-[95vh] flex flex-col p-0 gap-0">
@@ -202,46 +201,48 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                         </Button>
                     </div>
                 ) : (
-                    <Card className="w-full max-w-md bg-background shadow-xl">
-                        <CardContent className="p-8">
-                            <p className="font-semibold text-accent">{currentItem.blockName} &bull; Set {currentItem.setIndex + 1} of {currentItem.totalSets}</p>
-                            <h2 className="text-4xl font-bold font-headline my-4">{currentItem.name}</h2>
-                            
-                            {currentItem.repType === 'duration' && currentItem.duration ? (
-                                <Timer durationString={currentItem.duration} isCurrent={!!currentItem}/>
-                            ) : (
-                                <div className="text-8xl font-bold font-mono text-primary flex items-center justify-center gap-4">
-                                    <Repeat className="h-16 w-16" />
-                                    <span>{currentItem.reps}</span>
-                                </div>
-                            )}
-
-                            <div className="flex justify-center items-center gap-8 mt-8 text-muted-foreground">
-                                {currentItem.weight && (
-                                    <div className="flex items-center gap-2"><Dumbbell className="w-5 h-5" /><span>{currentItem.weight}</span></div>
-                                )}
-                                {currentItem.videoUrl && (
-                                    <Button variant="outline" onClick={() => setShowVideo(true)}><Video className="w-5 h-5 mr-2" /> Watch Example</Button>
-                                )}
+                    <div className="w-full max-w-md flex flex-col items-center justify-center">
+                        <p className="font-semibold text-accent">{currentItem.blockName} &bull; Set {currentItem.setIndex + 1} of {currentItem.totalSets}</p>
+                        <h2 className="text-5xl font-bold font-headline my-4">{currentItem.name}</h2>
+                        
+                        {currentItem.repType === 'duration' && currentItem.duration ? (
+                            <Timer durationString={currentItem.duration} isCurrent={!!currentItem}/>
+                        ) : (
+                            <div className="text-9xl font-bold font-mono text-primary flex items-center justify-center gap-4">
+                                <Repeat className="h-20 w-20" />
+                                <span>{currentItem.reps}</span>
                             </div>
-                        </CardContent>
-                    </Card>
+                        )}
+
+                        <div className="flex justify-center items-center gap-8 mt-8 text-muted-foreground">
+                            {currentItem.weight && (
+                                <div className="flex items-center gap-2"><Dumbbell className="w-5 h-5" /><span>{currentItem.weight}</span></div>
+                            )}
+                            {currentItem.videoUrl && (
+                                <Button variant="outline" onClick={() => setShowVideo(true)}><Video className="w-5 h-5 mr-2" /> Watch Example</Button>
+                            )}
+                        </div>
+                    </div>
                 )}
             </div>
 
-            <DialogFooter className="p-4 border-t bg-background sm:justify-between items-center">
-                 <div className="flex items-center gap-4">
+            <DialogFooter className="p-4 border-t bg-background flex flex-col sm:flex-row items-center gap-4 sm:justify-between">
+                <Button variant="outline" onClick={handlePrev} disabled={currentIndex === 0} className="w-full sm:w-auto">
+                    <ChevronLeft className="h-4 w-4 mr-2" /> Previous
+                </Button>
+                
+                <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                         <Checkbox 
                             id={`session-cb-${exerciseKey}`}
                             checked={currentSetProgress?.completed || false}
                             onCheckedChange={(checked) => handleProgressUpdate({ completed: !!checked })}
                         />
-                        <label htmlFor={`session-cb-${exerciseKey}`} className="text-sm font-medium">Mark Set as Complete</label>
+                        <label htmlFor={`session-cb-${exerciseKey}`} className="text-sm font-medium">Mark as Complete</label>
                     </div>
                     <Select 
                         onValueChange={(value: 'easy' | 'medium' | 'hard') => handleProgressUpdate({ difficulty: value })}
-                        value={currentSetProgress?.difficulty}
+                        value={currentSetProgress?.difficulty || 'medium'}
                     >
                         <SelectTrigger className="w-[140px] h-9 text-xs"><SelectValue placeholder="Rate Difficulty" /></SelectTrigger>
                         <SelectContent>
@@ -251,14 +252,10 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                         </SelectContent>
                     </Select>
                  </div>
-                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={handlePrev} disabled={currentIndex === 0}>
-                        <ChevronLeft className="h-4 w-4 mr-2" /> Previous
-                    </Button>
-                    <Button onClick={handleNext}>
-                        {currentIndex === sessionPlaylist.length - 1 ? 'Finish Workout' : 'Next'} <ChevronRight className="h-4 w-4 ml-2" />
-                    </Button>
-                 </div>
+                 
+                <Button onClick={handleNext} className="w-full sm:w-auto">
+                    {currentIndex === sessionPlaylist.length - 1 ? 'Finish Workout' : 'Next'} <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
             </DialogFooter>
         </DialogContent>
     );
