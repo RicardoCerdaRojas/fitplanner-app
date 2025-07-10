@@ -21,10 +21,11 @@ import { useAuth } from '@/contexts/auth-context';
 import { Building, Palette } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { runTransaction, doc, collection } from 'firebase/firestore';
+import { runTransaction, doc, collection, writeBatch } from 'firebase/firestore';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { themes } from '@/lib/themes';
+import { useEffect } from 'react';
 
 const formSchema = z.object({
   gymName: z.string().min(3, { message: 'Gym name must be at least 3 characters.' }),
@@ -34,7 +35,7 @@ const formSchema = z.object({
 export default function CreateGymPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user, userProfile, loading } = useAuth();
+  const { user, userProfile, loading, memberships } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -43,6 +44,12 @@ export default function CreateGymPage() {
       theme: 'slate-mint',
     },
   });
+
+  useEffect(() => {
+    if (!loading && memberships.length > 0) {
+      router.push('/');
+    }
+  }, [loading, memberships, router]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user || !userProfile) {
@@ -57,38 +64,40 @@ export default function CreateGymPage() {
     }
 
     try {
-      const gymCollectionRef = collection(db, 'gyms');
-      const newGymRef = doc(gymCollectionRef);
+      const newGymRef = doc(collection(db, 'gyms'));
       const userRef = doc(db, 'users', user.uid);
-      const membershipRef = doc(db, 'memberships', `${user.uid}_${newGymRef.id}`);
+      const membershipRef = doc(collection(db, 'memberships'));
+
       const logoUrl = `https://placehold.co/100x50.png?text=${encodeURIComponent(values.gymName)}`;
 
-      await runTransaction(db, async (transaction) => {
-        const userDoc = await transaction.get(userRef);
-        if (!userDoc.exists()) {
-          throw new Error('User profile not found.');
-        }
-        
-        transaction.set(newGymRef, {
-          name: values.gymName,
-          adminUid: user.uid,
-          createdAt: new Date(),
-          logoUrl: logoUrl,
-          theme: selectedTheme.colors,
-        });
+      const batch = writeBatch(db);
 
-        transaction.set(membershipRef, {
-            userId: user.uid,
-            gymId: newGymRef.id,
-            role: 'gym-admin',
-            userName: userProfile.name || user.email,
-            gymName: values.gymName,
-            status: 'active'
-        });
+      // 1. Create the new gym document
+      batch.set(newGymRef, {
+        name: values.gymName,
+        adminUid: user.uid,
+        createdAt: new Date(),
+        logoUrl: logoUrl,
+        theme: selectedTheme.colors,
       });
 
+      // 2. Create the membership document linking user and gym
+      batch.set(membershipRef, {
+          userId: user.uid,
+          gymId: newGymRef.id,
+          role: 'gym-admin',
+          userName: userProfile.name || user.email,
+          gymName: values.gymName,
+          status: 'active'
+      });
+      
+      await batch.commit();
+
       toast({ title: 'Success!', description: 'Your gym has been created. Redirecting...' });
+      // The AuthContext will detect the new membership and handle the redirect.
+      // We push to home as a fallback.
       router.push('/');
+
     } catch (error: any) {
       console.error("Error creating gym:", error);
       toast({ variant: 'destructive', title: 'Error', description: error.message || "Could not create gym." });
@@ -97,6 +106,20 @@ export default function CreateGymPage() {
   
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-96 w-full max-w-lg" /></div>
+  }
+
+  if (memberships.length > 0) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-8">
+             <div className="flex flex-col items-center gap-4">
+                <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p className="text-lg text-muted-foreground">Redirecting...</p>
+            </div>
+        </div>
+    );
   }
 
   return (
@@ -178,4 +201,3 @@ export default function CreateGymPage() {
     </div>
   );
 }
-
