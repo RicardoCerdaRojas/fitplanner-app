@@ -137,7 +137,7 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
               <div className="flex items-center gap-4">
                   <Calendar className="w-5 h-5 text-primary"/>
                   <div className="flex flex-col items-start text-left">
-                    <span className="text-lg font-bold font-headline">{routine.routineTypeName || routine.routineName || 'Workout'}</span>
+                    <span className="text-lg font-bold font-headline">{routine.routineTypeName || routine.routineName || 'Untitled Routine'}</span>
                     <span className="text-sm text-muted-foreground">{format(routine.routineDate, 'PPP')}</span>
                   </div>
               </div>
