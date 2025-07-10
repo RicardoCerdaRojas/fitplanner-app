@@ -32,6 +32,11 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.adminUid;
       // Any member of a gym can read that gym's document.
       allow read: if isSignedIn() && getRequestingUserData().gymId == gymId;
+      
+      // The gym admin can update their gym's settings.
+      allow update: if isSignedIn() &&
+                     getRequestingUserData().role == 'gym-admin' &&
+                     getRequestingUserData().gymId == gymId;
     }
 
     // Rules for the 'invites' collection
@@ -85,11 +90,11 @@ service cloud.firestore {
                    (getRequestingUserData().role == 'coach' || getRequestingUserData().role == 'gym-admin') &&
                    getRequestingUserData().gymId == resource.data.gymId;
     }
-
+    
     // Rules for the 'workoutSessions' collection
     match /workoutSessions/{sessionId} {
-      // An athlete can create, update and delete their own session document.
-      allow create, update, delete: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      // An athlete can create, update, and delete their own session document.
+      allow write: if isSignedIn() && request.auth.uid == sessionId;
 
       // A gym admin can read session documents belonging to their gym.
       allow read: if isSignedIn() &&
