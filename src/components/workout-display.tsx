@@ -1,69 +1,81 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dumbbell } from 'lucide-react';
+import { Dumbbell, Repeat, Clock, Layers } from 'lucide-react';
 import type { GenerateWorkoutRoutineOutput } from '@/ai/flows/generate-workout-routine';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 type WorkoutDisplayProps = {
   routine: GenerateWorkoutRoutineOutput | null;
 };
 
-const formatRoutine = (text: string) => {
+type Exercise = {
+  name: string;
+  details: string[];
+};
+
+type Block = {
+  name: string;
+  exercises: Exercise[];
+};
+
+const parseRoutineToJSON = (text: string): Block[] => {
   const lines = text.split('\n').filter(line => line.trim().length > 0);
-  
-  const formattedElements: React.ReactNode[] = [];
-  let currentList: React.ReactNode[] = [];
+  const blocks: Block[] = [];
+  let currentBlock: Block | null = null;
+  let currentExercise: Exercise | null = null;
 
-  function pushList() {
-    if (currentList.length > 0) {
-      formattedElements.push(<ul key={`ul-${formattedElements.length}`} className="space-y-1">{currentList}</ul>);
-      currentList = [];
-    }
-  }
-
-  lines.forEach((line, index) => {
+  lines.forEach(line => {
     line = line.trim();
-    // **Block Name** -> h3
-    if (line.match(/^\*\*.+\*\*$/)) {
-      pushList();
-      formattedElements.push(<h3 key={index} className="text-xl font-bold font-headline mt-6 mb-3 text-primary border-b pb-1">{line.replace(/\*\*/g, '')}</h3>);
-    }
-    // *Exercise Name* -> h4
-    else if (line.match(/^\*.+\*$/)) {
-      pushList();
-      formattedElements.push(<h4 key={index} className="text-lg font-semibold mt-4 mb-2">{line.replace(/\*/g, '')}</h4>);
-    }
-    // - Detail: value -> list item
-    else if (line.startsWith('- ')) {
-      const content = line.substring(2);
-      const parts = content.split(':');
-      if (parts.length > 1) {
-        currentList.push(
-          <li key={index} className="flex items-center gap-2">
-            <span className="text-muted-foreground">&#8226;</span>
-            <span><span className="font-semibold">{parts[0]}:</span>{parts.slice(1).join(':')}</span>
-          </li>
-        );
-      } else {
-        currentList.push(<li key={index} className="flex items-center gap-2"><span className="text-muted-foreground">&#8226;</span><span>{content}</span></li>);
+    if (line.match(/^\*\*.+\*\*$/)) { // Block name
+      if (currentBlock) {
+        if (currentExercise) {
+          currentBlock.exercises.push(currentExercise);
+        }
+        blocks.push(currentBlock);
       }
-    }
-    // Fallback for any other line
-    else {
-      pushList();
-      formattedElements.push(<p key={index} className="mb-2">{line}</p>);
+      currentBlock = { name: line.replace(/\*\*/g, ''), exercises: [] };
+      currentExercise = null;
+    } else if (line.match(/^\*.+\*$/)) { // Exercise name
+      if (currentBlock) {
+        if (currentExercise) {
+          currentBlock.exercises.push(currentExercise);
+        }
+        currentExercise = { name: line.replace(/\*/g, ''), details: [] };
+      }
+    } else if (line.startsWith('- ')) { // Detail
+      if (currentExercise) {
+        currentExercise.details.push(line.substring(2));
+      }
     }
   });
 
-  pushList(); // Push any remaining list items
-  
-  return formattedElements;
+  if (currentBlock) {
+    if (currentExercise) {
+      currentBlock.exercises.push(currentExercise);
+    }
+    blocks.push(currentBlock);
+  }
+
+  return blocks;
 };
+
+const getIconForDetail = (detail: string) => {
+    const lowerDetail = detail.toLowerCase();
+    if (lowerDetail.startsWith('sets')) return <Layers className="w-4 h-4 text-primary" />;
+    if (lowerDetail.startsWith('reps')) return <Repeat className="w-4 h-4 text-primary" />;
+    if (lowerDetail.startsWith('duration')) return <Clock className="w-4 h-4 text-primary" />;
+    if (lowerDetail.startsWith('weight')) return <Dumbbell className="w-4 h-4 text-primary" />;
+    return <Dumbbell className="w-4 h-4 text-primary" />;
+};
+
 
 export function WorkoutDisplay({ routine }: WorkoutDisplayProps) {
   if (!routine || !routine.routine || routine.routine.trim() === '') {
     return null;
   }
+
+  const parsedRoutine = parseRoutineToJSON(routine.routine);
 
   return (
     <Card className="w-full max-w-2xl mx-auto mt-8 shadow-lg animate-fade-in">
@@ -71,15 +83,44 @@ export function WorkoutDisplay({ routine }: WorkoutDisplayProps) {
         <div className="flex items-center gap-3">
           <Dumbbell className="w-8 h-8 text-primary" />
           <div>
-            <CardTitle className="font-headline text-2xl">Your AI-Generated Routine</CardTitle>
-            <CardDescription>Here is the personalized routine generated just for you.</CardDescription>
+            <CardTitle className="font-headline text-2xl">Tu Rutina Generada por IA</CardTitle>
+            <CardDescription>Aquí tienes la rutina personalizada solo para ti.</CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
-            {formatRoutine(routine.routine)}
-        </div>
+        <Accordion type="multiple" className="w-full space-y-4" defaultValue={parsedRoutine.map((_, i) => `item-${i}`)}>
+          {parsedRoutine.map((block, index) => (
+            <AccordionItem value={`item-${index}`} key={index} className='border-2 rounded-lg data-[state=open]:border-primary/50 border-b-2'>
+              <AccordionTrigger className='px-4 hover:no-underline'>
+                <span className="text-xl font-bold font-headline text-primary">{block.name}</span>
+              </AccordionTrigger>
+              <AccordionContent className='px-4'>
+                <div className="space-y-3 pt-2">
+                  {block.exercises.map((exercise, exIndex) => (
+                    <div key={exIndex} className="p-4 border rounded-lg bg-card/50">
+                      <h4 className="text-lg font-bold text-card-foreground mb-3">{exercise.name}</h4>
+                      <div className="space-y-2">
+                        {exercise.details.map((detail, detailIndex) => {
+                          const parts = detail.split(':');
+                          return (
+                            <div key={detailIndex} className="flex items-center gap-3 text-sm">
+                                {getIconForDetail(detail)}
+                                <div>
+                                    <span className="font-semibold text-foreground">{parts[0]}:</span>
+                                    <span className="text-muted-foreground ml-2">{parts.slice(1).join(':').trim()}</span>
+                                </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       </CardContent>
     </Card>
   );
