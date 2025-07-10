@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -18,17 +17,17 @@ export function AdminNav() {
   ];
 
   return (
-    <nav className="flex items-center gap-2 mb-8 border-b pb-4 flex-wrap">
-      {links.map(({ href, label, icon: Icon }) => (
+    <nav className="grid grid-cols-2 gap-2 mb-8 border-b pb-4 md:flex md:items-center">
+      {links.map((link) => (
         <Button
-          key={href}
+          key={link.href}
           asChild
-          variant={pathname === href ? 'default' : 'ghost'}
-          className="font-semibold"
+          variant={pathname === link.href ? 'default' : 'ghost'}
+          className="font-semibold justify-start"
         >
-          <Link href={href}>
-            <Icon className="mr-2 h-4 w-4" />
-            {label}
+          <Link href={link.href}>
+            <link.icon className="mr-2 h-4 w-4" />
+            {link.label}
           </Link>
         </Button>
       ))}
