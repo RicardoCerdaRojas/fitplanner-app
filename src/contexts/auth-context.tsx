@@ -245,7 +245,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
         }
     } else {
-        if (!guestRoutes.includes(currentPath) && !currentPath.startsWith('/hero-background.jpg')) { // Added check for background image
+        if (!guestRoutes.includes(currentPath) && currentPath !== '/') {
             router.push('/');
         }
     }

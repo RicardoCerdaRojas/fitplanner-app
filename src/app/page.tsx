@@ -117,7 +117,7 @@ function GuestLandingPage() {
       <div className="relative">
         <div className="absolute inset-0">
           <Image
-            src="/hero-background.jpg"
+            src="https://placehold.co/1920x1080.png"
             alt="Fitness motivation"
             fill
             className="object-cover opacity-40"
