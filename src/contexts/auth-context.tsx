@@ -78,30 +78,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let profileUnsub: (() => void) | undefined;
     let membershipsUnsub: (() => void) | undefined;
     
-    let profileLoaded = false;
-    let membershipsLoaded = false;
-
-    const checkLoadingDone = () => {
-        if (profileLoaded && membershipsLoaded) {
-            setLoading(false);
-        }
-    }
+    setLoading(true);
 
     profileUnsub = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
       setUserProfile(docSnap.exists() ? (docSnap.data() as UserProfile) : null);
-      profileLoaded = true;
-      checkLoadingDone();
     });
 
     const membershipsQuery = query(collection(db, 'memberships'), where('userId', '==', user.uid));
     membershipsUnsub = onSnapshot(membershipsQuery, (snapshot) => {
       const fetchedMemberships = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
       setMemberships(fetchedMemberships);
-      membershipsLoaded = true;
-      checkLoadingDone();
-    }, () => {
-        membershipsLoaded = true;
-        checkLoadingDone();
+      setLoading(false); // End loading as soon as memberships are fetched.
+    }, (error) => {
+        console.error("Error fetching memberships:", error);
+        setLoading(false);
     });
 
     return () => {
@@ -112,27 +102,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (loading) return;
+    
     if (memberships.length > 0) {
       const sorted = [...memberships].sort((a, b) => {
         const roles = { 'gym-admin': 0, 'coach': 1, 'athlete': 2 };
         return roles[a.role] - roles[b.role];
       });
-      setActiveMembership(sorted[0]);
+      const newActiveMembership = sorted[0];
+      
+      // Only update if the active membership has actually changed to avoid re-renders
+      if (newActiveMembership?.id !== activeMembership?.id) {
+          setActiveMembership(newActiveMembership);
+      }
     } else {
       setActiveMembership(null);
     }
-  }, [memberships, loading]);
+  }, [memberships, loading, activeMembership]);
 
   useEffect(() => {
     if (!activeMembership) {
       setGymProfile(null);
       return;
     }
+
+    // Avoid re-fetching if gym profile is already for the active membership
+    if(gymProfile?.id === activeMembership.gymId) return;
+
     const unsubGym = onSnapshot(doc(db, 'gyms', activeMembership.gymId), (doc) => {
       setGymProfile(doc.exists() ? ({ id: doc.id, ...doc.data() } as GymProfile) : null);
     });
     return () => unsubGym();
-  }, [activeMembership]);
+  }, [activeMembership, gymProfile?.id]);
 
 
   const contextValue: AuthContextType = {

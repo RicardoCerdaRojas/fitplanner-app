@@ -23,6 +23,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
 import { useEffect } from 'react';
+import { AppHeader } from '@/components/app-header';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -64,23 +65,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 text-white p-4">
-       <div className="absolute top-8 left-8">
-        <Button asChild variant="outline" className="bg-transparent border-white/20 hover:bg-white/10 text-white">
-          <Link href="/">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Home
-          </Link>
-        </Button>
-      </div>
-
-      <Card className="w-full max-w-md mx-auto bg-gray-900 border-gray-800">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
+       <AppHeader />
+      <Card className="w-full max-w-md mx-auto">
         <CardHeader className="text-center">
             <div className="flex justify-center items-center gap-3 mb-2">
-                <LogIn className="w-8 h-8 text-blue-500" />
-                <CardTitle className="text-3xl font-extrabold text-white">Login</CardTitle>
+                <LogIn className="w-8 h-8 text-primary" />
+                <CardTitle className="text-3xl font-headline">Login</CardTitle>
             </div>
-          <CardDescription className="text-gray-400">Access your Fitness Flow account</CardDescription>
+          <CardDescription>Access your Fitness Flow account</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -90,13 +83,12 @@ export default function LoginPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-300">Email</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
                       <Input 
                         type="email" 
                         placeholder="you@example.com" 
                         {...field} 
-                        className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:ring-blue-500"
                       />
                     </FormControl>
                     <FormMessage />
@@ -108,29 +100,28 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-300">Password</FormLabel>
+                    <FormLabel>Password</FormLabel>
                     <FormControl>
                       <Input 
                         type="password" 
                         placeholder="••••••••" 
                         {...field} 
-                        className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:ring-blue-500"
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 text-base" disabled={form.formState.isSubmitting}>
+              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? 'Logging in...' : 'Login'}
               </Button>
             </form>
           </Form>
         </CardContent>
         <CardFooter className="text-center text-sm">
-            <p className="w-full text-gray-400">
+            <p className="w-full text-muted-foreground">
                 Don't have an account?{' '}
-                <Link href="/signup" className="text-blue-400 hover:underline">
+                <Link href="/signup" className="text-primary hover:underline">
                     Sign up
                 </Link>
             </p>

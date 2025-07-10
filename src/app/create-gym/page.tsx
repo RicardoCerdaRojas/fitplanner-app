@@ -26,6 +26,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { themes } from '@/lib/themes';
 import { useEffect } from 'react';
+import { AppHeader } from '@/components/app-header';
 
 const formSchema = z.object({
   gymName: z.string().min(3, { message: 'Gym name must be at least 3 characters.' }),
@@ -68,7 +69,9 @@ export default function CreateGymPage() {
     try {
       await runTransaction(db, async (transaction) => {
         const gymRef = doc(collection(db, 'gyms'));
-        const membershipRef = doc(collection(db, 'memberships'));
+        
+        // Use a composite key for membership for predictability if needed, or a new doc
+        const membershipRef = doc(collection(db, 'memberships')); 
 
         // 1. Create the new gym
         transaction.set(gymRef, {
@@ -100,26 +103,23 @@ export default function CreateGymPage() {
   }
   
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-96 w-full max-w-lg" /></div>
-  }
-
-  // This check is now safer because it waits for loading to be false.
-  if (memberships.length > 0) {
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-8">
-             <div className="flex flex-col items-center gap-4">
-                <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <p className="text-lg text-muted-foreground">Redirecting...</p>
-            </div>
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-8">
+        <AppHeader />
+        <div className="flex flex-col items-center gap-4">
+            <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p className="text-lg text-muted-foreground">Verifying your account...</p>
         </div>
+      </div>
     );
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
+      <AppHeader />
       <Card className="w-full max-w-lg mx-auto">
         <CardHeader className="text-center">
             <div className="flex justify-center items-center gap-2 mb-2">
