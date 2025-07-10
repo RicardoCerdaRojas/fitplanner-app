@@ -12,6 +12,7 @@ type UserProfile = {
   name: string;
   email: string;
   createdAt: Timestamp;
+  // Note: role and gymId are removed from here
 };
 
 // Represents a user's role within a specific gym
@@ -210,17 +211,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Final loading state determination
   useEffect(() => {
-    // If auth state is confirmed to be logged out, we're not loading.
-    if (!user && !auth.currentUser) {
+    if (!user && auth.currentUser === null) {
         setLoading(false);
         return;
     }
-    // If user is logged in, loading is finished ONLY when we have both
-    // the user profile (even if null) AND the memberships have been loaded.
+    
     if (user && userProfile !== undefined && membershipsLoaded) {
         setLoading(false);
     }
   }, [user, userProfile, membershipsLoaded]);
+
 
   // New Effect for centralized redirection logic
   useEffect(() => {
@@ -229,23 +229,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const guestRoutes = ['/login', '/signup'];
     const currentPath = window.location.pathname;
 
-    if (user) {
-        // If user is logged in but on a guest route, do nothing. This allows them to visit the login page to log out.
-        if (guestRoutes.includes(currentPath)) {
-            return;
-        }
+    // Prevent redirection if on a guest route
+    if (guestRoutes.includes(currentPath)) {
+        return;
+    }
 
+    if (user) {
         if (memberships.length === 0) {
             if (currentPath !== '/create-gym') {
                 router.push('/create-gym');
             }
         } else if (activeMembership) {
             const role = activeMembership.role;
-            if (role === 'gym-admin' && !currentPath.startsWith('/admin') && !currentPath.startsWith('/coach')) {
+            const isAdminPath = currentPath.startsWith('/admin');
+            const isCoachPath = currentPath.startsWith('/coach');
+            const isRootPath = currentPath === '/';
+
+            if (role === 'gym-admin' && !isAdminPath && !isCoachPath) {
                 router.push('/admin');
-            } else if (role === 'coach' && !currentPath.startsWith('/coach')) {
-                router.push('/coach');
-            } else if (role === 'athlete' && (currentPath.startsWith('/admin') || currentPath.startsWith('/coach'))) {
+            } else if (role === 'coach' && !isCoachPath) {
+                 if (isRootPath) {
+                     router.push('/coach');
+                }
+            } else if (role === 'athlete' && (isAdminPath || isCoachPath)) {
                 router.push('/');
             }
         }
