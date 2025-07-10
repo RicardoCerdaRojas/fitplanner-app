@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, Calendar as CalendarIcon, Trash2, ClipboardList, Search, MoreVertical, Send, UserX, Edit, ShieldCheck, HeartPulse, Clipboard } from 'lucide-react';
+import { UserPlus, Calendar as CalendarIcon, Trash2, Search, MoreVertical, Send, UserX, Edit, ShieldCheck, Dumbbell } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, Timestamp, deleteDoc, updateDoc } from 'firebase/firestore';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -40,6 +40,7 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import { User } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { ClipboardList } from 'lucide-react';
 
 
 const formSchema = z.object({
@@ -312,12 +313,12 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                     break;
                 case 'coach':
                     roleName = 'Coach';
-                    icon = <Clipboard className="h-4 w-4" />;
+                    icon = <ClipboardList className="h-4 w-4" />;
                     className = 'text-amber-500';
                     break;
                 case 'athlete':
                     roleName = 'Athlete';
-                    icon = <HeartPulse className="h-4 w-4" />;
+                    icon = <Dumbbell className="h-4 w-4" />;
                     className = 'text-green-500';
                     break;
                 default:
