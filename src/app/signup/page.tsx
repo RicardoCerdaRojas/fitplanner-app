@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { UserPlus, ArrowLeft } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, deleteDoc, runTransaction } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
 const formSchema = z.object({
@@ -45,39 +45,42 @@ export default function SignupPage() {
     const lowerCaseEmail = values.email.toLowerCase();
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, lowerCaseEmail, values.password);
       const { user } = userCredential;
 
       const inviteRef = doc(db, 'invites', lowerCaseEmail);
-      const inviteSnap = await getDoc(inviteRef);
       const userDocRef = doc(db, 'users', user.uid);
 
-      if (inviteSnap.exists()) {
-        const inviteData = inviteSnap.data();
-        
-        const userData: any = {
-          email: lowerCaseEmail,
-          role: inviteData.role,
-          gymId: inviteData.gymId,
-          name: inviteData.name,
-          status: 'active',
-        };
+      await runTransaction(db, async (transaction) => {
+        const inviteSnap = await transaction.get(inviteRef);
 
-        if (inviteData.role === 'athlete') {
-            userData.dob = inviteData.dob;
-            userData.plan = inviteData.plan;
+        if (inviteSnap.exists()) {
+          const inviteData = inviteSnap.data();
+          
+          const userData: any = {
+            email: lowerCaseEmail,
+            role: inviteData.role,
+            gymId: inviteData.gymId,
+            name: inviteData.name,
+            status: 'active',
+          };
+
+          if (inviteData.role === 'athlete') {
+              userData.dob = inviteData.dob;
+              userData.plan = inviteData.plan;
+          }
+          
+          transaction.set(userDocRef, userData);
+          transaction.delete(inviteRef);
+        } else {
+          transaction.set(userDocRef, {
+            email: lowerCaseEmail,
+            role: null,
+            gymId: null,
+            status: 'active',
+          });
         }
-        
-        await setDoc(userDocRef, userData);
-        await deleteDoc(inviteRef);
-      } else {
-        await setDoc(userDocRef, {
-          email: lowerCaseEmail,
-          role: null,
-          gymId: null,
-          status: 'active',
-        });
-      }
+      });
       
       router.push('/');
     } catch (error: any) {
