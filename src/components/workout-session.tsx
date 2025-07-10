@@ -190,8 +190,8 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
 
     useEffect(() => {
-        let heartbeatInterval: NodeJS.Timeout | null = null;
-        
+        if (!sessionDocRef || !user || !userProfile?.gymId) return;
+
         const updateSessionDocument = async () => {
             if (!sessionDocRef || !user || !userProfile?.gymId) return;
 
@@ -225,14 +225,19 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         updateSessionDocument();
 
         // Set up the heartbeat
-        heartbeatInterval = setInterval(updateSessionDocument, 15000); // 15 seconds
+        const heartbeatInterval = setInterval(updateSessionDocument, 15000); // 15 seconds
+
+        const handleBeforeUnload = async () => {
+             if (sessionDocRef) {
+                deleteDoc(sessionDocRef);
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
 
         // Cleanup function
         return () => {
-            if (heartbeatInterval) {
-                clearInterval(heartbeatInterval);
-            }
-            // Remove the session doc on graceful unmount
+            clearInterval(heartbeatInterval);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
             if (sessionDocRef) {
                 deleteDoc(sessionDocRef);
             }
