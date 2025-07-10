@@ -97,7 +97,7 @@ export default function CreateGymPage() {
     }
   }
   
-  if (loading || (!loading && memberships.length > 0)) {
+  if (loading) {
     return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-96 w-full max-w-lg" /></div>
   }
 

@@ -49,11 +49,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Consumes an invitation for a newly signed-up user by creating a membership document.
 const consumeInvitation = async (user: User) => {
-    if (!user.email) return;
+    if (!user.email) return false;
 
     const lowerCaseEmail = user.email.toLowerCase();
     const inviteRef = doc(db, 'invites', lowerCaseEmail);
     const userDocRef = doc(db, 'users', user.uid);
+    let consumed = false;
 
     try {
         await runTransaction(db, async (transaction) => {
@@ -88,10 +89,12 @@ const consumeInvitation = async (user: User) => {
             transaction.set(userDocRef, userData, { merge: true });
             transaction.set(membershipRef, membershipData);
             transaction.delete(inviteRef);
+            consumed = true;
         });
-
+        return consumed;
     } catch (error) {
         console.error("Error consuming invitation:", error);
+        return false;
     }
 };
 
@@ -103,159 +106,127 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [activeMembership, setActiveMembership] = useState<Membership | null>(null);
   const [gymProfile, setGymProfile] = useState<GymProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [initialAuthCheck, setInitialAuthCheck] = useState(false);
-  const [membershipsLoaded, setMembershipsLoaded] = useState(false);
   const router = useRouter();
 
-
-  // Effect for auth state changes
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
-      setLoading(true);
-      setMembershipsLoaded(false);
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
       setUser(authUser);
-      
       if (!authUser) {
-        // User logged out, reset everything
         setUserProfile(null);
         setMemberships([]);
         setActiveMembership(null);
         setGymProfile(null);
         setLoading(false);
       }
-      setInitialAuthCheck(true);
     });
-    return () => unsubscribeAuth();
+    return () => unsubscribe();
   }, []);
-  
-  // Effect to fetch user's global profile and memberships
+
   useEffect(() => {
     if (!user) return;
-    
-    // Reset states on user change
-    setUserProfile(null);
-    setMemberships([]);
-    setMembershipsLoaded(false);
 
-    const userDocRef = doc(db, 'users', user.uid);
-    const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
-        setUserProfile(docSnap.exists() ? docSnap.data() as UserProfile : null);
-    }, (error) => {
-        console.error("Error fetching user profile:", error);
-        setUserProfile(null);
-    });
-
-    const membershipsQuery = query(collection(db, 'memberships'), where('userId', '==', user.uid));
-    const unsubscribeMemberships = onSnapshot(membershipsQuery, async (snapshot) => {
-        const fetchedMemberships = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
-        
-        if (fetchedMemberships.length === 0 && !snapshot.metadata.hasPendingWrites && !membershipsLoaded) {
-            await consumeInvitation(user);
-        } else {
-            setMemberships(fetchedMemberships);
-        }
-        setMembershipsLoaded(true);
-    }, (error) => {
-        console.error("Error fetching memberships:", error);
-        setMembershipsLoaded(true);
-    });
-    
-    return () => {
-        unsubscribeUser();
-        unsubscribeMemberships();
-    };
-  }, [user]);
+    setLoading(true);
+    let unsubProfile: (() => void) | undefined;
+    let unsubMemberships: (() => void) | undefined;
   
-  // Effect to set active membership
-  useEffect(() => {
-    if (!membershipsLoaded) return;
+    const loadData = async () => {
+      let profileLoaded = false;
+      let membershipsLoaded = false;
+      let profileData: UserProfile | null = null;
+      let membershipsData: Membership[] = [];
 
-    if (memberships.length > 0) {
-        if (!activeMembership || !memberships.find(m => m.id === activeMembership.id)) {
-            const sorted = [...memberships].sort((a, b) => {
+      const checkCompletion = () => {
+        if (profileLoaded && membershipsLoaded) {
+            setUserProfile(profileData);
+            setMemberships(membershipsData);
+            const sorted = [...membershipsData].sort((a, b) => {
                 const roles = { 'gym-admin': 0, 'coach': 1, 'athlete': 2 };
                 return roles[a.role] - roles[b.role];
             });
-            setActiveMembership(sorted[0]);
+            setActiveMembership(sorted[0] || null);
+            setLoading(false);
         }
-    } else {
-        setActiveMembership(null);
-    }
-  }, [memberships, membershipsLoaded, activeMembership]);
+      };
+      
+      unsubProfile = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
+        profileData = docSnap.exists() ? (docSnap.data() as UserProfile) : null;
+        profileLoaded = true;
+        checkCompletion();
+      });
 
-  // Effect to fetch active gym profile
+      unsubMemberships = onSnapshot(query(collection(db, 'memberships'), where('userId', '==', user.uid)), async (snapshot) => {
+        if (snapshot.empty && !snapshot.metadata.hasPendingWrites) {
+            const consumed = await consumeInvitation(user);
+            if (!consumed) {
+                membershipsData = [];
+                membershipsLoaded = true;
+                checkCompletion();
+            }
+        } else {
+            membershipsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
+            membershipsLoaded = true;
+            checkCompletion();
+        }
+      });
+    };
+
+    loadData();
+
+    return () => {
+      if (unsubProfile) unsubProfile();
+      if (unsubMemberships) unsubMemberships();
+    };
+  }, [user]);
+
   useEffect(() => {
     if (!activeMembership) {
-        setGymProfile(null);
-        return;
+      setGymProfile(null);
+      return;
     }
-
-    const gymDocRef = doc(db, 'gyms', activeMembership.gymId);
-    const unsubscribe = onSnapshot(gymDocRef, (doc) => {
-        setGymProfile(doc.exists() ? { id: doc.id, ...doc.data() } as GymProfile : null);
-    }, (error) => {
-        console.error('Error fetching gym profile:', error);
-        setGymProfile(null);
+    const unsubGym = onSnapshot(doc(db, 'gyms', activeMembership.gymId), (doc) => {
+      setGymProfile(doc.exists() ? ({ id: doc.id, ...doc.data() } as GymProfile) : null);
     });
-    return () => unsubscribe();
+    return () => unsubGym();
   }, [activeMembership]);
 
-  // Final loading state determination
   useEffect(() => {
-    // Loading is true until we've checked auth and loaded memberships for a logged-in user
-    if (!initialAuthCheck) {
-        setLoading(true);
-        return;
-    }
-    if (user) {
-        // If there's a user, we wait until memberships are loaded
-        setLoading(!membershipsLoaded);
-    } else {
-        // If no user, we are done loading
-        setLoading(false);
-    }
-  }, [user, membershipsLoaded, initialAuthCheck]);
-
-
-  // Centralized redirection logic
-  useEffect(() => {
-    if (loading) return; // Do nothing until all data is loaded
+    if (loading) return;
 
     const guestRoutes = ['/login', '/signup'];
     const currentPath = window.location.pathname;
 
     if (user) {
-        if (memberships.length === 0) {
-            if (currentPath !== '/create-gym') {
-                router.push('/create-gym');
-            }
-        } else if (activeMembership) {
-            const role = activeMembership.role;
-            const isAdminPath = currentPath.startsWith('/admin');
-            const isCoachPath = currentPath.startsWith('/coach');
-            const isRootPath = currentPath === '/';
-
-            if (role === 'gym-admin' && !isAdminPath) {
-                 if (currentPath === '/coach' || isRootPath) {
-                    router.push('/admin');
-                }
-            } else if (role === 'coach' && !isCoachPath) {
-                 if (isRootPath || isAdminPath) {
-                     router.push('/coach');
-                }
-            } else if (role === 'athlete' && (isAdminPath || isCoachPath)) {
-                router.push('/');
-            }
+      if (activeMembership) {
+        if (guestRoutes.includes(currentPath)) {
+            router.push('/'); // Redirect from guest pages if logged in with a role
+            return;
         }
-    } else {
-        if (!guestRoutes.includes(currentPath) && currentPath !== '/') {
+        
+        const role = activeMembership.role;
+        const isAdminPath = currentPath.startsWith('/admin');
+        const isCoachPath = currentPath.startsWith('/coach');
+        
+        if (role === 'gym-admin' && !isAdminPath && (currentPath === '/' || currentPath.startsWith('/coach'))) {
+            router.push('/admin');
+        } else if (role === 'coach' && !isCoachPath && (currentPath === '/' || currentPath.startsWith('/admin'))) {
+            router.push('/coach');
+        } else if (role === 'athlete' && (isAdminPath || isCoachPath)) {
             router.push('/');
         }
+      } else {
+        // Logged in but no membership
+        if (currentPath !== '/create-gym') {
+          router.push('/create-gym');
+        }
+      }
+    } else {
+      // Not logged in
+      if (!guestRoutes.includes(currentPath) && currentPath !== '/') {
+        router.push('/');
+      }
     }
-
-  }, [user, memberships, activeMembership, loading, router]);
-
-
+  }, [user, activeMembership, loading, router]);
+  
   const contextValue: AuthContextType = {
     user,
     userProfile,
