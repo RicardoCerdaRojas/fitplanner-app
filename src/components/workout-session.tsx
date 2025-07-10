@@ -6,7 +6,7 @@ import type { Routine, Exercise, ExerciseProgress } from './athlete-routine-list
 import { DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video, CheckCircle2, Circle } from 'lucide-react';
 import ReactPlayer from 'react-player/lazy';
 
 
@@ -142,6 +142,10 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         onProgressChange(routine.id, exerciseKey, progress[exerciseKey] || {}, newData);
     };
 
+    const toggleCompletion = () => {
+        handleProgressUpdate({ completed: !currentSetProgress?.completed });
+    };
+
     const handleNext = () => {
         setShowVideo(false);
         if (currentIndex < sessionPlaylist.length - 1) {
@@ -157,13 +161,6 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
             setCurrentIndex(currentIndex - 1);
         }
     };
-    
-    const handleCompleteAndNext = () => {
-        if (!currentSetProgress?.completed) {
-            handleProgressUpdate({ completed: true });
-        }
-        handleNext();
-    };
 
     useEffect(() => {
         setShowVideo(false);
@@ -173,14 +170,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     
     const isLastItem = currentIndex === sessionPlaylist.length - 1;
     const isCompleted = currentSetProgress?.completed || false;
-    let nextButtonText = 'Next';
-
-    if (isLastItem) {
-        nextButtonText = isCompleted ? 'Finish Workout' : 'Complete & Finish';
-    } else {
-        nextButtonText = isCompleted ? 'Next' : 'Complete & Next';
-    }
-
+    
 
     return (
         <DialogContent className="max-w-5xl h-[95vh] flex flex-col p-0 gap-0">
@@ -259,12 +249,23 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                     </div>
                 </div>
                 <div className="flex w-full items-center gap-2">
-                    <Button variant="outline" onClick={handlePrev} disabled={currentIndex === 0} className="w-1/3 h-14">
+                    <Button variant="outline" size="icon" onClick={handlePrev} disabled={currentIndex === 0} className="h-14 w-14">
                         <ChevronLeft className="h-5 w-5" />
                     </Button>
-                    <Button onClick={handleCompleteAndNext} className="flex-1 h-14 text-lg font-bold bg-accent hover:bg-accent/90">
-                        {nextButtonText}
-                        {!isLastItem && <ChevronRight className="h-5 w-5 ml-2" />}
+                    <Button
+                        onClick={toggleCompletion}
+                        variant={isCompleted ? 'outline' : 'default'}
+                        className="flex-1 h-14 text-lg font-bold"
+                    >
+                        {isCompleted ? <CheckCircle2 className="mr-2 h-5 w-5"/> : <Circle className="mr-2 h-5 w-5"/>}
+                        {isCompleted ? 'Completed' : 'Mark as Complete'}
+                    </Button>
+                    <Button 
+                        size="icon" 
+                        onClick={handleNext}
+                        className="h-14 w-14 bg-accent hover:bg-accent/90"
+                    >
+                       {isLastItem ? 'End' : <ChevronRight className="h-5 w-5" />}
                     </Button>
                 </div>
             </DialogFooter>
