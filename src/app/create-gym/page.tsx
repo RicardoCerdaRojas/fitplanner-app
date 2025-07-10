@@ -22,7 +22,6 @@ import { Building, Palette } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import { runTransaction, doc, collection } from 'firebase/firestore';
-import { useEffect } from 'react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { themes } from '@/lib/themes';
@@ -35,7 +34,7 @@ const formSchema = z.object({
 export default function CreateGymPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user, userProfile, memberships, loading } = useAuth();
+  const { user, userProfile, loading } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -91,6 +90,7 @@ export default function CreateGymPage() {
       });
 
       toast({ title: 'Success!', description: 'Your gym has been created. Redirecting...' });
+      // The AuthContext will detect the new membership and handle redirection automatically.
     } catch (error: any) {
       console.error("Error creating gym:", error);
       toast({ variant: 'destructive', title: 'Error', description: error.message || "Could not create gym." });
@@ -100,6 +100,8 @@ export default function CreateGymPage() {
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-96 w-full max-w-lg" /></div>
   }
+
+  // AuthContext handles redirection for logged-in users, so we don't need a manual push here.
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">

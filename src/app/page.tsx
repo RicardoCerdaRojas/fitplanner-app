@@ -282,6 +282,26 @@ export default function Home() {
     const { user, loading, activeMembership } = useAuth();
     const router = useRouter();
 
+    useEffect(() => {
+        if (loading) {
+            return; // Do nothing while loading
+        }
+        if (user) {
+            if (activeMembership) {
+                if (activeMembership.role === 'gym-admin') {
+                    router.push('/admin');
+                } else if (activeMembership.role === 'coach') {
+                    router.push('/coach');
+                }
+                // If athlete, stay on this page
+            } else {
+                // Logged in but no membership, go to create gym
+                router.push('/create-gym');
+            }
+        }
+        // If no user and not loading, GuestLandingPage will be shown, no redirect needed.
+    }, [user, loading, activeMembership, router]);
+
     if (loading) {
         return (
             <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
@@ -300,14 +320,14 @@ export default function Home() {
         return <GuestLandingPage />;
     }
 
-    // This component now only renders content. Redirection is handled by the AuthContext.
+    // This component now only renders content. Redirection is handled by the useEffect above.
     const renderDashboardContent = () => {
        switch(activeMembership?.role) {
             case 'athlete':
                 return <AthleteDashboard />;
             case 'gym-admin':
             case 'coach':
-                // The context will have already redirected them. This is a fallback state.
+                 // This is a fallback state while redirecting.
                 return (
                      <div className="w-full max-w-2xl text-center">
                         <Card className="p-8">
@@ -320,7 +340,7 @@ export default function Home() {
                 )
             default:
                  // This case handles users who are logged in but have no memberships.
-                 // The context will redirect them to /create-gym.
+                 // This is a fallback state while redirecting.
                 return (
                     <div className="w-full max-w-2xl text-center">
                         <Card className="p-8">
