@@ -1,15 +1,35 @@
 'use client';
 import { AppHeader } from '@/components/app-header';
-import { AdminUserManagement } from '@/components/admin-user-management';
+import { AdminNav } from '@/components/admin-nav';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AdminNav } from '@/components/admin-nav';
+import { db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Users, UserPlus, ClipboardList } from 'lucide-react';
+import { PieChart, ResponsiveContainer, Tooltip, Legend, Pie, Cell } from 'recharts';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import type { ChartConfig } from '@/components/ui/chart';
 
-export default function AdminPage() {
+type GymUser = { role: 'athlete' | 'coach' | 'gym-admin' };
+
+const chartConfig: ChartConfig = {
+  athletes: { label: "Athletes", color: "hsl(var(--chart-1))" },
+  coaches: { label: "Coaches", color: "hsl(var(--chart-2))" },
+};
+
+const COLORS = [chartConfig.athletes.color, chartConfig.coaches.color];
+
+export default function AdminDashboardPage() {
     const { user, userProfile, loading } = useAuth();
     const router = useRouter();
+
+    const [memberCount, setMemberCount] = useState(0);
+    const [inviteCount, setInviteCount] = useState(0);
+    const [routinesThisMonth, setRoutinesThisMonth] = useState(0);
+    const [roleDistribution, setRoleDistribution] = useState<{ name: string; value: number; }[]>([]);
 
     useEffect(() => {
         if (!loading) {
@@ -20,6 +40,50 @@ export default function AdminPage() {
             }
         }
     }, [user, userProfile, loading, router]);
+
+    useEffect(() => {
+        if (!userProfile?.gymId) return;
+
+        const usersQuery = query(collection(db, 'users'), where('gymId', '==', userProfile.gymId));
+        const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
+            const users = snapshot.docs.map(doc => doc.data() as GymUser);
+            setMemberCount(users.length);
+
+            const roles = users.reduce((acc, user) => {
+                if (user.role === 'athlete') acc.athletes++;
+                if (user.role === 'coach') acc.coaches++;
+                return acc;
+            }, { athletes: 0, coaches: 0 });
+            
+            setRoleDistribution([
+                { name: 'Athletes', value: roles.athletes },
+                { name: 'Coaches', value: roles.coaches }
+            ].filter(r => r.value > 0));
+        });
+
+        const invitesQuery = query(collection(db, 'invites'), where('gymId', '==', userProfile.gymId));
+        const unsubscribeInvites = onSnapshot(invitesQuery, (snapshot) => {
+            setInviteCount(snapshot.docs.length);
+        });
+
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        const routinesQuery = query(
+            collection(db, 'routines'),
+            where('gymId', '==', userProfile.gymId),
+            where('createdAt', '>=', Timestamp.fromDate(oneMonthAgo))
+        );
+        const unsubscribeRoutines = onSnapshot(routinesQuery, (snapshot) => {
+            setRoutinesThisMonth(snapshot.docs.length);
+        });
+
+        return () => {
+            unsubscribeUsers();
+            unsubscribeInvites();
+            unsubscribeRoutines();
+        };
+
+    }, [userProfile?.gymId]);
 
     if (loading || !user || userProfile?.role !== 'gym-admin') {
         return (
@@ -41,7 +105,86 @@ export default function AdminPage() {
                 <div className="w-full max-w-6xl">
                     <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
                     <AdminNav />
-                    {userProfile.gymId && <AdminUserManagement gymId={userProfile.gymId} />}
+
+                    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-8">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+                                <Users className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{memberCount}</div>
+                                <p className="text-xs text-muted-foreground">Athletes & Coaches</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Pending Invites</CardTitle>
+                                <UserPlus className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">+{inviteCount}</div>
+                                <p className="text-xs text-muted-foreground">Waiting to sign up</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Routines This Month</CardTitle>
+                                <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{routinesThisMonth}</div>
+                                <p className="text-xs text-muted-foreground">Assigned in the last 30 days</p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="grid gap-8 md:grid-cols-2">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Member Distribution</CardTitle>
+                                <CardDescription>A breakdown of roles within your gym.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex items-center justify-center">
+                                {roleDistribution.length > 0 ? (
+                                    <ChartContainer config={chartConfig} className="h-[250px] w-full">
+                                        <PieChart>
+                                            <Tooltip content={<ChartTooltipContent nameKey="name" />} />
+                                            <Pie
+                                                data={roleDistribution}
+                                                dataKey="value"
+                                                nameKey="name"
+                                                cx="50%"
+                                                cy="50%"
+                                                outerRadius={80}
+                                                innerRadius={50}
+                                                paddingAngle={2}
+                                            >
+                                                {roleDistribution.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Legend iconType="circle" />
+                                        </PieChart>
+                                    </ChartContainer>
+                                ) : (
+                                    <div className="h-[250px] flex items-center justify-center">
+                                        <p className="text-muted-foreground">No member data available.</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Activity Overview</CardTitle>
+                                <CardDescription>Track workout completions and member engagement.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex items-center justify-center h-[250px]">
+                                <p className="text-muted-foreground">Chart coming soon.</p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
                 </div>
             </main>
              <footer className="w-full text-center p-4 text-muted-foreground text-sm">
