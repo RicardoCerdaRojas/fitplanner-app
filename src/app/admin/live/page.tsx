@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 
 import { AppHeader } from '@/components/app-header';
 import { AdminNav } from '@/components/admin-nav';
@@ -16,6 +16,7 @@ import { Activity } from 'lucide-react';
 export default function LiveActivityPage() {
     const { user, userProfile, loading } = useAuth();
     const router = useRouter();
+    const [allSessions, setAllSessions] = useState<WorkoutSessionData[]>([]);
     const [activeSessions, setActiveSessions] = useState<WorkoutSessionData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -46,7 +47,7 @@ export default function LiveActivityPage() {
                 id: doc.id,
                 ...doc.data(),
             } as WorkoutSessionData));
-            setActiveSessions(fetchedSessions);
+            setAllSessions(fetchedSessions);
             setIsLoading(false);
         }, (error) => {
             console.error("Error fetching live sessions:", error);
@@ -55,6 +56,24 @@ export default function LiveActivityPage() {
 
         return () => unsubscribe();
     }, [userProfile?.gymId]);
+
+    // Effect to filter for truly active sessions based on heartbeat
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const now = new Date();
+            const filtered = allSessions.filter(session => {
+                if (session.lastUpdateTime) {
+                    const lastUpdate = session.lastUpdateTime.toDate();
+                    const diffSeconds = (now.getTime() - lastUpdate.getTime()) / 1000;
+                    return diffSeconds < 30; // Session is active if heartbeat was within 30 seconds
+                }
+                return false; // If no timestamp, consider it inactive
+            });
+            setActiveSessions(filtered);
+        }, 1000); // Check every second
+
+        return () => clearInterval(interval);
+    }, [allSessions]);
 
 
     if (loading || !user || userProfile?.role !== 'gym-admin') {

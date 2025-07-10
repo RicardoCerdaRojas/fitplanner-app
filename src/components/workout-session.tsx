@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import type { Routine, Exercise, ExerciseProgress } from './athlete-routine-list';
 import { DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -150,6 +150,7 @@ type WorkoutSessionProps = {
 export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: WorkoutSessionProps) {
     const { user, userProfile } = useAuth();
     const sessionId = routine.id;
+    const heartbeatInterval = useRef<NodeJS.Timeout | null>(null);
 
     const sessionPlaylist = useMemo(() => {
         const playlist: SessionExercise[] = [];
@@ -183,41 +184,82 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     const [showVideo, setShowVideo] = useState(false);
     const [progress, setProgress] = useState<ExerciseProgress>(routine.progress || {});
     
-    // Effect for creating and updating the live session document
+     // Effect for creating/deleting the session document and managing heartbeat
     useEffect(() => {
         if (!user || !userProfile?.gymId) return;
 
         const sessionRef = doc(db, "workoutSessions", sessionId);
-        const currentItem = sessionPlaylist[currentIndex];
-        const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
 
-        const upsertSession = async () => {
-             const sessionDoc = await setDoc(sessionRef, {
+        const createSession = async () => {
+            const currentItem = sessionPlaylist[currentIndex];
+            await setDoc(sessionRef, {
                 userId: user.uid,
                 userName: userProfile.name || user.email || 'Unknown User',
                 gymId: userProfile.gymId,
                 routineId: routine.id,
                 routineName: routine.routineTypeName || routine.routineName || 'Untitled Routine',
                 startTime: Timestamp.now(),
+                lastUpdateTime: Timestamp.now(),
                 status: 'active' as const,
                 currentExerciseName: currentItem.name,
                 currentSetIndex: currentIndex,
                 totalSetsInSession: sessionPlaylist.length,
-                lastReportedDifficulty: progress[exerciseKey]?.difficulty || null,
+                lastReportedDifficulty: null,
             }, { merge: true });
         };
+
+        const cleanupSession = async () => {
+            if (heartbeatInterval.current) {
+                clearInterval(heartbeatInterval.current);
+            }
+            try {
+                await deleteDoc(sessionRef);
+            } catch (error) {
+                // Ignore errors if doc doesn't exist, etc.
+            }
+        };
+
+        createSession();
         
-        upsertSession();
+        // Start the heartbeat
+        heartbeatInterval.current = setInterval(async () => {
+            try {
+                await updateDoc(sessionRef, { lastUpdateTime: Timestamp.now() });
+            } catch (error) {
+                console.warn("Heartbeat failed, session might be cleaned up soon.", error);
+            }
+        }, 15000); // Send heartbeat every 15 seconds
 
-    }, [user, userProfile, routine, sessionId, currentIndex, progress, sessionPlaylist]);
+        return () => {
+            cleanupSession();
+        };
 
-    const handleSessionEnd = async () => {
+    }, [user, userProfile?.gymId, sessionId]); // Only run on mount and dismount
+
+    // Effect for updating session data on progress/index change
+    useEffect(() => {
+        if (!user) return;
         const sessionRef = doc(db, "workoutSessions", sessionId);
-        try {
-            await updateDoc(sessionRef, { status: 'completed' });
-        } catch (error) {
-            console.error("Failed to mark session as completed", error);
+        const currentItem = sessionPlaylist[currentIndex];
+        const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
+        
+        const updateSessionData = async () => {
+            await updateDoc(sessionRef, {
+                currentExerciseName: currentItem.name,
+                currentSetIndex: currentIndex,
+                lastReportedDifficulty: progress[exerciseKey]?.difficulty ?? null,
+                lastUpdateTime: Timestamp.now(),
+            }).catch(err => console.log("Failed to update session doc on progress change", err));
         }
+
+        updateSessionData();
+
+    }, [currentIndex, progress, user, sessionId, sessionPlaylist]);
+
+
+    const handleSessionEnd = () => {
+        const sessionRef = doc(db, "workoutSessions", sessionId);
+        deleteDoc(sessionRef).catch(err => console.error("Failed to delete session on end", err));
         onSessionEnd();
     };
 

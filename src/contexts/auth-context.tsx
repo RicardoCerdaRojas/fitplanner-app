@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, onSnapshot, Timestamp, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -36,32 +36,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [gymProfile, setGymProfile] = useState<GymProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileChecked, setProfileChecked] = useState(false);
-  const activeSessionId = useRef<string | null>(null);
 
-  // Effect for auth state changes & session cleanup
+  // Effect for auth state changes
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (authUser) => {
       if (authUser) {
         setUser(authUser);
-        activeSessionId.current = authUser.uid; // Tentatively set session ID
       } else {
-        // User logged out
-        if (activeSessionId.current) {
-          const sessionRef = doc(db, "workoutSessions", activeSessionId.current);
-          try {
-            const sessionDoc = await getDoc(sessionRef);
-            if (sessionDoc.exists()) {
-              await updateDoc(sessionRef, { status: 'completed' });
-            }
-          } catch (error) {
-             console.error("Could not clean up session on logout:", error);
-          }
-        }
         setUser(null);
         setUserProfile(null);
         setGymProfile(null);
         setLoading(false);
-        activeSessionId.current = null;
       }
       setProfileChecked(false);
     });
@@ -79,10 +64,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         (doc) => {
           setUserProfile(doc.exists() ? (doc.data() as UserProfile) : null);
           setProfileChecked(true);
-          // Confirm session ID matches user profile
-          if (doc.exists()) {
-            activeSessionId.current = user.uid;
-          }
         },
         (error) => {
           console.error('Error fetching user profile:', error);
