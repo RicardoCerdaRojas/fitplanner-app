@@ -33,7 +33,7 @@ export default function GenerateRoutinePage() {
     }
 
     return (
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col min-h-screen pb-16 md:pb-0">
              <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
                 <AppHeader />
                 <div className="w-full max-w-4xl space-y-8">

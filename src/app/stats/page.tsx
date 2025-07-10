@@ -192,7 +192,7 @@ export default function StatsPage() {
 
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen pb-16 md:pb-0">
       <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
         <AppHeader />
         <div className="w-full max-w-5xl space-y-8">
@@ -207,8 +207,8 @@ export default function StatsPage() {
             </Card>
           ) : (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <Card>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  <Card className="col-span-1">
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-sm font-medium">Total Workouts</CardTitle>
                           <Dumbbell className="h-4 w-4 text-muted-foreground" />
@@ -218,7 +218,7 @@ export default function StatsPage() {
                           <p className="text-xs text-muted-foreground">Completed sessions</p>
                       </CardContent>
                   </Card>
-                   <Card>
+                   <Card className="col-span-1">
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-sm font-medium">Total Sets Logged</CardTitle>
                           <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
@@ -228,7 +228,7 @@ export default function StatsPage() {
                           <p className="text-xs text-muted-foreground">Across all workouts</p>
                       </CardContent>
                   </Card>
-                  <Card className="col-span-2 md:col-span-1">
+                  <Card className="col-span-2 sm:col-span-1">
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-sm font-medium">Total Volume</CardTitle>
                           <TrendingUp className="h-4 w-4 text-muted-foreground" />

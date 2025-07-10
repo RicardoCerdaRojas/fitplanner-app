@@ -382,9 +382,11 @@ export default function Home() {
                 );
         }
     };
+    
+    const isAthlete = userProfile.role === 'athlete';
 
     return (
-        <div className="flex flex-col min-h-screen">
+        <div className={cn("flex flex-col min-h-screen", isAthlete && "pb-16 md:pb-0")}>
             <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
                 <AppHeader />
                 <div className="flex-grow flex items-center justify-center w-full">
