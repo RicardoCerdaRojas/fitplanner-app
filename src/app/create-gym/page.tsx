@@ -21,7 +21,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { Building, Palette } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { runTransaction, doc, collection, writeBatch } from 'firebase/firestore';
+import { writeBatch, doc, collection } from 'firebase/firestore';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { themes } from '@/lib/themes';
@@ -67,6 +67,7 @@ export default function CreateGymPage() {
     try {
         const batch = writeBatch(db);
         
+        // 1. Create Gym Document with an auto-generated ID
         const gymRef = doc(collection(db, 'gyms'));
         batch.set(gymRef, {
             name: values.gymName,
@@ -76,7 +77,9 @@ export default function CreateGymPage() {
             theme: selectedTheme.colors,
         });
 
-        const membershipRef = doc(collection(db, 'memberships')); 
+        // 2. Create Membership Document with a predictable ID that matches security rules
+        const membershipId = `${user.uid}_${gymRef.id}`;
+        const membershipRef = doc(db, 'memberships', membershipId); 
         batch.set(membershipRef, {
             userId: user.uid,
             gymId: gymRef.id,
