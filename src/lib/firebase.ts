@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { getDatabase, ref, onValue, set, onDisconnect as onDbDisconnect } from "firebase/database";
+import { getFirestore, doc, DocumentReference, deleteDoc } from "firebase/firestore";
+import { getDatabase, ref, onValue, set, onDisconnect as onDbDisconnect, serverTimestamp } from "firebase/database";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -23,9 +23,11 @@ const rtdb = getDatabase(app); // Realtime Database for presence
 /**
  * Initializes the Firebase Realtime Database presence system for the current user.
  * @param {string} uid - The current user's ID.
+ * @param {DocumentReference | null} workoutSessionRef - Optional reference to a workout session document to clean up on disconnect.
  */
-export const initializePresence = (uid: string) => {
-    if (typeof window === 'undefined') return;
+export const initializePresence = (uid: string, workoutSessionRef: DocumentReference | null = null) => {
+    if (typeof window === 'undefined' || !uid) return;
+    
     const userStatusDatabaseRef = ref(rtdb, `/status/${uid}`);
 
     const isOfflineForDatabase = {
@@ -38,16 +40,23 @@ export const initializePresence = (uid: string) => {
         last_changed: serverTimestamp(),
     };
 
-    // Listen for connection status to the Realtime Database
     onValue(ref(rtdb, '.info/connected'), (snapshot) => {
         if (snapshot.val() === false) {
+            // If the client is not connected, ensure any workout session is cleaned up on the Firestore side as a fallback.
+            if (workoutSessionRef) {
+                deleteDoc(workoutSessionRef);
+            }
             return;
         }
 
-        // When the client disconnects, set their status to 'offline'
-        onDbDisconnect(userStatusDatabaseRef).set(isOfflineForDatabase).then(() => {
-            // Set the user's status to 'online' since they are currently connected.
+        const onDisconnectRef = onDbDisconnect(userStatusDatabaseRef);
+        onDisconnectRef.set(isOfflineForDatabase).then(() => {
             set(userStatusDatabaseRef, isOnlineForDatabase);
+             // If a workout session is active, set it to be deleted on disconnect.
+            if (workoutSessionRef) {
+                const sessionOnDisconnectRef = onDbDisconnect(ref(rtdb, `/sessions/${uid}`));
+                sessionOnDisconnectRef.remove(); // This is a placeholder write to trigger the Cloud Function
+            }
         });
     });
 };

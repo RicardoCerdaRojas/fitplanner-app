@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video, CheckCircle2, Circle } from 'lucide-react';
 import ReactPlayer from 'react-player/lazy';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
+import { db, initializePresence } from '@/lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 
 
@@ -150,7 +150,6 @@ type WorkoutSessionProps = {
 export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: WorkoutSessionProps) {
     const { user, userProfile } = useAuth();
     const sessionId = user?.uid; 
-    const heartbeatInterval = useRef<NodeJS.Timeout | null>(null);
 
     const sessionPlaylist = useMemo(() => {
         const playlist: SessionExercise[] = [];
@@ -184,13 +183,13 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     const [showVideo, setShowVideo] = useState(false);
     const [progress, setProgress] = useState<ExerciseProgress>(routine.progress || {});
     
-    // Effect for creating/updating the session document with heartbeats
+    // Effect for creating/updating the session document and managing presence
     useEffect(() => {
         if (!sessionId || !user || !userProfile?.gymId) return;
 
         const sessionRef = doc(db, "workoutSessions", sessionId);
 
-        const updateSession = (isInitial = false) => {
+        const updateSession = () => {
             const currentItem = sessionPlaylist[currentIndex];
             const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
 
@@ -203,42 +202,22 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                 currentExerciseName: currentItem.name,
                 currentSetIndex: currentIndex,
                 totalSetsInSession: sessionPlaylist.length,
-                lastReportedDifficulty: progress[exerciseKey]?.difficulty ?? null,
-                lastUpdateTime: Timestamp.now(),
-                ...(isInitial ? { startTime: Timestamp.now(), status: 'active' } : {})
+                lastReportedDifficulty: progress[exerciseKey]?.difficulty,
+                startTime: Timestamp.now(), 
+                status: 'active'
             };
             setDoc(sessionRef, sessionData, { merge: true }).catch(err => console.error("Failed to update session", err));
         };
         
-        updateSession(true); // Initial update
-
-        if (heartbeatInterval.current) clearInterval(heartbeatInterval.current);
-        heartbeatInterval.current = setInterval(() => updateSession(), 15000); // Heartbeat every 15s
+        updateSession(); // Initial update
+        initializePresence(user.uid, sessionRef); // Link session to presence system
 
         return () => {
-            if (heartbeatInterval.current) clearInterval(heartbeatInterval.current);
+            // The presence system will handle cleanup on disconnect.
+            // No need to manually delete here, which was causing issues.
         };
 
     }, [currentIndex, progress, user, userProfile, sessionId, routine, sessionPlaylist]);
-
-    // Cleanup session on component unmount
-    useEffect(() => {
-        return () => {
-            if (sessionId) {
-                const sessionRef = doc(db, "workoutSessions", sessionId);
-                deleteDoc(sessionRef).catch(err => console.error("Failed to delete session on unmount", err));
-            }
-        };
-    }, [sessionId]);
-
-
-    const handleSessionEnd = () => {
-        if (sessionId) {
-            const sessionRef = doc(db, "workoutSessions", sessionId);
-            deleteDoc(sessionRef).catch(err => console.error("Failed to delete session on end", err));
-        }
-        onSessionEnd();
-    };
 
 
     const currentItem = sessionPlaylist[currentIndex];
@@ -269,7 +248,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         if (currentIndex < sessionPlaylist.length - 1) {
             setCurrentIndex(currentIndex + 1);
         } else {
-            handleSessionEnd();
+            onSessionEnd();
         }
     };
 

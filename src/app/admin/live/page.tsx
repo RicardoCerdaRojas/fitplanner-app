@@ -30,7 +30,6 @@ export default function LiveActivityPage() {
     }, [user, userProfile, loading, router]);
 
     // Effect to fetch all active sessions from Firestore in real-time.
-    // Firestore's presence system handles cleanup, so we just need to listen.
     useEffect(() => {
         if (!userProfile?.gymId) return;
 
@@ -38,7 +37,8 @@ export default function LiveActivityPage() {
 
         const sessionsQuery = query(
             collection(db, 'workoutSessions'),
-            where('gymId', '==', userProfile.gymId)
+            where('gymId', '==', userProfile.gymId),
+            where('status', '==', 'active')
         );
 
         const unsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
