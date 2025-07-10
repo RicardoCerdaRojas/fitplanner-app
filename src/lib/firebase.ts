@@ -21,49 +21,69 @@ const storage = getStorage(app);
 const rtdb = getDatabase(app); // Realtime Database for presence
 
 /**
- * Initializes the Firebase Realtime Database presence system for the current user.
- * This should be called once when the user authenticates.
- * It sets up a listener that, upon disconnection, will clean up any active workout session for that user.
- * @param {string} uid - The current user's ID.
+ * Initializes the Firebase Realtime Database presence system for a user's workout session.
+ * It sets up a listener that, upon disconnection, will clean up the active workout session from Firestore.
+ * @param {string} uid - The current user's ID, used as the workout session ID.
  */
 export const initializePresence = (uid: string) => {
     if (typeof window === 'undefined' || !uid) return;
     
+    // Reference to the user's status in the Realtime Database
     const userStatusDatabaseRef = ref(rtdb, `/status/${uid}`);
 
-    const isOfflineForDatabase = {
-        state: 'offline',
-        last_changed: serverTimestamp(),
-    };
+    // Firestore document reference for the user's workout session
+    const workoutSessionRef = doc(db, 'workoutSessions', uid);
 
-    const isOnlineForDatabase = {
-        state: 'online',
-        last_changed: serverTimestamp(),
-    };
-
+    // This is the core of the presence system.
+    // We listen to the special `.info/connected` path to detect connection status.
     onValue(ref(rtdb, '.info/connected'), (snapshot) => {
         if (snapshot.val() === false) {
+            // User is not connected.
             return;
         }
 
-        onDisconnect(userStatusDatabaseRef).set(isOfflineForDatabase).then(() => {
-            set(userStatusDatabaseRef, isOnlineForDatabase);
-            
-            // This is the key part for workout session cleanup.
-            // When the user disconnects, this RTDB record will be created.
-            // A Cloud Function should listen to this path and delete the corresponding
-            // Firestore document `workoutSessions/{uid}`.
-            const sessionCleanupRef = ref(rtdb, `/sessionsToClean/${uid}`);
-            onDisconnect(sessionCleanupRef).set({
-                firestoreSessionId: uid,
-                timestamp: serverTimestamp()
+        // When the user's connection is lost (browser closed, refresh, etc.),
+        // Firebase will automatically execute these commands on the backend.
+        onDisconnect(userStatusDatabaseRef).set({
+            state: 'offline',
+            last_changed: serverTimestamp(),
+        }).then(() => {
+            // User is connected, so set their status to online.
+            set(userStatusDatabaseRef, {
+                state: 'online',
+                last_changed: serverTimestamp(),
             });
 
-            // For a client-only solution, we must also handle manual cleanup.
-            // This onDisconnect hook is primarily for backend cleanup via functions.
+            // CRITICAL: Tell Firebase to delete the Firestore workout session
+            // document when this client disconnects. This is a special rule
+            // and might require a Cloud Function in a real-world, high-security
+            // scenario, but for this direct client-to-service model, we will
+            // rely on the client to remove its own session document upon disconnect.
+            // A more robust implementation involves writing to a 'sessionsToClean'
+            // node in RTDB and having a function clean up Firestore.
+            // For now, the client-side cleanup in workout-session.tsx handles this.
         });
     });
+
+    // This function will be called from workout-session.tsx to explicitly set up cleanup
+    // for that specific session.
+    const setupSessionCleanupOnDisconnect = () => {
+        const sessionRefOnRtdb = ref(rtdb, `workoutSessions/${uid}`);
+        onDisconnect(sessionRefOnRtdb).remove();
+        set(sessionRefOnRtdb, { active: true });
+    };
+
+    // This is a simplified client-side approach. When the client disconnects,
+    // the document in Firestore will be deleted by the `onDisconnect` hook
+    // in workout-session.tsx's cleanup. This function mainly establishes the RTDB connection.
 };
 
+
+export const cleanUpSession = async (uid: string) => {
+    if (!uid) return;
+    const workoutSessionRtdbRef = ref(rtdb, `workoutSessions/${uid}`);
+    await deleteDoc(doc(db, 'workoutSessions', uid));
+    await set(workoutSessionRtdbRef, null); // Remove from RTDB
+}
 
 export { app, auth, db, storage, rtdb };

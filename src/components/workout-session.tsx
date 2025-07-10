@@ -8,8 +8,9 @@ import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video, CheckCircle2, Circle } from 'lucide-react';
 import ReactPlayer from 'react-player/lazy';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
+import { db, rtdb } from '@/lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { ref, onDisconnect, set, serverTimestamp } from 'firebase/database';
 
 
 // A type for the items in our session "playlist"
@@ -150,7 +151,6 @@ type WorkoutSessionProps = {
 export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: WorkoutSessionProps) {
     const { user, userProfile } = useAuth();
     const sessionId = user?.uid; 
-    const heartbeatInterval = useRef<NodeJS.Timeout | null>(null);
 
     const sessionPlaylist = useMemo(() => {
         const playlist: SessionExercise[] = [];
@@ -184,11 +184,14 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     const [showVideo, setShowVideo] = useState(false);
     const [progress, setProgress] = useState<ExerciseProgress>(routine.progress || {});
 
-    const updateSessionDocument = async () => {
+    // Effect to manage the session document in Firestore and presence in RTDB
+    useEffect(() => {
         if (!sessionId || !user || !userProfile?.gymId) return;
 
         const sessionRef = doc(db, "workoutSessions", sessionId);
         const currentItem = sessionPlaylist[currentIndex];
+        if (!currentItem) return;
+
         const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
         
         const sessionData = {
@@ -205,52 +208,61 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
             totalSetsInSession: sessionPlaylist.length,
             lastReportedDifficulty: progress[exerciseKey]?.difficulty || null,
         };
-        await setDoc(sessionRef, sessionData, { merge: true });
-    };
 
-    // Effect to create/update session on mount and when the current exercise changes
-    useEffect(() => {
-        if (!sessionId) return;
-        updateSessionDocument();
+        // Create the session in Firestore and set up the disconnect hook
+        setDoc(sessionRef, sessionData).then(() => {
+            // After creating the doc, set up the onDisconnect hook to remove it
+            const rtdbSessionRef = ref(rtdb, `activeSessions/${sessionId}`);
+            onDisconnect(rtdbSessionRef).remove().then(() => {
+                // Once the hook is set, mark the session as active in RTDB
+                set(rtdbSessionRef, { firestoreId: sessionId, timestamp: serverTimestamp() });
+            });
+        });
 
-        // Heartbeat to keep session alive
-        if (heartbeatInterval.current) clearInterval(heartbeatInterval.current);
-        heartbeatInterval.current = setInterval(async () => {
-             const sessionRef = doc(db, "workoutSessions", sessionId);
-             try {
-                 await updateDoc(sessionRef, { lastUpdateTime: Timestamp.now() });
-             } catch (error) {
-                 console.log("Heartbeat failed, session might have ended:", error);
-                 if (heartbeatInterval.current) clearInterval(heartbeatInterval.current);
-             }
-        }, 15000);
-
-    }, [sessionId, currentIndex, progress]);
-
-    // Cleanup effect for unmount
-    useEffect(() => {
-        if (!sessionId) return;
-        const sessionRef = doc(db, "workoutSessions", sessionId);
-        
-        const cleanup = async () => {
-            if (heartbeatInterval.current) {
-                clearInterval(heartbeatInterval.current);
-            }
-            try {
-                await deleteDoc(sessionRef);
-            } catch (error) {
-                console.error("Error deleting session doc on unmount:", error);
-            }
-        };
-
+        // Cleanup function for when the component unmounts
         return () => {
-            cleanup();
+            const rtdbSessionRef = ref(rtdb, `activeSessions/${sessionId}`);
+            onDisconnect(rtdbSessionRef).cancel(); // Cancel previous onDisconnect
+            set(rtdbSessionRef, null); // Remove from RTDB
+            deleteDoc(sessionRef); // Clean up Firestore doc
         };
+
     }, [sessionId]);
 
 
-    const handleSessionEnd = () => {
-        // The cleanup effect will handle deleting the doc
+    // Update Firestore with progress
+    useEffect(() => {
+        if (!sessionId) return;
+        const sessionRef = doc(db, "workoutSessions", sessionId);
+        const currentItem = sessionPlaylist[currentIndex];
+        if (!currentItem) return;
+
+        const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
+
+        updateDoc(sessionRef, {
+            currentExerciseName: currentItem.name,
+            currentSetIndex: currentIndex,
+            lastReportedDifficulty: progress[exerciseKey]?.difficulty || null,
+            lastUpdateTime: Timestamp.now()
+        }).catch(err => {
+            // This might happen if the doc was already deleted by another process
+            console.warn("Could not update session doc, it might have been deleted:", err);
+        });
+
+    }, [currentIndex, progress, sessionId]);
+
+
+    const handleSessionEnd = async () => {
+        if (!sessionId) {
+            onSessionEnd();
+            return;
+        }
+        const rtdbSessionRef = ref(rtdb, `activeSessions/${sessionId}`);
+        const firestoreSessionRef = doc(db, "workoutSessions", sessionId);
+        
+        onDisconnect(rtdbSessionRef).cancel(); // Important to cancel the hook
+        await set(rtdbSessionRef, null);
+        await deleteDoc(firestoreSessionRef);
         onSessionEnd();
     };
 
