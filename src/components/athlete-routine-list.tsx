@@ -137,12 +137,25 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
       <Accordion type="single" collapsible className="w-full space-y-4">
         {routines.map((routine, index) => {
           let totalSets = 0;
-          routine.blocks.forEach(block => {
-              const sets = parseInt(block.sets.match(/\d+/)?.[0] || '0', 10);
-              totalSets += sets * block.exercises.length;
-          });
+          let completedSets = 0;
 
-          const completedSets = routine.progress ? Object.values(routine.progress).filter(p => p.completed).length : 0;
+          routine.blocks?.forEach((block, bIndex) => {
+            const setsInBlock = parseInt(block.sets.match(/\d+/)?.[0] || '0', 10);
+            if (block.exercises) {
+                totalSets += setsInBlock * block.exercises.length;
+
+                if (routine.progress) {
+                    block.exercises.forEach((_, eIndex) => {
+                        for (let sIndex = 0; sIndex < setsInBlock; sIndex++) {
+                            const key = `${bIndex}-${eIndex}-${sIndex}`;
+                            if (routine.progress[key]?.completed) {
+                                completedSets++;
+                            }
+                        }
+                    });
+                }
+            }
+          });
           
           const progressPercentage = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
 
