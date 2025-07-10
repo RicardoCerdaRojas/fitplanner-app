@@ -283,42 +283,39 @@ export default function Home() {
     const router = useRouter();
 
     useEffect(() => {
-        if (loading) return;
+        if (loading) return; // Wait until loading is false
 
         if (user && userProfile) { // User is logged in and profile exists
             if (memberships.length === 0) {
-                // User has a profile but no gym memberships
+                // User has a profile but no gym memberships, send to create one
                 router.push('/create-gym');
             } else if (activeMembership) {
                 // User has memberships, redirect based on active role
+                const currentPath = window.location.pathname;
                 switch (activeMembership.role) {
                     case 'gym-admin':
-                        router.push('/admin');
+                        if (currentPath !== '/admin') router.push('/admin');
                         break;
                     case 'coach':
-                        router.push('/coach');
+                         if (currentPath !== '/coach') router.push('/coach');
                         break;
-                    // Athlete stays on this page, which renders the athlete dashboard.
+                    // Athlete stays on this page to see the athlete dashboard
                     case 'athlete':
                         break;
                 }
             }
-            // If there's no active membership yet (e.g., multi-role user needs to select one),
-            // stay on a landing/selection page. For now, we default to the first role's dashboard.
         }
     }, [user, userProfile, memberships, activeMembership, loading, router]);
 
     if (loading) {
         return (
-            <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
-                <div className="w-full max-w-5xl flex items-center justify-between mb-10">
-                    <Skeleton className="h-12 w-48" />
-                    <Skeleton className="h-10 w-24" />
-                </div>
-                <div className="w-full max-w-2xl space-y-4">
-                    <Skeleton className="h-48 w-full" />
-                    <Skeleton className="h-12 w-1/3" />
-                    <Skeleton className="h-64 w-full" />
+            <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
+                 <div className="flex flex-col items-center gap-4">
+                    <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p className="text-lg text-muted-foreground">Loading your experience...</p>
                 </div>
             </div>
         );
@@ -328,16 +325,7 @@ export default function Home() {
         return <GuestLandingPage />;
     }
 
-    // If user is logged in, but we are still waiting for redirection logic to run
-    if (!activeMembership && memberships.length > 0) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <p>Redirecting to your dashboard...</p>
-            </div>
-        );
-    }
-    
-    // Default content for ATHLETE role, or if no other role matches
+    // Default content for ATHLETE role, or if we are still waiting for redirection logic to run
     const renderDashboardContent = () => {
        if (activeMembership?.role === 'athlete') {
             return <AthleteDashboard />;
@@ -348,7 +336,7 @@ export default function Home() {
                 <Card className="p-8">
                     <CardHeader>
                         <CardTitle className="text-3xl font-headline">Welcome!</CardTitle>
-                        <CardDescription>Your dashboard is being prepared.</CardDescription>
+                        <CardDescription>Redirecting to your dashboard...</CardDescription>
                     </CardHeader>
                 </Card>
             </div>

@@ -3,7 +3,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, onSnapshot, Timestamp, getDoc, runTransaction, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, onSnapshot, Timestamp, getDoc, runTransaction, collection, query, where } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
 // Global user profile, no gym-specific data
@@ -49,32 +49,45 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const consumeInvitation = async (user: User, userProfile: UserProfile) => {
     if (!user.email) return;
 
-    const inviteRef = doc(db, 'invites', user.email.toLowerCase());
+    const lowerCaseEmail = user.email.toLowerCase();
+    const inviteRef = doc(db, 'invites', lowerCaseEmail);
+    const userDocRef = doc(db, 'users', user.uid);
 
     try {
-        const inviteSnap = await getDoc(inviteRef);
-        if (!inviteSnap.exists()) {
-            return; // No invitation found.
-        }
-        
-        const inviteData = inviteSnap.data();
-        const gymRef = doc(db, 'gyms', inviteData.gymId);
-        const gymSnap = await getDoc(gymRef);
-        const gymName = gymSnap.exists() ? gymSnap.data().name : 'Unknown Gym';
-
-        const membershipRef = doc(db, 'memberships', `${user.uid}_${inviteData.gymId}`);
-
-        // Create the membership and delete the invite in a transaction
         await runTransaction(db, async (transaction) => {
-             transaction.set(membershipRef, {
+            const inviteSnap = await transaction.get(inviteRef);
+            if (!inviteSnap.exists()) {
+                return; // No invitation found.
+            }
+            
+            const inviteData = inviteSnap.data();
+            const gymRef = doc(db, 'gyms', inviteData.gymId);
+            const gymSnap = await transaction.get(gymRef);
+            const gymName = gymSnap.exists() ? gymSnap.data().name : 'Unknown Gym';
+
+            const membershipRef = doc(db, 'memberships', `${user.uid}_${inviteData.gymId}`);
+            const membershipData = {
                 userId: user.uid,
                 gymId: inviteData.gymId,
                 role: inviteData.role,
                 userName: userProfile.name,
                 gymName: gymName,
                 status: 'active'
-            });
+            };
+
+            // Use set with merge to create or update the membership
+            transaction.set(membershipRef, membershipData, { merge: true });
             transaction.delete(inviteRef);
+
+            // Ensure the user document is created/updated if needed
+            const userDocSnap = await transaction.get(userDocRef);
+            if (!userDocSnap.exists()) {
+                 transaction.set(userDocRef, {
+                    name: inviteData.name,
+                    email: lowerCaseEmail,
+                    createdAt: new Date(),
+                 });
+            }
         });
 
     } catch (error) {
@@ -110,7 +123,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Effect to fetch user's global profile
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+        if (!auth.currentUser) setLoading(false);
+        return;
+    }
     
     const userDocRef = doc(db, 'users', user.uid);
     const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
@@ -118,7 +134,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const profile = docSnap.data() as UserProfile;
             setUserProfile(profile);
         } else {
-            // This might happen briefly on first signup.
             setUserProfile(null);
         }
     }, (error) => {
@@ -129,66 +144,79 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, [user]);
   
-  // Effect to fetch all of a user's memberships
+  // Effect to fetch all of a user's memberships and consume invitation
   useEffect(() => {
     if (!user) return;
-    
-    const membershipsQuery = query(collection(db, 'memberships'), where('userId', '==', user.uid));
-    const unsubscribe = onSnapshot(membershipsQuery, (snapshot) => {
-        const fetchedMemberships = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
-        setMemberships(fetchedMemberships);
 
-        // Logic to consume invitation on first login
-        if (fetchedMemberships.length === 0 && userProfile) {
-            consumeInvitation(user, userProfile);
-        }
+    const membershipsQuery = query(collection(db, 'memberships'), where('userId', '==', user.uid));
+    const unsubscribe = onSnapshot(membershipsQuery, async (snapshot) => {
+        const fetchedMemberships = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
         
-        // If there's no active membership, set one.
-        if (!activeMembership && fetchedMemberships.length > 0) {
-            // Default to admin > coach > athlete if multiple roles exist
-            const sorted = [...fetchedMemberships].sort((a, b) => {
+        // Logic to consume invitation on first login if no memberships exist
+        if (fetchedMemberships.length === 0 && userProfile) {
+            await consumeInvitation(user, userProfile);
+        } else {
+            setMemberships(fetchedMemberships);
+        }
+    }, (error) => {
+        console.error("Error fetching memberships:", error);
+        setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user, userProfile]);
+
+  // Effect to set active membership
+  useEffect(() => {
+    if (loading || !user) return;
+
+    if (memberships.length > 0) {
+        if (!activeMembership || !memberships.find(m => m.id === activeMembership.id)) {
+            const sorted = [...memberships].sort((a, b) => {
                 const roles = { 'gym-admin': 0, 'coach': 1, 'athlete': 2 };
                 return roles[a.role] - roles[b.role];
             });
             setActiveMembership(sorted[0]);
-        } else if (activeMembership) {
-            // If active membership is no longer valid, clear it.
-            if (!fetchedMemberships.find(m => m.id === activeMembership.id)) {
-                setActiveMembership(null);
-            }
         }
+    }
+  }, [memberships, user, loading, activeMembership]);
 
-    }, (error) => {
-        console.error("Error fetching memberships:", error);
-    });
-    
-    return () => unsubscribe();
-  }, [user, userProfile, activeMembership]);
-
-  // Effect to fetch active gym profile based on active membership
+  // Effect to fetch active gym profile
   useEffect(() => {
-    if (activeMembership?.gymId) {
-        const gymDocRef = doc(db, 'gyms', activeMembership.gymId);
-        const unsubscribe = onSnapshot(gymDocRef, (doc) => {
-            if (doc.exists()) {
-                setGymProfile({ id: doc.id, ...doc.data() } as GymProfile);
-            } else {
-                setGymProfile(null);
-            }
-            setLoading(false);
-        }, (error) => {
-            console.error('Error fetching gym profile:', error);
+    if (!activeMembership) {
+        if (user && !loading) {
             setGymProfile(null);
-            setLoading(false);
-        });
-        return () => unsubscribe();
-    } else if (user && memberships.length === 0) {
-        // User is logged in but has no memberships, stop loading
+        }
+        return;
+    }
+
+    const gymDocRef = doc(db, 'gyms', activeMembership.gymId);
+    const unsubscribe = onSnapshot(gymDocRef, (doc) => {
+        if (doc.exists()) {
+            setGymProfile({ id: doc.id, ...doc.data() } as GymProfile);
+        } else {
+            setGymProfile(null);
+        }
+    }, (error) => {
+        console.error('Error fetching gym profile:', error);
         setGymProfile(null);
+    });
+    return () => unsubscribe();
+  }, [activeMembership, user, loading]);
+
+  // Final loading state determination
+  useEffect(() => {
+    // Stop loading if user is logged out
+    if (!user) {
+        setLoading(false);
+        return;
+    }
+    // If user is logged in, stop loading only when we have a definitive state
+    // (i.e., we have memberships, or we have a profile and know there are no memberships)
+    if (user && userProfile !== null) {
         setLoading(false);
     }
-  }, [activeMembership, user, memberships]);
-  
+  }, [user, userProfile, memberships]);
 
   const contextValue: AuthContextType = {
     user,
