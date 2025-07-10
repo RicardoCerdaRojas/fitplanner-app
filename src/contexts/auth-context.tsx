@@ -3,7 +3,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, onSnapshot, Timestamp, getDoc, runTransaction, DocumentReference } from 'firebase/firestore';
+import { doc, onSnapshot, Timestamp, getDoc, runTransaction, DocumentReference, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
 type UserProfile = {
@@ -48,6 +48,7 @@ const consumeInvitation = async (user: User) => {
 
             const inviteData = inviteSnap.data();
             const userData: any = {
+                email: user.email?.toLowerCase(),
                 role: inviteData.role,
                 gymId: inviteData.gymId,
                 name: inviteData.name,
@@ -59,8 +60,10 @@ const consumeInvitation = async (user: User) => {
                 userData.plan = inviteData.plan;
             }
             
-            // Update the user's profile with invitation data
-            transaction.update(userDocRef, userData);
+            // Use set with merge to either create or update the user document.
+            // This prevents race conditions during signup.
+            transaction.set(userDocRef, userData, { merge: true });
+            
             // Delete the consumed invitation
             transaction.delete(inviteRef);
         });
@@ -105,9 +108,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
             setUserProfile(profileData);
           } else {
-             // This case might happen in a race condition during signup.
-             // We set profile to null and let the logic handle it.
-            setUserProfile(null);
+             // This case happens on first signup. The profile is not yet created.
+             // We'll try to consume an invitation. If one exists, it will create the doc.
+             // If not, the user will be prompted to create a gym.
+             consumeInvitation(user);
+             setUserProfile(null); // Set to null initially
           }
         },
         (error) => {
