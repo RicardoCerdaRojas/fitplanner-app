@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, Calendar as CalendarIcon, Trash2, ClipboardList, Search, MoreVertical, Send, UserX, Edit } from 'lucide-react';
+import { UserPlus, Calendar as CalendarIcon, Trash2, ClipboardList, Search, MoreVertical, Send, UserX, Edit, ShieldCheck, HeartPulse, Clipboard } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, Timestamp, deleteDoc, updateDoc } from 'firebase/firestore';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -39,6 +39,7 @@ import {
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { User } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 
 const formSchema = z.object({
@@ -293,14 +294,53 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
     }, [allUsers, searchTerm, roleFilter]);
 
 
-    const getStatusBadge = (user: CombinedUser) => {
-        if (user.type === 'invite') return <Badge variant="outline" className='bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700'>Invited</Badge>;
-        switch(user.role) {
-            case 'gym-admin': return <Badge variant="default">Admin</Badge>;
-            case 'coach': return <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/50 dark:text-amber-300 dark:border-amber-700">Coach</Badge>;
-            case 'athlete': return <Badge variant="secondary">Athlete</Badge>;
-            default: return <Badge variant="outline">N/A</Badge>;
+    const getRoleIcon = (user: CombinedUser) => {
+        let roleName: string;
+        let icon: React.ReactNode;
+        let className: string;
+    
+        if (user.type === 'invite') {
+            roleName = 'Invited';
+            icon = <Send className="h-4 w-4" />;
+            className = 'text-blue-500';
+        } else {
+            switch(user.role) {
+                case 'gym-admin':
+                    roleName = 'Admin';
+                    icon = <ShieldCheck className="h-4 w-4" />;
+                    className = 'text-primary';
+                    break;
+                case 'coach':
+                    roleName = 'Coach';
+                    icon = <Clipboard className="h-4 w-4" />;
+                    className = 'text-amber-500';
+                    break;
+                case 'athlete':
+                    roleName = 'Athlete';
+                    icon = <HeartPulse className="h-4 w-4" />;
+                    className = 'text-green-500';
+                    break;
+                default:
+                    roleName = 'N/A';
+                    icon = <User className="h-4 w-4" />;
+                    className = 'text-muted-foreground';
+            }
         }
+    
+        return (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div className={cn('flex items-center', className)}>
+                            {icon}
+                        </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>{roleName}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        );
     }
 
     return (
@@ -354,16 +394,13 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                                             {user.name ? user.name.charAt(0).toUpperCase() : <User />}
                                         </AvatarFallback>
                                     </Avatar>
-                                    <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-center">
+                                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-4 items-center">
                                         <div className="sm:col-span-1">
-                                            <div className='flex items-center gap-2 flex-wrap'>
+                                            <div className='flex items-center gap-2'>
+                                                {getRoleIcon(user)}
                                                 <p className="font-semibold truncate">{user.name || 'No Name'}</p>
-                                                <div className='sm:hidden'>{getStatusBadge(user)}</div>
                                             </div>
                                             <p className="text-sm text-muted-foreground truncate">{user.email}</p>
-                                        </div>
-                                        <div className="hidden sm:block">
-                                            {getStatusBadge(user)}
                                         </div>
                                         <div className="hidden sm:block">
                                             <p className="text-sm font-semibold">{user.plan || 'N/A'}</p>
