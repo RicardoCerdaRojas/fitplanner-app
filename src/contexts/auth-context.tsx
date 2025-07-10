@@ -1,8 +1,9 @@
+
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, onSnapshot, Timestamp } from 'firebase/firestore';
+import { doc, onSnapshot, Timestamp, getDoc, runTransaction, DocumentReference } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
 type UserProfile = {
@@ -30,60 +31,97 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper function to consume an invitation after a user's first login
+const consumeInvitation = async (user: User) => {
+    if (!user.email) return;
+
+    const userDocRef = doc(db, 'users', user.uid);
+    const inviteRef = doc(db, 'invites', user.email.toLowerCase());
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const inviteSnap = await transaction.get(inviteRef);
+            if (!inviteSnap.exists()) {
+                // No invitation found for this email, nothing to do.
+                return;
+            }
+
+            const inviteData = inviteSnap.data();
+            const userData: any = {
+                role: inviteData.role,
+                gymId: inviteData.gymId,
+                name: inviteData.name,
+                status: 'active',
+            };
+
+            if (inviteData.role === 'athlete') {
+                userData.dob = inviteData.dob;
+                userData.plan = inviteData.plan;
+            }
+            
+            // Update the user's profile with invitation data
+            transaction.update(userDocRef, userData);
+            // Delete the consumed invitation
+            transaction.delete(inviteRef);
+        });
+    } catch (error) {
+        console.error("Error consuming invitation:", error);
+    }
+};
+
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [gymProfile, setGymProfile] = useState<GymProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [profileChecked, setProfileChecked] = useState(false);
 
   // Effect for auth state changes
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (authUser) => {
-      if (authUser) {
-        setUser(authUser);
-      } else {
-        setUser(null);
+    const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
+      setUser(authUser);
+      if (!authUser) {
+        // User logged out, reset everything and stop loading
         setUserProfile(null);
         setGymProfile(null);
         setLoading(false);
       }
-      setProfileChecked(false);
     });
-
     return () => unsubscribeAuth();
   }, []);
 
   // Effect for user profile data, dependent on user
   useEffect(() => {
     if (user) {
-      setLoading(true);
       const userDocRef = doc(db, 'users', user.uid);
-      const unsubscribeSnapshot = onSnapshot(
-        userDocRef,
-        (doc) => {
-          setUserProfile(doc.exists() ? (doc.data() as UserProfile) : null);
-          setProfileChecked(true);
+      const unsubscribeSnapshot = onSnapshot(userDocRef,
+        (docSnapshot) => {
+          if (docSnapshot.exists()) {
+            const profileData = docSnapshot.data() as UserProfile;
+            
+            // If the user profile is incomplete (new signup), try to consume an invitation
+            if (profileData.role === null) {
+              consumeInvitation(user);
+            }
+            setUserProfile(profileData);
+          } else {
+             // This case might happen in a race condition during signup.
+             // We set profile to null and let the logic handle it.
+            setUserProfile(null);
+          }
         },
         (error) => {
           console.error('Error fetching user profile:', error);
           setUserProfile(null);
-          setProfileChecked(true); // Also mark as checked on error
+          setLoading(false);
         }
       );
       return () => unsubscribeSnapshot();
-    } else {
-      setUserProfile(null);
-      setProfileChecked(false);
     }
   }, [user]);
 
-  // Effect for gym profile data, dependent on userProfile AND the check status
+  // Effect for gym profile data, dependent on userProfile
   useEffect(() => {
-    if (!profileChecked) {
-      return; // Do nothing until the user profile has been checked
-    }
-
     if (userProfile?.gymId) {
         const gymDocRef = doc(db, 'gyms', userProfile.gymId);
         const unsubscribe = onSnapshot(gymDocRef, (doc) => {
@@ -95,12 +133,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setLoading(false);
         });
         return () => unsubscribe();
-    } else {
-        // The profile was checked and there's no gymId
-        setGymProfile(null);
-        setLoading(false);
+    } else if (user) {
+        // If user is logged in but has no gymId (or profile hasn't loaded yet),
+        // we might still be in a loading state. The check for userProfile !== null
+        // makes sure we stop loading if the profile is loaded and has no gym.
+        if (userProfile !== null) {
+          setGymProfile(null);
+          setLoading(false);
+        }
     }
-  }, [profileChecked, userProfile]);
+  }, [user, userProfile]);
 
   return (
     <AuthContext.Provider value={{ user, userProfile, gymProfile, loading }}>

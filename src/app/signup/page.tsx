@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { UserPlus, ArrowLeft } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, getDoc, deleteDoc, runTransaction } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
 const formSchema = z.object({
@@ -41,48 +41,25 @@ export default function SignupPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    form.clearErrors();
     const lowerCaseEmail = values.email.toLowerCase();
 
     try {
+      // Step 1: Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, lowerCaseEmail, values.password);
       const { user } = userCredential;
 
-      const inviteRef = doc(db, 'invites', lowerCaseEmail);
-      const userDocRef = doc(db, 'users', user.uid);
-
-      await runTransaction(db, async (transaction) => {
-        const inviteSnap = await transaction.get(inviteRef);
-
-        if (inviteSnap.exists()) {
-          const inviteData = inviteSnap.data();
-          
-          const userData: any = {
-            email: lowerCaseEmail,
-            role: inviteData.role,
-            gymId: inviteData.gymId,
-            name: inviteData.name,
-            status: 'active',
-          };
-
-          if (inviteData.role === 'athlete') {
-              userData.dob = inviteData.dob;
-              userData.plan = inviteData.plan;
-          }
-          
-          transaction.set(userDocRef, userData);
-          transaction.delete(inviteRef);
-        } else {
-          transaction.set(userDocRef, {
-            email: lowerCaseEmail,
-            role: null,
-            gymId: null,
-            status: 'active',
-          });
-        }
+      // Step 2: Create a basic user profile in Firestore.
+      // The logic to consume an invitation will be handled by the AuthContext after the first login.
+      await setDoc(doc(db, 'users', user.uid), {
+        email: lowerCaseEmail,
+        role: null,
+        gymId: null,
+        status: 'active',
+        createdAt: new Date(),
       });
       
       router.push('/');
+
     } catch (error: any) {
       let description = 'An unexpected error occurred. Please try again.';
       if (error.code === 'auth/email-already-in-use') {
