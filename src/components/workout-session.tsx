@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Routine, Exercise, ExerciseProgress } from './athlete-routine-list';
 import { DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -37,7 +37,11 @@ const Timer = ({ durationString, isCurrent }: { durationString: string; isCurren
     const [secondsLeft, setSecondsLeft] = useState(initialSeconds);
     const [countdown, setCountdown] = useState(5);
     
-    const audioRef = useRef<HTMLAudioElement>(null);
+    const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
+
+    useEffect(() => {
+        setAudioRef(new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"));
+    }, [])
 
     // Effect to handle timer ticks
     useEffect(() => {
@@ -55,13 +59,13 @@ const Timer = ({ durationString, isCurrent }: { durationString: string; isCurren
             }, 1000);
         } else if (phase === 'running' && secondsLeft <= 0) {
             setPhase('finished');
-            audioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+            audioRef?.play().catch(e => console.error("Audio play failed:", e));
         }
 
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [phase, countdown, secondsLeft]);
+    }, [phase, countdown, secondsLeft, audioRef]);
 
     // Effect to reset timer when the exercise changes
     useEffect(() => {
@@ -122,7 +126,6 @@ const Timer = ({ durationString, isCurrent }: { durationString: string; isCurren
 
     return (
         <div className="flex flex-col items-center gap-4">
-            <audio ref={audioRef} src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto" />
             {renderTime()}
             <div className="flex items-center gap-4 mt-4">
                 <Button onClick={handlePrimaryAction} size="lg" disabled={buttonProps.disabled} variant={buttonProps.variant}>
@@ -196,7 +199,6 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                 routineId: routine.id,
                 routineName: routine.routineTypeName || routine.routineName || 'Untitled Routine',
                 startTime: Timestamp.now(),
-                lastUpdateTime: Timestamp.now(),
                 status: 'active' as const,
                 currentExerciseName: currentItem.name,
                 currentSetIndex: currentIndex,
@@ -209,33 +211,13 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
     }, [user, userProfile, routine, sessionId, currentIndex, progress, sessionPlaylist]);
 
-
-    // Effect for heartbeat to keep the session alive and cleanup on unmount
-    useEffect(() => {
+    const handleSessionEnd = async () => {
         const sessionRef = doc(db, "workoutSessions", sessionId);
-        
-        const intervalId = setInterval(() => {
-            if (document.visibilityState === 'visible') {
-                updateDoc(sessionRef, { lastUpdateTime: Timestamp.now() }).catch(() => {
-                    // Session was likely cleaned up already, clear interval
-                    clearInterval(intervalId);
-                });
-            }
-        }, 15000); // Send heartbeat every 15 seconds
-
-        return () => {
-            clearInterval(intervalId);
-            // On unmount, delete the session document
-            deleteDoc(sessionRef).catch(() => {
-                 // Fails silently, session might already be gone
-            });
-        };
-    }, [sessionId]);
-
-
-    const handleSessionEnd = () => {
-        // The cleanup is now handled by the useEffect return function.
-        // This function just needs to trigger the dialog close.
+        try {
+            await updateDoc(sessionRef, { status: 'completed' });
+        } catch (error) {
+            console.error("Failed to mark session as completed", error);
+        }
         onSessionEnd();
     };
 
