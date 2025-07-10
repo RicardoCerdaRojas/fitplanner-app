@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -36,6 +37,7 @@ function AthleteDashboard() {
                 return {
                     id: doc.id,
                     routineName: data.routineName,
+                    routineTypeName: data.routineTypeName,
                     routineDate: (data.routineDate as Timestamp).toDate(),
                     blocks: data.blocks,
                     coachId: data.coachId,
