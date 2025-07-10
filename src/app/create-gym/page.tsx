@@ -47,7 +47,7 @@ export default function CreateGymPage() {
 
   useEffect(() => {
     // This effect protects the page. If a user with a membership lands here,
-    // it redirects them to the home page, where the context will handle routing.
+    // it redirects them to the home page.
     if (!loading && memberships.length > 0) {
       router.push('/');
     }
@@ -68,7 +68,6 @@ export default function CreateGymPage() {
     try {
       await runTransaction(db, async (transaction) => {
         const gymRef = doc(collection(db, 'gyms'));
-        const userRef = doc(db, 'users', user.uid);
         const membershipRef = doc(collection(db, 'memberships'));
 
         // 1. Create the new gym
@@ -89,17 +88,9 @@ export default function CreateGymPage() {
             gymName: values.gymName,
             status: 'active'
         });
-
-        // 3. Update the user's document to reflect their new primary gym and role
-        // This is denormalized data for convenience. The membership doc is the source of truth.
-        transaction.update(userRef, {
-            gymId: gymRef.id, // Set the primary gymId for the user
-        });
       });
 
       toast({ title: 'Success!', description: 'Your gym has been created. Redirecting...' });
-      // The AuthContext will detect the new membership and handle the redirect automatically.
-      // We can also force a push just in case.
       router.push('/');
 
     } catch (error: any) {

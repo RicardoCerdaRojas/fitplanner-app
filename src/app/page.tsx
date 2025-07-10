@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { AppHeader } from '@/components/app-header';
@@ -9,7 +9,6 @@ import { AthleteRoutineList, type Routine } from '@/components/athlete-routine-l
 import { AthleteNav } from '@/components/athlete-nav';
 import { collection, onSnapshot, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { useState } from 'react';
 import { AppDashboardIllustration } from '@/components/ui/app-dashboard-illustration';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -115,9 +114,33 @@ function AthleteDashboard() {
 
 export default function Home() {
     const { user, loading, activeMembership } = useAuth();
-    
-    // The redirection logic is now handled by the AuthContext to avoid race conditions.
-    // This component's responsibility is to render the correct view based on the final auth state.
+    const router = useRouter();
+
+    useEffect(() => {
+        if (loading) {
+            return; // Do nothing while loading
+        }
+
+        if (user) {
+            if (activeMembership) {
+                switch (activeMembership.role) {
+                    case 'gym-admin':
+                        router.push('/admin');
+                        break;
+                    case 'coach':
+                        router.push('/coach');
+                        break;
+                    case 'athlete':
+                        // Already on the correct page, do nothing.
+                        break;
+                }
+            } else {
+                // User is logged in but has no membership
+                router.push('/create-gym');
+            }
+        }
+        // If no user, the page will render the GuestHomepage
+    }, [user, activeMembership, loading, router]);
     
     if (loading) {
         return <LoadingScreen />;
