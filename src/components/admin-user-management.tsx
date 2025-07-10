@@ -356,7 +356,7 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                                     </Avatar>
                                     <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-center">
                                         <div className="sm:col-span-1">
-                                            <div className='flex items-center gap-2'>
+                                            <div className='flex items-center gap-2 flex-wrap'>
                                                 <p className="font-semibold truncate">{user.name || 'No Name'}</p>
                                                 <div className='sm:hidden'>{getStatusBadge(user)}</div>
                                             </div>
