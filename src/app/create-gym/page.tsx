@@ -69,7 +69,6 @@ export default function CreateGymPage() {
           throw new Error('User profile not found.');
         }
         
-        // Create the Gym document
         transaction.set(newGymRef, {
           name: values.gymName,
           adminUid: user.uid,
@@ -78,7 +77,6 @@ export default function CreateGymPage() {
           theme: selectedTheme.colors,
         });
 
-        // Create the admin's membership document
         transaction.set(membershipRef, {
             userId: user.uid,
             gymId: newGymRef.id,
@@ -90,7 +88,7 @@ export default function CreateGymPage() {
       });
 
       toast({ title: 'Success!', description: 'Your gym has been created. Redirecting...' });
-      // The AuthContext will detect the new membership and handle redirection automatically.
+      router.push('/');
     } catch (error: any) {
       console.error("Error creating gym:", error);
       toast({ variant: 'destructive', title: 'Error', description: error.message || "Could not create gym." });
@@ -180,3 +178,4 @@ export default function CreateGymPage() {
     </div>
   );
 }
+

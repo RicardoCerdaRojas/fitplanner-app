@@ -21,8 +21,6 @@ import { useRouter } from 'next/navigation';
 import { LogIn, ArrowLeft } from 'lucide-react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { useAuth } from '@/contexts/auth-context';
-import { useEffect } from 'react';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -32,15 +30,6 @@ const formSchema = z.object({
 export default function LoginPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user, loading } = useAuth();
-
-  // Redirect if user is already logged in
-  useEffect(() => {
-    if (!loading && user) {
-      router.push('/');
-    }
-  }, [user, loading, router]);
-
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -53,7 +42,6 @@ export default function LoginPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
-      // The main page will handle redirection after successful login.
       router.push('/');
     } catch (error: any) {
       toast({
@@ -62,21 +50,6 @@ export default function LoginPage() {
         description: error.message,
       });
     }
-  }
-
-  // Don't render the form if the user is logged in and we are about to redirect
-  if (loading || user) {
-    return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-8">
-             <div className="flex flex-col items-center gap-4">
-                <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <p className="text-lg text-muted-foreground">Loading...</p>
-            </div>
-        </div>
-    );
   }
 
   return (
@@ -155,3 +128,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

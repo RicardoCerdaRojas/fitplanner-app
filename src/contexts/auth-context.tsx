@@ -3,20 +3,18 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, onSnapshot, Timestamp, runTransaction, collection, query, where } from 'firebase/firestore';
+import { doc, onSnapshot, Timestamp, collection, query, where } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
-// Global user profile, no gym-specific data
 type UserProfile = {
   name: string;
   email: string;
   createdAt: Timestamp;
-  dob?: Timestamp; // Added for athlete profiles created via AI generator
+  dob?: Timestamp;
 };
 
-// Represents a user's role within a specific gym
 export type Membership = {
-    id: string; // {userId}_{gymId}
+    id: string;
     userId: string;
     gymId: string;
     role: 'athlete' | 'coach' | 'gym-admin';
@@ -25,7 +23,6 @@ export type Membership = {
     status: 'active' | 'pending';
 };
 
-// Profile for a specific gym
 type GymProfile = {
     id: string;
     name: string;
@@ -37,66 +34,13 @@ type AuthContextType = {
   user: User | null;
   userProfile: UserProfile | null;
   memberships: Membership[];
-  activeMembership: Membership | null; // The currently selected role/gym
-  gymProfile: GymProfile | null; // The profile of the active gym
+  activeMembership: Membership | null;
+  gymProfile: GymProfile | null;
   loading: boolean;
   setActiveMembership: (membership: Membership | null) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-
-// Consumes an invitation for a newly signed-up user by creating a membership document.
-const consumeInvitation = async (user: User) => {
-    if (!user.email) return false;
-
-    const lowerCaseEmail = user.email.toLowerCase();
-    const inviteRef = doc(db, 'invites', lowerCaseEmail);
-    const userDocRef = doc(db, 'users', user.uid);
-    let consumed = false;
-
-    try {
-        await runTransaction(db, async (transaction) => {
-            const inviteSnap = await transaction.get(inviteRef);
-            if (!inviteSnap.exists()) {
-                return; // No invitation found.
-            }
-            
-            const inviteData = inviteSnap.data();
-            const gymRef = doc(db, 'gyms', inviteData.gymId);
-            const gymSnap = await transaction.get(gymRef);
-            const gymName = gymSnap.exists() ? gymSnap.data().name : 'Unknown Gym';
-
-            const membershipRef = doc(db, 'memberships', `${user.uid}_${inviteData.gymId}`);
-            
-            const userData = {
-                name: inviteData.name,
-                email: lowerCaseEmail,
-                createdAt: new Date(),
-                dob: inviteData.dob || null, // Carry over DOB if it exists
-            };
-
-            const membershipData = {
-                userId: user.uid,
-                gymId: inviteData.gymId,
-                role: inviteData.role,
-                userName: inviteData.name,
-                gymName: gymName,
-                status: 'active'
-            };
-            
-            transaction.set(userDocRef, userData, { merge: true });
-            transaction.set(membershipRef, membershipData);
-            transaction.delete(inviteRef);
-            consumed = true;
-        });
-        return consumed;
-    } catch (error) {
-        console.error("Error consuming invitation:", error);
-        return false;
-    }
-};
-
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -109,11 +53,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
       setLoading(true);
-      if (authUser) {
-        setUser(authUser);
-      } else {
-        // Clear all state on logout
-        setUser(null);
+      setUser(authUser);
+      if (!authUser) {
         setUserProfile(null);
         setMemberships([]);
         setActiveMembership(null);
@@ -129,41 +70,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    let profileUnsub: (() => void) | null = null;
-    let membershipsUnsub: (() => void) | null = null;
-    
-    // Listen to user profile
-    profileUnsub = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
-        setUserProfile(docSnap.exists() ? (docSnap.data() as UserProfile) : null);
-    }, (error) => {
-        console.error("Error fetching user profile:", error);
-        setUserProfile(null);
+    const profileUnsub = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
+      setUserProfile(docSnap.exists() ? (docSnap.data() as UserProfile) : null);
     });
 
-    // Listen to memberships
     const membershipsQuery = query(collection(db, 'memberships'), where('userId', '==', user.uid));
-    membershipsUnsub = onSnapshot(membershipsQuery, async (snapshot) => {
-        if (!snapshot.metadata.hasPendingWrites && snapshot.empty) {
-            const consumed = await consumeInvitation(user);
-            if (!consumed) {
-                setMemberships([]);
-                setLoading(false); // No memberships found and no invitation consumed
-            }
-            // If invitation is consumed, this listener will re-fire with new data.
-        } else {
-            const fetchedMemberships = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
-            setMemberships(fetchedMemberships);
-            setLoading(false); // Memberships loaded
-        }
-    }, (error) => {
-        console.error("Error fetching memberships:", error);
-        setMemberships([]);
-        setLoading(false);
+    const membershipsUnsub = onSnapshot(membershipsQuery, (snapshot) => {
+      const fetchedMemberships = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
+      setMemberships(fetchedMemberships);
     });
 
     return () => {
-      if (profileUnsub) profileUnsub();
-      if (membershipsUnsub) membershipsUnsub();
+      profileUnsub();
+      membershipsUnsub();
     };
   }, [user]);
 
@@ -182,10 +101,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!activeMembership) {
       setGymProfile(null);
+      setLoading(false);
       return;
     }
     const unsubGym = onSnapshot(doc(db, 'gyms', activeMembership.gymId), (doc) => {
       setGymProfile(doc.exists() ? ({ id: doc.id, ...doc.data() } as GymProfile) : null);
+      setLoading(false); // Stop loading once the gym profile is loaded
     });
     return () => unsubGym();
   }, [activeMembership]);
