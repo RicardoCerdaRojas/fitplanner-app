@@ -11,11 +11,12 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { User, Building, ClipboardList, WandSparkles, BarChart3 } from 'lucide-react';
+import { User, Building, Facebook, Twitter, Instagram } from 'lucide-react';
 import type { Routine as AthleteRoutine } from '@/components/athlete-routine-list';
 import { AthleteRoutineList } from '@/components/athlete-routine-list';
 import { AthleteNav } from '@/components/athlete-nav';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 
 function AthleteDashboard() {
@@ -117,112 +118,85 @@ function AdminDashboard() {
 }
 
 function GuestLandingPage() {
-  const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) => (
-    <Card className="p-6 text-center transform hover:-translate-y-2 transition-transform duration-300">
-      <div className="flex justify-center mb-4">
-        <div className="bg-primary/10 text-primary p-4 rounded-full">
-          {icon}
-        </div>
-      </div>
-      <h3 className="text-xl font-bold mb-2">{title}</h3>
-      <p className="text-muted-foreground">{description}</p>
-    </Card>
-  );
-
-  const TestimonialCard = ({ quote, name, role, avatarUrl, hint }: { quote: string, name: string, role: string, avatarUrl: string, hint: string }) => (
-      <Card className="p-6 bg-card/50 border-border/50">
-          <p className="text-card-foreground/90 mb-4">"{quote}"</p>
-          <div className="flex items-center gap-4">
-              <Image src={avatarUrl} alt={name} width={40} height={40} className="rounded-full" data-ai-hint={hint} />
-              <div>
-                  <p className="font-semibold">{name}</p>
-                  <p className="text-sm text-muted-foreground">{role}</p>
-              </div>
-          </div>
-      </Card>
-  );
+  const socialLinks = [
+    { href: "#", icon: Facebook, name: "Facebook" },
+    { href: "#", icon: Twitter, name: "Twitter" },
+    { href: "#", icon: Instagram, name: "Instagram" },
+  ];
 
   return (
-    <div className="w-full max-w-6xl text-center animate-fade-in">
-      {/* Hero Section */}
-      <section className="py-20 md:py-32">
-        <h1 className="text-4xl md:text-6xl font-extrabold font-headline tracking-tight mb-4">
-          Transform Your Training.
-        </h1>
-        <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-          Fitness Flow is the all-in-one platform for gyms, coaches, and athletes to create, track, and conquer their fitness goals.
-        </p>
-        <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-          <Button asChild size="lg" className="bg-accent hover:bg-accent/90">
-            <Link href="/signup">Get Started Now</Link>
-          </Button>
-          <Button asChild size="lg" variant="outline">
-            <Link href="#features">Learn More</Link>
-          </Button>
+    <div className="w-full">
+      <div className="relative bg-gray-950">
+        {/* Background image and overlay */}
+        <div className="absolute inset-0">
+          <Image
+            src="https://placehold.co/1920x1280.png"
+            alt="Fitness motivation"
+            layout="fill"
+            objectFit="cover"
+            className="opacity-40"
+            data-ai-hint="muscular man fitness"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-950/80 to-transparent" />
         </div>
-      </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20">
-        <h2 className="text-3xl md:text-4xl font-bold mb-12">Everything You Need to Succeed</h2>
-        <div className="grid md:grid-cols-3 gap-8">
-          <FeatureCard 
-            icon={<ClipboardList className="w-8 h-8" />}
-            title="Custom Routine Builder"
-            description="Coaches can design detailed, personalized workout plans for every client with an intuitive block-based editor."
-          />
-          <FeatureCard 
-            icon={<WandSparkles className="w-8 h-8" />}
-            title="AI-Powered Workouts"
-            description="Athletes can instantly generate effective workout routines based on their goals and fitness level."
-          />
-          <FeatureCard 
-            icon={<BarChart3 className="w-8 h-8" />}
-            title="Real-time Tracking & Stats"
-            description="Log every set and watch your progress over time with detailed performance charts and statistics."
-          />
-        </div>
-      </section>
-
-      {/* Visual Section */}
-       <section className="py-20">
-            <div className="relative aspect-video rounded-xl shadow-2xl overflow-hidden">
-                 <Image src="https://placehold.co/1200x675.png" alt="Fitness Flow dashboard" fill className="object-cover" data-ai-hint="fitness app dashboard" />
+        <div className="relative z-10 min-h-screen flex flex-col">
+          {/* Header */}
+          <header className="py-6 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto flex justify-between items-center">
+              <Link href="/" className="text-2xl font-bold text-white tracking-wider">
+                FITNESS
+              </Link>
+              <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+                <Link href="#" className="text-blue-500 transition hover:text-blue-400">Home</Link>
+                <Link href="#" className="text-white transition hover:text-blue-400">About</Link>
+                <Link href="#" className="text-white transition hover:text-blue-400">Trainers</Link>
+                <Link href="#" className="text-white transition hover:text-blue-400">Blog</Link>
+                <Link href="#" className="text-white transition hover:text-blue-400">Contact</Link>
+              </nav>
+               <div className="md:hidden">
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/login">Login</Link>
+                </Button>
+              </div>
             </div>
-       </section>
+          </header>
 
-      {/* Testimonials Section */}
-      <section className="py-20 bg-muted/30 rounded-lg">
-          <h2 className="text-3xl md:text-4xl font-bold mb-12">Loved by Athletes and Coaches</h2>
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-              <TestimonialCard 
-                  quote="The ability to see my routines and track progress in real-time has been a game changer for my motivation."
-                  name="Alex R."
-                  role="Athlete"
-                  avatarUrl="https://placehold.co/100x100.png"
-                  hint="portrait athlete"
-              />
-              <TestimonialCard 
-                  quote="Fitness Flow saves me hours every week. Creating and assigning routines is incredibly fast and efficient."
-                  name="Coach Sarah K."
-                  role="Gym Coach"
-                  avatarUrl="https://placehold.co/100x100.png"
-                  hint="portrait coach"
-              />
-          </div>
-      </section>
-      
-      {/* Final CTA Section */}
-      <section className="py-20 md:py-32">
-        <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Elevate Your Fitness?</h2>
-        <p className="text-lg text-muted-foreground mb-8">Join today and take the first step towards smarter training.</p>
-        <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-lg py-7 px-10">
-          <Link href="/signup">Sign Up for Free</Link>
-        </Button>
-      </section>
+          {/* Main content */}
+          <main className="flex-grow flex items-center py-16 sm:py-24">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="max-w-xl">
+                <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-tight tracking-tight animate-fade-in">
+                  Build Perfect Body
+                  <br />
+                  With Clean Mind
+                </h1>
+                <p className="mt-6 text-lg text-gray-300 animate-fade-in [animation-delay:200ms]">
+                  Unleash your potential with AI-powered workout plans, expert coaching tools, and seamless progress tracking. Join the community dedicated to achieving peak fitness.
+                </p>
+                <div className="mt-8 animate-fade-in [animation-delay:400ms]">
+                  <Button asChild size="lg" className="bg-blue-600 text-white hover:bg-blue-700 px-10 py-6 text-base font-bold">
+                    <Link href="/signup">Get Started</Link>
+                  </Button>
+                </div>
+                <div className="mt-12 flex items-center space-x-6 animate-fade-in [animation-delay:600ms]">
+                  {socialLinks.map((link) => (
+                    <Link key={link.name} href={link.href} className="text-gray-400 hover:text-white">
+                      <span className="sr-only">{link.name}</span>
+                      <link.icon className="h-6 w-6" />
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
     </div>
   );
 }
+
 
 export default function Home() {
     const { user, userProfile, loading } = useAuth();
@@ -278,31 +252,28 @@ export default function Home() {
 
     return (
         <div className="flex flex-col min-h-screen">
-            <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
-                <AppHeader />
+            <main className={cn(
+                "flex-grow flex flex-col",
+                isGuest ? "" : "items-center p-4 sm:p-8"
+            )}>
+                {!isGuest && <AppHeader />}
                 
-                <div className="flex-grow flex items-center justify-center w-full">
+                <div className={cn(
+                  "flex-grow flex items-center justify-center",
+                  isGuest ? "w-full" : "w-full"
+                )}>
                     {renderContent()}
                 </div>
             </main>
-            <footer className="w-full p-4 text-muted-foreground text-sm">
-                {isGuest ? (
-                  <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-center">
-                    <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
-                    <div className="flex gap-4">
-                      <Link href="#" className="hover:text-primary">Privacy Policy</Link>
-                      <Link href="#" className="hover:text-primary">Terms of Service</Link>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <p>
-                        Create your own routines, track your progress, and crush your goals.
-                    </p>
-                    <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
-                  </div>
-                )}
-            </footer>
+            
+            {!isGuest && (
+              <footer className="w-full text-center p-4 text-muted-foreground text-sm">
+                  <p>
+                      Create your own routines, track your progress, and crush your goals.
+                  </p>
+                  <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
+              </footer>
+            )}
         </div>
     );
 }
