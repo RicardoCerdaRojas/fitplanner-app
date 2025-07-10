@@ -108,11 +108,6 @@ export default function CreateGymPage() {
     return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-96 w-full max-w-lg" /></div>
   }
   
-  if (!user) {
-    router.push('/login');
-    return null;
-  }
-
   if (memberships.length > 0) {
       return (
           <div className="flex items-center justify-center min-h-screen">
