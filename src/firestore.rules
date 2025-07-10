@@ -32,10 +32,8 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.adminUid;
       // Any member of a gym can read that gym's document.
       allow read: if isSignedIn() && getRequestingUserData().gymId == gymId;
-      // An admin can update their gym's document.
-      allow update: if isSignedIn() && 
-                    getRequestingUserData().role == 'gym-admin' &&
-                    getRequestingUserData().gymId == gymId;
+      // The admin can update their gym's document
+      allow update: if isSignedIn() && getRequestingUserData().role == 'gym-admin' && getRequestingUserData().gymId == gymId;
     }
 
     // Rules for the 'invites' collection
@@ -90,17 +88,15 @@ service cloud.firestore {
                    getRequestingUserData().gymId == resource.data.gymId;
     }
 
-    // Rules for the 'workoutSessions' collection
+    // Rules for live workout sessions
     match /workoutSessions/{sessionId} {
-        // An athlete can create, update, and delete their own session document.
-        // The sessionId must match the user's UID.
-        allow create, update, delete: if isSignedIn() && 
-                                        request.auth.uid == sessionId;
+      // An athlete can create, update, or delete their own session document.
+      allow write: if isSignedIn() && request.auth.uid == sessionId;
 
-        // An admin can read sessions that belong to their gym.
-        allow read: if isSignedIn() &&
-                     getRequestingUserData().role == 'gym-admin' &&
-                     getRequestingUserData().gymId == resource.data.gymId;
+      // An admin can read sessions from their gym.
+      allow read: if isSignedIn() &&
+                   getRequestingUserData().role == 'gym-admin' &&
+                   getRequestingUserData().gymId == resource.data.gymId;
     }
   }
 }
