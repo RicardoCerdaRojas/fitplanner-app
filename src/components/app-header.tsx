@@ -12,18 +12,6 @@ import { useTheme } from '@/contexts/theme-provider';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
-function AuthDebugInfo() {
-    const { loading, user, activeMembership, memberships } = useAuth();
-    return (
-        <div className="absolute top-full left-0 w-full bg-yellow-200 text-yellow-900 p-2 text-xs font-mono flex justify-center gap-4 z-50">
-            <span>Loading: {loading.toString()}</span>
-            <span>User: {user?.email || 'null'}</span>
-            <span>Role: {activeMembership?.role || 'null'}</span>
-            <span>Memberships: {memberships.length}</span>
-        </div>
-    )
-}
-
 export function AppHeader() {
     const { user, gymProfile, loading } = useAuth();
     const router = useRouter();
@@ -40,7 +28,6 @@ export function AppHeader() {
 
     return (
         <header className="w-full max-w-5xl flex items-center justify-between mb-10 relative">
-            <AuthDebugInfo />
             <Link href="/" className="flex items-center gap-4 group">
                 {gymProfile?.logoUrl ? (
                     <Image src={gymProfile.logoUrl} alt={gymProfile.name ? `${gymProfile.name} Logo` : 'Gym Logo'} width={100} height={50} className="object-contain h-12 w-auto" priority />

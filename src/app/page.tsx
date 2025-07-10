@@ -118,7 +118,7 @@ export default function Home() {
 
     useEffect(() => {
         if (loading) {
-            return; // Do nothing while loading
+            return; 
         }
 
         if (user) {
@@ -135,11 +135,9 @@ export default function Home() {
                         break;
                 }
             } else {
-                // User is logged in but has no membership
                 router.push('/create-gym');
             }
         }
-        // If no user, the page will render the GuestHomepage
     }, [user, activeMembership, loading, router]);
     
     if (loading) {
@@ -154,6 +152,5 @@ export default function Home() {
         return <AthleteDashboard />;
     }
     
-    // Fallback for admin/coach during redirection or for users without a role yet.
     return <LoadingScreen />;
 }

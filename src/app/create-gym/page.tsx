@@ -21,7 +21,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { Building, Palette } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { runTransaction, doc, collection } from 'firebase/firestore';
+import { runTransaction, doc, collection, writeBatch } from 'firebase/firestore';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { themes } from '@/lib/themes';
@@ -47,8 +47,6 @@ export default function CreateGymPage() {
   });
 
   useEffect(() => {
-    // This effect protects the page. If a user with a membership lands here,
-    // it redirects them to the home page.
     if (!loading && memberships.length > 0) {
       router.push('/');
     }
@@ -67,14 +65,10 @@ export default function CreateGymPage() {
     }
 
     try {
-      await runTransaction(db, async (transaction) => {
-        const gymRef = doc(collection(db, 'gyms'));
+        const batch = writeBatch(db);
         
-        // Use a composite key for membership for predictability if needed, or a new doc
-        const membershipRef = doc(collection(db, 'memberships')); 
-
-        // 1. Create the new gym
-        transaction.set(gymRef, {
+        const gymRef = doc(collection(db, 'gyms'));
+        batch.set(gymRef, {
             name: values.gymName,
             adminUid: user.uid,
             createdAt: new Date(),
@@ -82,8 +76,8 @@ export default function CreateGymPage() {
             theme: selectedTheme.colors,
         });
 
-        // 2. Create the membership document linking user and gym
-        transaction.set(membershipRef, {
+        const membershipRef = doc(collection(db, 'memberships')); 
+        batch.set(membershipRef, {
             userId: user.uid,
             gymId: gymRef.id,
             role: 'gym-admin',
@@ -91,10 +85,12 @@ export default function CreateGymPage() {
             gymName: values.gymName,
             status: 'active'
         });
-      });
 
-      toast({ title: 'Success!', description: 'Your gym has been created. Redirecting...' });
-      router.push('/');
+        await batch.commit();
+        
+        toast({ title: 'Success!', description: 'Your gym has been created. Redirecting...' });
+        router.push('/');
+        router.refresh();
 
     } catch (error: any) {
       console.error("Error creating gym:", error);
