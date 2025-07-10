@@ -149,7 +149,7 @@ type WorkoutSessionProps = {
 
 export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: WorkoutSessionProps) {
     const { user, userProfile } = useAuth();
-    const sessionId = routine.id;
+    const sessionId = user?.uid; 
     const heartbeatInterval = useRef<NodeJS.Timeout | null>(null);
 
     const sessionPlaylist = useMemo(() => {
@@ -184,82 +184,59 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     const [showVideo, setShowVideo] = useState(false);
     const [progress, setProgress] = useState<ExerciseProgress>(routine.progress || {});
     
-     // Effect for creating/deleting the session document and managing heartbeat
+    // Effect for creating/updating the session document with heartbeats
     useEffect(() => {
-        if (!user || !userProfile?.gymId) return;
+        if (!sessionId || !user || !userProfile?.gymId) return;
 
         const sessionRef = doc(db, "workoutSessions", sessionId);
 
-        const createSession = async () => {
+        const updateSession = (isInitial = false) => {
             const currentItem = sessionPlaylist[currentIndex];
-            await setDoc(sessionRef, {
+            const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
+
+            const sessionData = {
                 userId: user.uid,
                 userName: userProfile.name || user.email || 'Unknown User',
                 gymId: userProfile.gymId,
                 routineId: routine.id,
                 routineName: routine.routineTypeName || routine.routineName || 'Untitled Routine',
-                startTime: Timestamp.now(),
-                lastUpdateTime: Timestamp.now(),
-                status: 'active' as const,
                 currentExerciseName: currentItem.name,
                 currentSetIndex: currentIndex,
                 totalSetsInSession: sessionPlaylist.length,
-                lastReportedDifficulty: null,
-            }, { merge: true });
-        };
-
-        const cleanupSession = async () => {
-            if (heartbeatInterval.current) {
-                clearInterval(heartbeatInterval.current);
-            }
-            try {
-                await deleteDoc(sessionRef);
-            } catch (error) {
-                // Ignore errors if doc doesn't exist, etc.
-            }
-        };
-
-        createSession();
-        
-        // Start the heartbeat
-        heartbeatInterval.current = setInterval(async () => {
-            try {
-                await updateDoc(sessionRef, { lastUpdateTime: Timestamp.now() });
-            } catch (error) {
-                console.warn("Heartbeat failed, session might be cleaned up soon.", error);
-            }
-        }, 15000); // Send heartbeat every 15 seconds
-
-        return () => {
-            cleanupSession();
-        };
-
-    }, [user, userProfile?.gymId, sessionId]); // Only run on mount and dismount
-
-    // Effect for updating session data on progress/index change
-    useEffect(() => {
-        if (!user) return;
-        const sessionRef = doc(db, "workoutSessions", sessionId);
-        const currentItem = sessionPlaylist[currentIndex];
-        const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
-        
-        const updateSessionData = async () => {
-            await updateDoc(sessionRef, {
-                currentExerciseName: currentItem.name,
-                currentSetIndex: currentIndex,
                 lastReportedDifficulty: progress[exerciseKey]?.difficulty ?? null,
                 lastUpdateTime: Timestamp.now(),
-            }).catch(err => console.log("Failed to update session doc on progress change", err));
-        }
+                ...(isInitial ? { startTime: Timestamp.now(), status: 'active' } : {})
+            };
+            setDoc(sessionRef, sessionData, { merge: true }).catch(err => console.error("Failed to update session", err));
+        };
+        
+        updateSession(true); // Initial update
 
-        updateSessionData();
+        if (heartbeatInterval.current) clearInterval(heartbeatInterval.current);
+        heartbeatInterval.current = setInterval(() => updateSession(), 15000); // Heartbeat every 15s
 
-    }, [currentIndex, progress, user, sessionId, sessionPlaylist]);
+        return () => {
+            if (heartbeatInterval.current) clearInterval(heartbeatInterval.current);
+        };
+
+    }, [currentIndex, progress, user, userProfile, sessionId, routine, sessionPlaylist]);
+
+    // Cleanup session on component unmount
+    useEffect(() => {
+        return () => {
+            if (sessionId) {
+                const sessionRef = doc(db, "workoutSessions", sessionId);
+                deleteDoc(sessionRef).catch(err => console.error("Failed to delete session on unmount", err));
+            }
+        };
+    }, [sessionId]);
 
 
     const handleSessionEnd = () => {
-        const sessionRef = doc(db, "workoutSessions", sessionId);
-        deleteDoc(sessionRef).catch(err => console.error("Failed to delete session on end", err));
+        if (sessionId) {
+            const sessionRef = doc(db, "workoutSessions", sessionId);
+            deleteDoc(sessionRef).catch(err => console.error("Failed to delete session on end", err));
+        }
         onSessionEnd();
     };
 

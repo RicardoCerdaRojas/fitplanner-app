@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 import { AppHeader } from '@/components/app-header';
 import { AdminNav } from '@/components/admin-nav';
@@ -29,7 +29,8 @@ export default function LiveActivityPage() {
         }
     }, [user, userProfile, loading, router]);
 
-    // Effect to fetch and filter all active sessions from Firestore in real-time
+    // Effect to fetch all active sessions from Firestore in real-time.
+    // Firestore's presence system handles cleanup, so we just need to listen.
     useEffect(() => {
         if (!userProfile?.gymId) return;
 
@@ -37,27 +38,16 @@ export default function LiveActivityPage() {
 
         const sessionsQuery = query(
             collection(db, 'workoutSessions'),
-            where('gymId', '==', userProfile.gymId),
-            where('status', '==', 'active')
+            where('gymId', '==', userProfile.gymId)
         );
 
         const unsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
-            const now = new Date();
             const fetchedSessions = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data(),
             } as WorkoutSessionData));
-
-            const trulyActiveSessions = fetchedSessions.filter(session => {
-                 if (session.lastUpdateTime) {
-                    const lastUpdate = session.lastUpdateTime.toDate();
-                    const diffSeconds = (now.getTime() - lastUpdate.getTime()) / 1000;
-                    return diffSeconds < 30; // Session is active if heartbeat was within 30 seconds
-                }
-                return false; // If no timestamp, consider it inactive
-            });
-
-            setActiveSessions(trulyActiveSessions);
+            
+            setActiveSessions(fetchedSessions);
             setIsLoading(false);
         }, (error) => {
             console.error("Error fetching live sessions:", error);

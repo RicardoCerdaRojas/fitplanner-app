@@ -2,8 +2,8 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, onSnapshot, Timestamp, getDoc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { doc, onSnapshot, Timestamp } from 'firebase/firestore';
+import { auth, db, initializePresence } from '@/lib/firebase';
 
 type UserProfile = {
   role: 'athlete' | 'coach' | 'gym-admin' | null;
@@ -42,6 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (authUser) => {
       if (authUser) {
         setUser(authUser);
+        initializePresence(authUser.uid); // Initialize presence system
       } else {
         setUser(null);
         setUserProfile(null);
