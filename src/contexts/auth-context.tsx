@@ -230,6 +230,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const currentPath = window.location.pathname;
 
     if (user) {
+        // If user is logged in but on a guest route, do nothing. This allows them to visit the login page to log out.
+        if (guestRoutes.includes(currentPath)) {
+            return;
+        }
+
         if (memberships.length === 0) {
             if (currentPath !== '/create-gym') {
                 router.push('/create-gym');
