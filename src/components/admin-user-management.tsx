@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,11 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, Calendar as CalendarIcon, Trash2, ClipboardList } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
+import { UserPlus, Calendar as CalendarIcon, Trash2, ClipboardList, Search, MoreVertical, Send, UserX } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, Timestamp, deleteDoc } from 'firebase/firestore';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -21,6 +20,26 @@ import { Calendar } from './ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+  DialogFooter
+} from "@/components/ui/dialog"
+import { Avatar, AvatarFallback } from './ui/avatar';
+import { User } from 'lucide-react';
+import { Skeleton } from './ui/skeleton';
+
 
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -42,18 +61,19 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-type User = {
+type Member = {
     id: string;
+    type: 'member';
     email: string;
     name?: string;
     role: 'athlete' | 'coach' | 'gym-admin' | null;
-    status?: string;
     plan?: string;
     dob?: Timestamp;
 };
 
 type Invite = {
     id: string;
+    type: 'invite';
     email: string;
     name?: string;
     role: 'athlete' | 'coach';
@@ -61,54 +81,24 @@ type Invite = {
     dob?: Timestamp;
 }
 
-export function AdminUserManagement({ gymId }: { gymId: string }) {
-    const { toast } = useToast();
-    const [users, setUsers] = useState<User[]>([]);
-    const [invites, setInvites] = useState<Invite[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+type CombinedUser = Member | Invite;
 
+
+function InviteMemberForm({ gymId, onInviteSent }: { gymId: string, onInviteSent: () => void }) {
+    const { toast } = useToast();
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: { name: '', email: '', role: undefined, dob: undefined, plan: undefined },
     });
     const selectedRole = form.watch('role');
 
-    useEffect(() => {
-        setIsLoading(true);
-        const usersQuery = query(collection(db, 'users'), where('gymId', '==', gymId));
-        const invitesQuery = query(collection(db, 'invites'), where('gymId', '==', gymId));
-
-        const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
-            const fetchedUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-            setUsers(fetchedUsers.filter(user => user.role));
-            setIsLoading(false);
-        }, (error) => {
-            console.error("Error fetching users:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not load gym members.' });
-            setIsLoading(false);
-        });
-
-        const unsubscribeInvites = onSnapshot(invitesQuery, (snapshot) => {
-            const fetchedInvites = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Invite));
-            setInvites(fetchedInvites);
-        }, (error) => {
-            console.error("Error fetching invites:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not load pending invitations.' });
-        });
-
-        return () => {
-            unsubscribeUsers();
-            unsubscribeInvites();
-        };
-    }, [gymId, toast]);
-
     async function onSubmit(values: FormValues) {
-        const inviteRef = doc(db, 'invites', values.email);
+        const inviteRef = doc(db, 'invites', values.email.toLowerCase());
         
         try {
             await setDoc(inviteRef, {
                 gymId,
-                email: values.email,
+                email: values.email.toLowerCase(),
                 name: values.name,
                 role: values.role,
                 dob: values.dob ? Timestamp.fromDate(values.dob) : null,
@@ -117,175 +107,275 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
             });
             toast({ title: 'Success!', description: `Invitation sent to ${values.email}.` });
             form.reset();
+            onInviteSent();
         } catch (error: any) {
             console.error("Error sending invite:", error);
             toast({ variant: 'destructive', title: 'Error', description: 'Could not send invitation.' });
         }
     }
+
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField control={form.control} name="role" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Role</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                <SelectItem value="coach">Coach</SelectItem>
+                                <SelectItem value="athlete">Athlete</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
+                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="member@example.com" {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                
+                { selectedRole === 'athlete' && (
+                    <>
+                        <FormField control={form.control} name="dob" render={({ field }) => (
+                            <FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            mode="single"
+                                            selected={field.value}
+                                            onSelect={field.onChange}
+                                            captionLayout="dropdown"
+                                            fromYear={1940}
+                                            toYear={new Date().getFullYear()}
+                                            disabled={(date) =>
+                                                date > new Date() || date < new Date("1940-01-01")
+                                            }
+                                            initialFocus
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                        <FormField control={form.control} name="plan" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Plan</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a plan" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="basic">Basic</SelectItem>
+                                        <SelectItem value="premium">Premium</SelectItem>
+                                        <SelectItem value="pro">Pro</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                    </>
+                )}
+                <DialogFooter className='pt-4'>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                    <Button type="submit" disabled={form.formState.isSubmitting}>
+                        {form.formState.isSubmitting ? 'Sending...' : 'Send Invitation'}
+                    </Button>
+                </DialogFooter>
+            </form>
+        </Form>
+    );
+}
+
+export function AdminUserManagement({ gymId }: { gymId: string }) {
+    const { toast } = useToast();
+    const [allUsers, setAllUsers] = useState<CombinedUser[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [roleFilter, setRoleFilter] = useState('all');
+    const [isInviteModalOpen, setInviteModalOpen] = useState(false);
+
+    useEffect(() => {
+        setIsLoading(true);
+        const usersQuery = query(collection(db, 'users'), where('gymId', '==', gymId));
+        const invitesQuery = query(collection(db, 'invites'), where('gymId', '==', gymId));
+
+        const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
+            const fetchedUsers = snapshot.docs.map(doc => ({ id: doc.id, type: 'member' as const, ...doc.data() } as Member));
+            setAllUsers(prev => [...fetchedUsers.filter(u => u.role), ...prev.filter(p => p.type !== 'member')]);
+            setIsLoading(false);
+        });
+
+        const unsubscribeInvites = onSnapshot(invitesQuery, (snapshot) => {
+            const fetchedInvites = snapshot.docs.map(doc => ({ id: doc.id, type: 'invite' as const, ...doc.data() } as Invite));
+            setAllUsers(prev => [...fetchedInvites, ...prev.filter(p => p.type !== 'invite')]);
+        });
+        
+        // Let's set a timeout to stop loading if there are no users, after a reasonable time.
+        const timer = setTimeout(() => setIsLoading(false), 2000);
+
+        return () => {
+            unsubscribeUsers();
+            unsubscribeInvites();
+            clearTimeout(timer);
+        };
+    }, [gymId]);
     
-    async function deleteInvite(email: string) {
-        if (!window.confirm("Are you sure you want to delete this invitation?")) return;
+    async function deleteItem(item: CombinedUser) {
+        const collectionName = item.type === 'member' ? 'users' : 'invites';
+        if (!window.confirm(`Are you sure you want to delete ${item.name || item.email}? This action cannot be undone.`)) return;
+        
         try {
-            await deleteDoc(doc(db, "invites", email));
-            toast({ title: 'Invitation Deleted', description: `The invitation for ${email} has been removed.`});
+            // Note: Deleting a user document does not delete their Firebase Auth account.
+            // This would require a Cloud Function for a full implementation.
+            await deleteDoc(doc(db, collectionName, item.id));
+            toast({ title: `${item.type === 'member' ? 'Member' : 'Invitation'} Deleted`, description: `${item.name || item.email} has been removed.`});
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not delete the invitation.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not delete the item.' });
         }
     }
 
+    const filteredUsers = useMemo(() => {
+        return allUsers
+            .filter(user => {
+                const searchLower = searchTerm.toLowerCase();
+                const matchesSearch = searchLower === '' ||
+                    user.name?.toLowerCase().includes(searchLower) ||
+                    user.email.toLowerCase().includes(searchLower);
+
+                const matchesFilter = roleFilter === 'all' ||
+                    user.role === roleFilter ||
+                    (roleFilter === 'invited' && user.type === 'invite');
+                
+                return matchesSearch && matchesFilter;
+            })
+            .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
+    }, [allUsers, searchTerm, roleFilter]);
+
+
+    const getStatusBadge = (user: CombinedUser) => {
+        if (user.type === 'invite') return <Badge variant="outline" className='bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700'>Invited</Badge>;
+        switch(user.role) {
+            case 'gym-admin': return <Badge variant="default">Admin</Badge>;
+            case 'coach': return <Badge variant="secondary">Coach</Badge>;
+            case 'athlete': return <Badge variant="secondary">Athlete</Badge>;
+            default: return <Badge variant="outline">N/A</Badge>;
+        }
+    }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-                <Card>
-                    <CardHeader>
+        <Card>
+            <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
                         <CardTitle>Gym Members</CardTitle>
-                        <CardDescription>A list of all active coaches and athletes in your gym.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <Table>
-                            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Plan</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {isLoading ? (
-                                    <TableRow><TableCell colSpan={5}>Loading users...</TableCell></TableRow>
-                                ) : users.length === 0 ? (
-                                     <TableRow><TableCell colSpan={5}>No active users found in your gym yet.</TableCell></TableRow>
-                                ) : (
-                                    users.map((user) => (
-                                        <TableRow key={user.id}>
-                                            <TableCell className="font-medium">{user.name || '-'}</TableCell>
-                                            <TableCell>{user.email}</TableCell>
-                                            <TableCell><Badge variant={user.role === 'gym-admin' ? 'default' : 'secondary'}>{user.role}</Badge></TableCell>
-                                            <TableCell>{user.plan || 'N/A'}</TableCell>
-                                            <TableCell className="text-right">
-                                                {(user.role === 'athlete' || user.role === 'coach') && (
-                                                    <Button asChild variant="ghost" size="icon" title="Manage Routines">
-                                                        <Link href={`/coach?athleteId=${user.id}`}>
-                                                            <ClipboardList className="h-4 w-4" />
-                                                        </Link>
-                                                    </Button>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Pending Invitations</CardTitle>
-                        <CardDescription>These users have been invited but have not signed up yet.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <Table>
-                            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {isLoading ? (
-                                    <TableRow><TableCell colSpan={4}>Loading...</TableCell></TableRow>
-                                ) : invites.length === 0 ? (
-                                     <TableRow><TableCell colSpan={4}>No pending invitations.</TableCell></TableRow>
-                                ) : (
-                                    invites.map((invite) => (
-                                        <TableRow key={invite.id}>
-                                            <TableCell className="font-medium">{invite.name || '-'}</TableCell>
-                                            <TableCell>{invite.email}</TableCell>
-                                            <TableCell><Badge variant="outline">{invite.role}</Badge></TableCell>
-                                            <TableCell>
-                                                <Button variant="ghost" size="icon" onClick={() => deleteInvite(invite.email)}>
-                                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-            </div>
-            <div>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><UserPlus/> Invite New Member</CardTitle>
-                        <CardDescription>Add a new coach or athlete to your gym.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                                <FormField control={form.control} name="role" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Role</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="coach">Coach</SelectItem>
-                                                <SelectItem value="athlete">Athlete</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}/>
-                                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                                <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="member@example.com" {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                                
-                                { selectedRole === 'athlete' && (
-                                    <>
-                                        <FormField control={form.control} name="dob" render={({ field }) => (
-                                            <FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel>
-                                                <Popover>
-                                                    <PopoverTrigger asChild>
-                                                        <FormControl>
-                                                            <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                            </Button>
-                                                        </FormControl>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-auto p-0" align="start">
-                                                        <Calendar
-                                                            mode="single"
-                                                            selected={field.value}
-                                                            onSelect={field.onChange}
-                                                            captionLayout="dropdown"
-                                                            fromYear={1940}
-                                                            toYear={new Date().getFullYear()}
-                                                            disabled={(date) =>
-                                                                date > new Date() || date < new Date("1940-01-01")
-                                                            }
-                                                            initialFocus
-                                                        />
-                                                    </PopoverContent>
-                                                </Popover>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}/>
-                                        <FormField control={form.control} name="plan" render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Plan</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a plan" /></SelectTrigger></FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="basic">Basic</SelectItem>
-                                                        <SelectItem value="premium">Premium</SelectItem>
-                                                        <SelectItem value="pro">Pro</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}/>
-                                    </>
-                                )}
-
-                                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                                    {form.formState.isSubmitting ? 'Sending...' : 'Send Invitation'}
-                                </Button>
-                            </form>
-                        </Form>
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
+                        <CardDescription>Search, filter, and manage all members and invitations.</CardDescription>
+                    </div>
+                    <Dialog open={isInviteModalOpen} onOpenChange={setInviteModalOpen}>
+                        <DialogTrigger asChild>
+                            <Button className="w-full sm:w-auto">
+                                <UserPlus className="mr-2 h-4 w-4" /> Invite Member
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Invite New Member</DialogTitle>
+                                <DialogDescription>Add a new coach or athlete to your gym. They will receive an email to sign up.</DialogDescription>
+                            </DialogHeader>
+                            <InviteMemberForm gymId={gymId} onInviteSent={() => setInviteModalOpen(false)} />
+                        </DialogContent>
+                    </Dialog>
+                </div>
+                <div className="flex flex-col md:flex-row gap-2 pt-4">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="Search by name or email..." className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    </div>
+                    <Select value={roleFilter} onValueChange={setRoleFilter}>
+                        <SelectTrigger className="w-full md:w-[180px]">
+                            <SelectValue placeholder="Filter by role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Roles</SelectItem>
+                            <SelectItem value="athlete">Athletes</SelectItem>
+                            <SelectItem value="coach">Coaches</SelectItem>
+                            <SelectItem value="invited">Invited</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    {isLoading ? (
+                        Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)
+                    ) : filteredUsers.length === 0 ? (
+                        <div className="text-center py-12">
+                            <UserX className="mx-auto h-12 w-12 text-muted-foreground" />
+                            <h3 className="mt-4 text-lg font-semibold">No users found</h3>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Try adjusting your search or filter, or invite a new member.
+                            </p>
+                        </div>
+                    ) : (
+                        filteredUsers.map((user) => (
+                            <div key={user.id} className="flex items-center gap-4 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+                                <Avatar>
+                                    <AvatarFallback>
+                                        {user.name ? user.name.charAt(0).toUpperCase() : <User />}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-center">
+                                    <div className="sm:col-span-1">
+                                        <p className="font-semibold truncate">{user.name || 'No Name'}</p>
+                                        <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                                    </div>
+                                    <div className="hidden md:block">
+                                        {getStatusBadge(user)}
+                                    </div>
+                                    <div className="hidden sm:block">
+                                        <p className="text-sm font-semibold">{user.plan || 'N/A'}</p>
+                                        <p className="text-xs text-muted-foreground">Plan</p>
+                                    </div>
+                                    <div className="hidden md:block">
+                                        <p className="text-sm font-semibold">{user.dob ? format(user.dob.toDate(), 'PPP') : 'N/A'}</p>
+                                        <p className="text-xs text-muted-foreground">DOB</p>
+                                    </div>
+                                </div>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon">
+                                            <MoreVertical className="h-5 w-5" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        {user.type === 'member' && (
+                                            <DropdownMenuItem asChild>
+                                                <Link href={`/coach?athleteId=${user.id}`}>
+                                                    <ClipboardList className="mr-2" /> View Routines
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        )}
+                                        {user.type === 'invite' && (
+                                            <DropdownMenuItem>
+                                                <Send className="mr-2" /> Resend Invite
+                                            </DropdownMenuItem>
+                                        )}
+                                        <DropdownMenuItem onClick={() => deleteItem(user)} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+                                            <Trash2 className="mr-2" /> Delete
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </CardContent>
+        </Card>
     );
 }
+
+    
