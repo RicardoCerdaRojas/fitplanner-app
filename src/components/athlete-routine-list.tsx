@@ -186,64 +186,76 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
                   </div>
               </div>
             </AccordionTrigger>
-            <AccordionContent className='px-4'>
-               <div className="flex justify-start pt-4 pb-4 border-b">
+            <AccordionContent className='px-4 pb-4'>
+               <div className="flex justify-start pt-4 pb-4 border-t">
                   <Button onClick={() => setSessionRoutine(routine)} className="bg-accent hover:bg-accent/90">
                       <Rocket className="w-4 h-4 mr-2" /> Start Workout Session
                   </Button>
               </div>
               <div className="space-y-4 pt-4">
                 {routine.blocks.map((block, blockIndex) => (
-                  <div key={blockIndex} className="p-4 border rounded-lg bg-card/50">
-                    <div className="flex justify-between items-center w-full mb-3">
-                          <h4 className="text-lg font-bold text-card-foreground">{block.name}</h4>
-                          <span className="text-sm font-semibold text-accent bg-accent/10 px-3 py-1 rounded-full">{block.sets}</span>
-                      </div>
-                    <div className="space-y-3">
-                      {block.exercises.map((exercise, exIndex) => {
-                        const totalSetsInBlock = parseInt(block.sets.match(/\d+/)?.[0] || '1', 10);
-                        let completedSetsForExercise = 0;
-                        for (let i = 0; i < totalSetsInBlock; i++) {
-                            const setKey = `${blockIndex}-${exIndex}-${i}`;
-                            if (routine.progress?.[setKey]?.completed) {
-                                completedSetsForExercise++;
+                    <div key={blockIndex} className="p-4 border rounded-lg bg-muted/30">
+                        <div className="flex justify-between items-center w-full mb-4">
+                            <h4 className="text-lg font-bold text-card-foreground">{block.name}</h4>
+                            <span className="text-sm font-semibold text-accent bg-accent/10 px-3 py-1 rounded-full">{block.sets}</span>
+                        </div>
+                        <div className="space-y-2">
+                        {block.exercises.map((exercise, exIndex) => {
+                            const totalSetsInBlock = parseInt(block.sets.match(/\d+/)?.[0] || '1', 10);
+                            let completedSetsForExercise = 0;
+                            if (routine.progress) {
+                                for (let i = 0; i < totalSetsInBlock; i++) {
+                                    const setKey = `${blockIndex}-${exIndex}-${i}`;
+                                    if (routine.progress[setKey]?.completed) {
+                                        completedSetsForExercise++;
+                                    }
+                                }
                             }
-                        }
-                        const exerciseProgressPercentage = totalSetsInBlock > 0 ? (completedSetsForExercise / totalSetsInBlock) * 100 : 0;
-                        
-                        return (
-                          <div key={exIndex} className="p-3 border-l-4 border-primary/30 ml-1 space-y-4">
-                            <h5 className="font-semibold text-card-foreground text-base">{exercise.name}</h5>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                              {exercise.repType === 'reps' && exercise.reps && (
-                                  <div className="flex items-center gap-2"><Repeat className="w-4 h-4 text-accent" /><div><p className="font-semibold">Reps</p><p>{exercise.reps}</p></div></div>
-                              )}
-                              {exercise.repType === 'duration' && exercise.duration && (
-                                  <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-accent" /><div><p className="font-semibold">Duration</p><p>{exercise.duration} minutes</p></div></div>
-                              )}
-                              {exercise.weight && (
-                                  <div className="flex items-center gap-2"><Dumbbell className="w-4 h-4 text-accent" /><div><p className="font-semibold">Weight</p><p>{exercise.weight}</p></div></div>
-                              )}
-                            </div>
-                             {exercise.videoUrl && (
-                                <div>
-                                    <Button variant="outline" size="sm" className="text-xs" onClick={() => setVideoUrl(exercise.videoUrl)}>
-                                        <PlaySquare className="w-4 h-4 mr-2" /> Watch Example
-                                    </Button>
+                            const exerciseProgressPercentage = totalSetsInBlock > 0 ? (completedSetsForExercise / totalSetsInBlock) * 100 : 0;
+                            
+                            return (
+                                <div key={exIndex} className="flex items-center justify-between gap-4 p-3 rounded-lg bg-background transition-colors">
+                                    {/* Left: Name and Progress Bar */}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-card-foreground truncate">{exercise.name}</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <Progress value={exerciseProgressPercentage} className="h-1.5 w-24" />
+                                            <span className="text-xs font-medium text-muted-foreground">{completedSetsForExercise}/{totalSetsInBlock}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Right: Stats and Actions */}
+                                    <div className="flex items-center gap-x-4 gap-y-2 text-sm text-muted-foreground flex-wrap justify-end">
+                                        {exercise.repType === 'reps' && exercise.reps && (
+                                            <div className="flex items-center gap-1.5" title="Reps">
+                                                <Repeat className="w-4 h-4 text-primary" />
+                                                <span className="font-medium text-foreground">{exercise.reps}</span>
+                                            </div>
+                                        )}
+                                        {exercise.repType === 'duration' && exercise.duration && (
+                                            <div className="flex items-center gap-1.5" title="Duration">
+                                                <Clock className="w-4 h-4 text-primary" />
+                                                <span className="font-medium text-foreground">{exercise.duration} min</span>
+                                            </div>
+                                        )}
+                                        {exercise.weight && (
+                                            <div className="flex items-center gap-1.5" title="Weight">
+                                                <Dumbbell className="w-4 h-4 text-primary" />
+                                                <span className="font-medium text-foreground">{exercise.weight}</span>
+                                            </div>
+                                        )}
+                                        {exercise.videoUrl && (
+                                            <Button variant="ghost" size="icon" className="w-8 h-8 shrink-0" onClick={() => setVideoUrl(exercise.videoUrl)}>
+                                                <span className="sr-only">Watch video for {exercise.name}</span>
+                                                <PlaySquare className="w-5 h-5" />
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
-                              )}
-                            <div className="mt-4 pt-4 border-t border-dashed">
-                                <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
-                                    <span className="font-medium">Progress</span>
-                                    <span>{completedSetsForExercise} / {totalSetsInBlock} sets</span>
-                                </div>
-                                <Progress value={exerciseProgressPercentage} className="h-2" />
-                            </div>
-                          </div>
-                        )
-                      })}
+                            )
+                        })}
+                        </div>
                     </div>
-                  </div>
                 ))}
               </div>
             </AccordionContent>
