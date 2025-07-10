@@ -16,6 +16,7 @@ import { Activity } from 'lucide-react';
 export default function LiveActivityPage() {
     const { user, userProfile, loading } = useAuth();
     const router = useRouter();
+    const [allSessions, setAllSessions] = useState<WorkoutSessionData[]>([]);
     const [activeSessions, setActiveSessions] = useState<WorkoutSessionData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -47,7 +48,7 @@ export default function LiveActivityPage() {
                 ...doc.data(),
             } as WorkoutSessionData));
             
-            setActiveSessions(fetchedSessions);
+            setAllSessions(fetchedSessions);
             setIsLoading(false);
         }, (error) => {
             console.error("Error fetching live sessions:", error);
@@ -56,6 +57,25 @@ export default function LiveActivityPage() {
 
         return () => unsubscribe();
     }, [userProfile?.gymId]);
+
+    // Effect to filter sessions based on last update time
+    useEffect(() => {
+        const filterSessions = () => {
+            const now = new Date();
+            const thirtySecondsAgo = now.getTime() - 30000;
+
+            const filtered = allSessions.filter(session => {
+                return session.lastUpdateTime && session.lastUpdateTime.toDate().getTime() > thirtySecondsAgo;
+            });
+            setActiveSessions(filtered);
+        };
+
+        filterSessions(); // Initial filter
+        const intervalId = setInterval(filterSessions, 5000); // Re-filter every 5 seconds
+
+        return () => clearInterval(intervalId);
+    }, [allSessions]);
+
 
     if (loading || !user || userProfile?.role !== 'gym-admin') {
         return (

@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (authUser) => {
       if (authUser) {
         setUser(authUser);
-        initializePresence(authUser.uid); // Centralized presence initialization
+        // initializePresence(authUser.uid); // We now call this only when needed.
       } else {
         setUser(null);
         setUserProfile(null);

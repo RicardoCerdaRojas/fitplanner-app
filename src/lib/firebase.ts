@@ -30,7 +30,6 @@ export const initializePresence = (uid: string) => {
     if (typeof window === 'undefined' || !uid) return;
     
     const userStatusDatabaseRef = ref(rtdb, `/status/${uid}`);
-    const workoutSessionRef = doc(db, 'workoutSessions', uid);
 
     const isOfflineForDatabase = {
         state: 'offline',
@@ -44,28 +43,24 @@ export const initializePresence = (uid: string) => {
 
     onValue(ref(rtdb, '.info/connected'), (snapshot) => {
         if (snapshot.val() === false) {
-            // User is not connected, no need to set onDisconnect hooks.
-            // Firestore Functions can handle cleanup if necessary as a fallback.
             return;
         }
 
-        // When the user connects, set up the onDisconnect hooks.
-        // These will execute when the client's connection is lost.
         onDisconnect(userStatusDatabaseRef).set(isOfflineForDatabase).then(() => {
-            // After successfully setting the onDisconnect hook, update the user's status to online.
             set(userStatusDatabaseRef, isOnlineForDatabase);
-
-            // Also set the workout session to be deleted on disconnect.
-            // This is a "last-will-and-testament" operation.
-            onDisconnect(ref(rtdb, `/sessionsToClean/${uid}`)).set({
+            
+            // This is the key part for workout session cleanup.
+            // When the user disconnects, this RTDB record will be created.
+            // A Cloud Function should listen to this path and delete the corresponding
+            // Firestore document `workoutSessions/{uid}`.
+            const sessionCleanupRef = ref(rtdb, `/sessionsToClean/${uid}`);
+            onDisconnect(sessionCleanupRef).set({
                 firestoreSessionId: uid,
                 timestamp: serverTimestamp()
             });
-            // This RTDB write on disconnect can trigger a Cloud Function to clean up the Firestore document.
-            // For now, we'll try a more direct approach if supported, or rely on this for backend cleanup.
-            // As a direct fallback for web, we can try to delete the doc.
-            // Note: This might not always fire reliably, hence the Cloud Function recommendation.
-            deleteDoc(workoutSessionRef);
+
+            // For a client-only solution, we must also handle manual cleanup.
+            // This onDisconnect hook is primarily for backend cleanup via functions.
         });
     });
 };

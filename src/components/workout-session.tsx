@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import type { Routine, Exercise, ExerciseProgress } from './athlete-routine-list';
 import { DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Cl
 import ReactPlayer from 'react-player/lazy';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 
 
 // A type for the items in our session "playlist"
@@ -150,6 +150,7 @@ type WorkoutSessionProps = {
 export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: WorkoutSessionProps) {
     const { user, userProfile } = useAuth();
     const sessionId = user?.uid; 
+    const heartbeatInterval = useRef<NodeJS.Timeout | null>(null);
 
     const sessionPlaylist = useMemo(() => {
         const playlist: SessionExercise[] = [];
@@ -182,31 +183,58 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
     const [showVideo, setShowVideo] = useState(false);
     const [progress, setProgress] = useState<ExerciseProgress>(routine.progress || {});
-    
-    // Effect for creating/updating the session document in Firestore
-    useEffect(() => {
+
+    const updateSessionDocument = async () => {
         if (!sessionId || !user || !userProfile?.gymId) return;
 
         const sessionRef = doc(db, "workoutSessions", sessionId);
         const currentItem = sessionPlaylist[currentIndex];
         const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
-
+        
         const sessionData = {
             userId: user.uid,
             userName: userProfile.name || user.email || 'Unknown User',
             gymId: userProfile.gymId,
             routineId: routine.id,
             routineName: routine.routineTypeName || routine.routineName || 'Untitled Routine',
+            startTime: Timestamp.now(),
+            lastUpdateTime: Timestamp.now(),
+            status: 'active',
             currentExerciseName: currentItem.name,
             currentSetIndex: currentIndex,
             totalSetsInSession: sessionPlaylist.length,
             lastReportedDifficulty: progress[exerciseKey]?.difficulty || null,
-            startTime: Timestamp.now(), 
-            status: 'active'
         };
-        setDoc(sessionRef, sessionData, { merge: true }).catch(err => console.error("Failed to update session", err));
+        await setDoc(sessionRef, sessionData, { merge: true });
+    };
 
-    }, [currentIndex, progress, user, userProfile, sessionId, routine, sessionPlaylist]);
+    // Effect to start and manage the heartbeat
+    useEffect(() => {
+        updateSessionDocument(); // Create/update session on mount/change
+
+        if (heartbeatInterval.current) clearInterval(heartbeatInterval.current);
+        
+        heartbeatInterval.current = setInterval(async () => {
+            if (!sessionId) return;
+            const sessionRef = doc(db, "workoutSessions", sessionId);
+            await updateDoc(sessionRef, { lastUpdateTime: Timestamp.now() });
+        }, 15000); // Send heartbeat every 15 seconds
+
+        return () => {
+            if (heartbeatInterval.current) {
+                clearInterval(heartbeatInterval.current);
+            }
+        };
+    }, [currentIndex, progress, sessionId]);
+
+    // Cleanup session on component unmount
+    useEffect(() => {
+        return () => {
+            if (sessionId) {
+                deleteDoc(doc(db, 'workoutSessions', sessionId));
+            }
+        };
+    }, [sessionId]);
 
 
     const currentItem = sessionPlaylist[currentIndex];
@@ -237,8 +265,14 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         if (currentIndex < sessionPlaylist.length - 1) {
             setCurrentIndex(currentIndex + 1);
         } else {
-            onSessionEnd();
+            handleSessionEnd();
         }
+    };
+    
+    const handleSessionEnd = async () => {
+        if (heartbeatInterval.current) clearInterval(heartbeatInterval.current);
+        if (sessionId) await deleteDoc(doc(db, 'workoutSessions', sessionId));
+        onSessionEnd();
     };
 
     const handlePrev = () => {
