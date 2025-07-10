@@ -186,7 +186,7 @@ function GuestLandingPage() {
                 <Link href="#" className="text-white transition hover:text-blue-400">Contact</Link>
               </nav>
               <div>
-                <Button asChild variant="outline" className="text-white border-white/50 hover:bg-white hover:text-gray-950">
+                <Button asChild variant="outline" className="border-white/50 bg-transparent text-white hover:bg-white hover:text-gray-950">
                   <Link href="/login">Login</Link>
                 </Button>
               </div>
