@@ -73,11 +73,10 @@ export default function AdminDashboardPage() {
         const unsubscribeRoutines = onSnapshot(routinesQuery, (snapshot) => {
             const oneMonthAgo = new Date();
             oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-            const oneMonthAgoTimestamp = Timestamp.fromDate(oneMonthAgo);
             
             const routinesInLastMonth = snapshot.docs.filter(doc => {
                 const createdAt = doc.data().createdAt as Timestamp;
-                return createdAt && createdAt >= oneMonthAgoTimestamp;
+                return createdAt && createdAt.toDate() >= oneMonthAgo;
             });
             setRoutinesThisMonth(routinesInLastMonth.length);
         });
@@ -111,33 +110,33 @@ export default function AdminDashboardPage() {
                     <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
                     <AdminNav />
 
-                    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-8">
+                    <div className="grid gap-4 grid-cols-1 md:grid-cols-3 mb-8">
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
                                 <CardTitle className="text-sm font-medium">Total Members</CardTitle>
                                 <Users className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="p-4 pt-0">
                                 <div className="text-2xl font-bold">{memberCount}</div>
                                 <p className="text-xs text-muted-foreground">Athletes & Coaches</p>
                             </CardContent>
                         </Card>
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
                                 <CardTitle className="text-sm font-medium">Pending Invites</CardTitle>
                                 <UserPlus className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="p-4 pt-0">
                                 <div className="text-2xl font-bold">+{inviteCount}</div>
                                 <p className="text-xs text-muted-foreground">Waiting to sign up</p>
                             </CardContent>
                         </Card>
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
                                 <CardTitle className="text-sm font-medium">Routines This Month</CardTitle>
                                 <ClipboardList className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="p-4 pt-0">
                                 <div className="text-2xl font-bold">{routinesThisMonth}</div>
                                 <p className="text-xs text-muted-foreground">Assigned in the last 30 days</p>
                             </CardContent>
