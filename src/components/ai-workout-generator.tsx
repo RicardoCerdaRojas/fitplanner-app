@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -41,9 +42,10 @@ export function AIWorkoutGenerator({ onRoutineGenerated }: AIWorkoutGeneratorPro
       fitnessLevel: undefined,
       goals: '',
     },
+    mode: 'onChange' // Important for real-time validation
   });
 
-  const fitnessLevel = form.watch('fitnessLevel');
+  const { fitnessLevel, goals } = form.watch();
 
   function calculateAge(dob: Date | undefined): number {
     if (!dob) return 30; // Default age if not available for any reason
@@ -94,7 +96,7 @@ export function AIWorkoutGenerator({ onRoutineGenerated }: AIWorkoutGeneratorPro
   }
 
   const handlePresetClick = (goal: string) => {
-    form.setValue('goals', goal);
+    form.setValue('goals', goal, { shouldValidate: true });
     // Use timeout to ensure the value is set before triggering validation
     setTimeout(() => {
         form.handleSubmit(onSubmit)();
@@ -182,7 +184,7 @@ export function AIWorkoutGenerator({ onRoutineGenerated }: AIWorkoutGeneratorPro
                 )}
               />
             </div>
-            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg py-6" disabled={isLoading || !fitnessLevel}>
+            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg py-6" disabled={isLoading || !fitnessLevel || !goals || goals.length < 10}>
               {isLoading ? (
                 <div className="flex items-center gap-2">
                   <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
