@@ -48,6 +48,7 @@ export default function CreateGymPage() {
   useEffect(() => {
     if (loading) return;
 
+    // If memberships load and user already has one, redirect them away.
     if (memberships.length > 0) {
       router.push('/');
     }
@@ -67,13 +68,12 @@ export default function CreateGymPage() {
 
     try {
       await runTransaction(db, async (transaction) => {
-        const newGymRef = doc(collection(db, 'gyms'));
+        const gymRef = doc(collection(db, 'gyms'));
         const userRef = doc(db, 'users', user.uid);
-        // Create membership with a predictable ID if needed, or just auto-gen
         const membershipRef = doc(collection(db, 'memberships'));
 
-        // 1. Create the new gym document
-        transaction.set(newGymRef, {
+        // 1. Create the new gym
+        transaction.set(gymRef, {
             name: values.gymName,
             adminUid: user.uid,
             createdAt: new Date(),
@@ -84,22 +84,23 @@ export default function CreateGymPage() {
         // 2. Create the membership document linking user and gym
         transaction.set(membershipRef, {
             userId: user.uid,
-            gymId: newGymRef.id,
+            gymId: gymRef.id,
             role: 'gym-admin',
             userName: userProfile.name || user.email,
             gymName: values.gymName,
             status: 'active'
         });
 
-        // 3. Update the user's profile with their new role and gymId
+        // 3. Update the user's document to reflect their new primary gym and role
+        // Note: This is denormalized data for convenience. The membership doc is the source of truth.
         transaction.update(userRef, {
-            role: 'gym-admin',
-            gymId: newGymRef.id
+            gymId: gymRef.id, // Set the primary gymId for the user
         });
       });
 
       toast({ title: 'Success!', description: 'Your gym has been created. Redirecting...' });
-      // The AuthContext will detect the new membership and handle the redirect.
+      // The AuthContext will detect the new membership and handle the redirect automatically.
+      // We can also force a push just in case.
       router.push('/');
 
     } catch (error: any) {
