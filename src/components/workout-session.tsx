@@ -202,7 +202,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                 currentExerciseName: currentItem.name,
                 currentSetIndex: currentIndex,
                 totalSetsInSession: sessionPlaylist.length,
-                lastReportedDifficulty: progress[exerciseKey]?.difficulty,
+                lastReportedDifficulty: progress[exerciseKey]?.difficulty || null,
                 startTime: Timestamp.now(), 
                 status: 'active'
             };
@@ -214,7 +214,6 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
         return () => {
             // The presence system will handle cleanup on disconnect.
-            // No need to manually delete here, which was causing issues.
         };
 
     }, [currentIndex, progress, user, userProfile, sessionId, routine, sessionPlaylist]);
