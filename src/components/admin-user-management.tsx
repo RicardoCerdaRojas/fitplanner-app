@@ -113,21 +113,26 @@ function MemberForm({ gymId, onFormSubmitted, userToEdit }: { gymId: string, onF
         const docId = isEditing ? userToEdit.id : values.email.toLowerCase();
         const docRef = doc(db, collectionName, docId);
 
-        const dataToSave = {
+        const dataToSave: any = {
             gymId,
             email: values.email.toLowerCase(),
             name: values.name,
             role: values.role,
-            dob: values.dob ? Timestamp.fromDate(values.dob) : null,
-            plan: values.plan || null,
         };
+        
+        if (values.role === 'athlete') {
+            dataToSave.dob = values.dob ? Timestamp.fromDate(values.dob) : null;
+            dataToSave.plan = values.plan || null;
+        }
+
 
         try {
             if (isEditing) {
                 await updateDoc(docRef, dataToSave);
                 toast({ title: 'Success!', description: `${values.name}'s details have been updated.` });
             } else {
-                await setDoc(docRef, { ...dataToSave, invitedAt: Timestamp.now() });
+                 const inviteData = { ...dataToSave, invitedAt: Timestamp.now() };
+                await setDoc(docRef, inviteData);
                 toast({ title: 'Success!', description: `Invitation sent to ${values.email}.` });
             }
             onFormSubmitted();
@@ -353,11 +358,11 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                                         <div className="sm:col-span-1">
                                             <div className='flex items-center gap-2'>
                                                 <p className="font-semibold truncate">{user.name || 'No Name'}</p>
-                                                <div className='md:hidden'>{getStatusBadge(user)}</div>
+                                                <div className='sm:hidden'>{getStatusBadge(user)}</div>
                                             </div>
                                             <p className="text-sm text-muted-foreground truncate">{user.email}</p>
                                         </div>
-                                        <div className="hidden md:block">
+                                        <div className="hidden sm:block">
                                             {getStatusBadge(user)}
                                         </div>
                                         <div className="hidden sm:block">
@@ -415,7 +420,3 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
         </Dialog>
     );
 }
-
-    
-
-    
