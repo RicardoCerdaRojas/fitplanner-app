@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import type { Routine, Exercise, ExerciseProgress } from './athlete-routine-list';
 import { DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -29,48 +28,104 @@ const Timer = ({ durationString, isCurrent }: { durationString: string; isCurren
     };
 
     const initialSeconds = useMemo(() => parseDuration(durationString), [durationString]);
+    
+    type Phase = 'idle' | 'countdown' | 'running' | 'paused' | 'finished';
+    const [phase, setPhase] = useState<Phase>('idle');
     const [secondsLeft, setSecondsLeft] = useState(initialSeconds);
-    const [isActive, setIsActive] = useState(false);
+    const [countdown, setCountdown] = useState(5);
+    
+    const audioRef = useRef<HTMLAudioElement>(null);
 
-    useEffect(() => {
-        setSecondsLeft(initialSeconds);
-        setIsActive(false);
-    }, [initialSeconds, isCurrent]);
-
+    // Effect to handle timer ticks
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
-        if (isActive && secondsLeft > 0) {
+
+        if (phase === 'countdown' && countdown > 0) {
             interval = setInterval(() => {
-                setSecondsLeft(seconds => seconds - 1);
+                setCountdown(c => c - 1);
             }, 1000);
-        } else if (!isActive && secondsLeft !== 0 && interval) {
-             clearInterval(interval);
+        } else if (phase === 'countdown' && countdown <= 0) {
+            setPhase('running');
+        } else if (phase === 'running' && secondsLeft > 0) {
+            interval = setInterval(() => {
+                setSecondsLeft(s => s - 1);
+            }, 1000);
+        } else if (phase === 'running' && secondsLeft <= 0) {
+            setPhase('finished');
+            audioRef.current?.play().catch(e => console.error("Audio play failed:", e));
         }
+
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [isActive, secondsLeft]);
+    }, [phase, countdown, secondsLeft]);
 
-    const toggle = () => setIsActive(!isActive);
-    const reset = () => {
-        setIsActive(false);
+    // Effect to reset timer when the exercise changes
+    useEffect(() => {
         setSecondsLeft(initialSeconds);
+        setCountdown(5);
+        setPhase('idle');
+    }, [initialSeconds, isCurrent]);
+
+    const handlePrimaryAction = () => {
+        if (phase === 'idle') {
+            setPhase('countdown');
+        } else if (phase === 'running') {
+            setPhase('paused');
+        } else if (phase === 'paused') {
+            setPhase('running');
+        }
     };
 
-    const minutes = Math.floor(secondsLeft / 60);
-    const seconds = secondsLeft % 60;
+    const reset = () => {
+        setPhase('idle');
+        setSecondsLeft(initialSeconds);
+        setCountdown(5);
+    };
+
+    const renderTime = () => {
+        if (phase === 'countdown') {
+            return (
+                <>
+                    <p className="text-2xl font-semibold text-muted-foreground mb-2">Get Ready!</p>
+                    <div className="text-9xl font-bold font-mono text-accent tabular-nums">
+                        {countdown}
+                    </div>
+                </>
+            );
+        }
+        
+        const displaySeconds = (phase === 'finished') ? 0 : secondsLeft;
+        const minutes = Math.floor(displaySeconds / 60);
+        const seconds = displaySeconds % 60;
+        
+        return (
+            <div className="text-9xl font-bold font-mono text-primary tabular-nums">
+                <span>{String(minutes).padStart(2, '0')}</span>:<span>{String(seconds).padStart(2, '0')}</span>
+            </div>
+        );
+    };
+
+    const getButtonProps = () => {
+        switch(phase) {
+            case 'idle': return { text: 'Start', icon: <Play className="mr-2 h-6 w-6" />, disabled: false, variant: 'default' as const };
+            case 'countdown': return { text: 'Starting...', icon: <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-current mr-2"></div>, disabled: true, variant: 'default' as const };
+            case 'running': return { text: 'Pause', icon: <Pause className="mr-2 h-6 w-6" />, disabled: false, variant: 'outline' as const };
+            case 'paused': return { text: 'Resume', icon: <Play className="mr-2 h-6 w-6" />, disabled: false, variant: 'default' as const };
+            case 'finished': return { text: 'Done!', icon: <CheckCircle2 className="mr-2 h-6 w-6" />, disabled: true, variant: 'default' as const };
+        }
+    }
+    const buttonProps = getButtonProps();
 
     return (
         <div className="flex flex-col items-center gap-4">
-            <div className="text-8xl font-bold font-mono text-primary tabular-nums">
-                <span>{String(minutes).padStart(2, '0')}</span>:<span>{String(seconds).padStart(2, '0')}</span>
-            </div>
-            <div className="flex items-center gap-4">
-                <Button onClick={toggle} size="lg" variant={isActive ? "outline" : "default"}>
-                    {isActive ? <Pause className="mr-2 h-6 w-6" /> : <Play className="mr-2 h-6 w-6" />}
-                    {isActive ? 'Pause' : 'Start'}
+            <audio ref={audioRef} src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto" />
+            {renderTime()}
+            <div className="flex items-center gap-4 mt-4">
+                <Button onClick={handlePrimaryAction} size="lg" disabled={buttonProps.disabled} variant={buttonProps.variant}>
+                    {buttonProps.icon} {buttonProps.text}
                 </Button>
-                <Button onClick={reset} size="lg" variant="ghost">
+                <Button onClick={reset} size="lg" variant="ghost" disabled={phase === 'idle' || phase === 'countdown'}>
                     <RotateCcw className="mr-2 h-6 w-6" />
                     Reset
                 </Button>
