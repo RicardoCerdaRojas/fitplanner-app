@@ -145,7 +145,7 @@ export default function AdminDashboardPage() {
                         </Card>
                     </div>
 
-                    <div className="grid gap-8 md:grid-cols-2">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Member Distribution</CardTitle>
