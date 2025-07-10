@@ -14,10 +14,11 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { Calendar, ClipboardList, PlaySquare, Dumbbell, Repeat, Clock, Rocket } from 'lucide-react';
+import { Calendar, ClipboardList, PlaySquare, Dumbbell, Repeat, Clock, Rocket, CheckCircle2 } from 'lucide-react';
 import { WorkoutSession } from './workout-session';
 import ReactPlayer from 'react-player/lazy';
 import { Progress } from './ui/progress';
+import { Badge } from './ui/badge';
 
 export type ExerciseProgress = {
   [key: string]: { // The key is now `${blockIndex}-${exerciseIndex}-${setIndex}`
@@ -68,10 +69,14 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
     newProgress: { completed?: boolean; difficulty?: 'easy' | 'medium' | 'hard' }
   ) => {
     const routineRef = doc(db, 'routines', routineId);
-    const updatedProgress = { ...(currentProgress || {}), ...newProgress };
+    const updatedProgressForSet = {
+        ...(currentProgress || {}),
+        ...newProgress,
+    };
+    
     try {
       await updateDoc(routineRef, {
-        [`progress.${exerciseKey}`]: updatedProgress
+        [`progress.${exerciseKey}`]: updatedProgressForSet
       });
     } catch (error) {
       console.error("Error updating progress:", error);
@@ -130,14 +135,41 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
       </Dialog>
 
       <Accordion type="single" collapsible className="w-full space-y-4">
-        {routines.map((routine, index) => (
+        {routines.map((routine, index) => {
+          let totalSets = 0;
+          routine.blocks.forEach(block => {
+              const sets = parseInt(block.sets.match(/\d+/)?.[0] || '0', 10);
+              totalSets += sets * block.exercises.length;
+          });
+
+          const completedSets = routine.progress ? Object.values(routine.progress).filter(p => p.completed).length : 0;
+          
+          const progressPercentage = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
+
+          return (
           <AccordionItem value={`item-${index}`} key={routine.id} className='border-2 rounded-lg data-[state=open]:border-primary/50 border-b-2'>
             <AccordionTrigger className='px-4 hover:no-underline'>
-              <div className="flex items-center gap-4">
-                  <Calendar className="w-5 h-5 text-primary"/>
-                  <div className="flex flex-col items-start text-left">
-                    <span className="text-lg font-bold font-headline">{routine.routineTypeName || 'Untitled Routine'}</span>
-                    <span className="text-sm text-muted-foreground">{format(routine.routineDate, 'PPP')}</span>
+              <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-4">
+                      <Calendar className="w-5 h-5 text-primary"/>
+                      <div className="flex flex-col items-start text-left">
+                        <span className="text-lg font-bold font-headline">{routine.routineTypeName || 'Untitled Routine'}</span>
+                        <span className="text-sm text-muted-foreground">{format(routine.routineDate, 'PPP')}</span>
+                      </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 pr-2">
+                    {progressPercentage === 100 ? (
+                        <Badge variant="outline" className="font-semibold border-primary/30 bg-primary/10 text-primary">
+                            <CheckCircle2 className="w-4 h-4 mr-1.5"/>
+                            Completed
+                        </Badge>
+                    ) : progressPercentage > 0 ? (
+                        <div className="flex items-center gap-2 w-28">
+                            <Progress value={progressPercentage} className="h-2 flex-1" />
+                            <span className="text-xs font-semibold text-muted-foreground">{progressPercentage}%</span>
+                        </div>
+                    ) : null}
                   </div>
               </div>
             </AccordionTrigger>
@@ -156,15 +188,15 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
                       </div>
                     <div className="space-y-3">
                       {block.exercises.map((exercise, exIndex) => {
-                        const totalSets = parseInt(block.sets.match(/\d+/)?.[0] || '1', 10);
-                        let completedSets = 0;
-                        for (let i = 0; i < totalSets; i++) {
+                        const totalSetsInBlock = parseInt(block.sets.match(/\d+/)?.[0] || '1', 10);
+                        let completedSetsForExercise = 0;
+                        for (let i = 0; i < totalSetsInBlock; i++) {
                             const setKey = `${blockIndex}-${exIndex}-${i}`;
                             if (routine.progress?.[setKey]?.completed) {
-                                completedSets++;
+                                completedSetsForExercise++;
                             }
                         }
-                        const progressPercentage = totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
+                        const exerciseProgressPercentage = totalSetsInBlock > 0 ? (completedSetsForExercise / totalSetsInBlock) * 100 : 0;
                         
                         return (
                           <div key={exIndex} className="p-3 border-l-4 border-primary/30 ml-1 space-y-4">
@@ -190,9 +222,9 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
                             <div className="mt-4 pt-4 border-t border-dashed">
                                 <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
                                     <span className="font-medium">Progress</span>
-                                    <span>{completedSets} / {totalSets} sets</span>
+                                    <span>{completedSetsForExercise} / {totalSetsInBlock} sets</span>
                                 </div>
-                                <Progress value={progressPercentage} className="h-2" />
+                                <Progress value={exerciseProgressPercentage} className="h-2" />
                             </div>
                           </div>
                         )
@@ -203,7 +235,7 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
               </div>
             </AccordionContent>
           </AccordionItem>
-        ))}
+        )})}
       </Accordion>
     </>
   );
