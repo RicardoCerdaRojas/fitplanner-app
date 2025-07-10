@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CoachRoutineCreator } from '@/components/coach-routine-creator';
@@ -21,7 +21,8 @@ export type Athlete = {
   name: string;
 };
 
-export default function CoachPage() {
+
+function CoachDashboard() {
   const { user, userProfile, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -210,4 +211,26 @@ export default function CoachPage() {
       </footer>
     </div>
   );
+}
+
+
+function CoachPageSkeleton() {
+    return (
+        <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
+            <AppHeader />
+            <div className="w-full max-w-4xl space-y-8 mt-4">
+                <Skeleton className="h-72 w-full" />
+                <Skeleton className="h-96 w-full" />
+            </div>
+            <p className='mt-8 text-lg text-muted-foreground'>Loading dashboard...</p>
+        </div>
+    )
+}
+
+export default function CoachPage() {
+    return (
+        <Suspense fallback={<CoachPageSkeleton />}>
+            <CoachDashboard />
+        </Suspense>
+    )
 }
