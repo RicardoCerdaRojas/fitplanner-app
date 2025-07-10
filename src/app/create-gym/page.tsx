@@ -21,7 +21,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { Building, Palette } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { runTransaction, doc, collection, writeBatch } from 'firebase/firestore';
+import { runTransaction, doc, collection } from 'firebase/firestore';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { themes } from '@/lib/themes';
@@ -46,7 +46,9 @@ export default function CreateGymPage() {
   });
 
   useEffect(() => {
-    if (!loading && memberships.length > 0) {
+    if (loading) return;
+
+    if (memberships.length > 0) {
       router.push('/');
     }
   }, [loading, memberships, router]);
@@ -64,38 +66,40 @@ export default function CreateGymPage() {
     }
 
     try {
-      const newGymRef = doc(collection(db, 'gyms'));
-      const userRef = doc(db, 'users', user.uid);
-      const membershipRef = doc(collection(db, 'memberships'));
+      await runTransaction(db, async (transaction) => {
+        const newGymRef = doc(collection(db, 'gyms'));
+        const userRef = doc(db, 'users', user.uid);
+        // Create membership with a predictable ID if needed, or just auto-gen
+        const membershipRef = doc(collection(db, 'memberships'));
 
-      const logoUrl = `https://placehold.co/100x50.png?text=${encodeURIComponent(values.gymName)}`;
+        // 1. Create the new gym document
+        transaction.set(newGymRef, {
+            name: values.gymName,
+            adminUid: user.uid,
+            createdAt: new Date(),
+            logoUrl: `https://placehold.co/100x50.png?text=${encodeURIComponent(values.gymName)}`,
+            theme: selectedTheme.colors,
+        });
 
-      const batch = writeBatch(db);
+        // 2. Create the membership document linking user and gym
+        transaction.set(membershipRef, {
+            userId: user.uid,
+            gymId: newGymRef.id,
+            role: 'gym-admin',
+            userName: userProfile.name || user.email,
+            gymName: values.gymName,
+            status: 'active'
+        });
 
-      // 1. Create the new gym document
-      batch.set(newGymRef, {
-        name: values.gymName,
-        adminUid: user.uid,
-        createdAt: new Date(),
-        logoUrl: logoUrl,
-        theme: selectedTheme.colors,
+        // 3. Update the user's profile with their new role and gymId
+        transaction.update(userRef, {
+            role: 'gym-admin',
+            gymId: newGymRef.id
+        });
       });
-
-      // 2. Create the membership document linking user and gym
-      batch.set(membershipRef, {
-          userId: user.uid,
-          gymId: newGymRef.id,
-          role: 'gym-admin',
-          userName: userProfile.name || user.email,
-          gymName: values.gymName,
-          status: 'active'
-      });
-      
-      await batch.commit();
 
       toast({ title: 'Success!', description: 'Your gym has been created. Redirecting...' });
       // The AuthContext will detect the new membership and handle the redirect.
-      // We push to home as a fallback.
       router.push('/');
 
     } catch (error: any) {
@@ -108,6 +112,7 @@ export default function CreateGymPage() {
     return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-96 w-full max-w-lg" /></div>
   }
 
+  // This check is now safer because it waits for loading to be false.
   if (memberships.length > 0) {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-8">
