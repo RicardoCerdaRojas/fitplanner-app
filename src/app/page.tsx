@@ -17,6 +17,7 @@ import { AthleteRoutineList } from '@/components/athlete-routine-list';
 import { AthleteNav } from '@/components/athlete-nav';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { AppDashboardIllustration } from '@/components/ui/app-dashboard-illustration';
 
 
 function AthleteDashboard() {
@@ -249,14 +250,7 @@ function GuestLandingPage() {
             </ul>
           </div>
           <div className="animate-fade-in [animation-delay:200ms]">
-            <Image
-              src="/app-dashboard-preview.png"
-              alt="App Dashboard Preview"
-              width={1200}
-              height={900}
-              className="rounded-lg shadow-2xl"
-              data-ai-hint="app dashboard fitness"
-            />
+            <AppDashboardIllustration />
           </div>
         </div>
       </section>
