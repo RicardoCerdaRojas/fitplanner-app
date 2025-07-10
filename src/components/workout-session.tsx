@@ -194,7 +194,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                 lastUpdateTime: Timestamp.now(),
                 currentExerciseName: currentItem.name,
                 currentSetIndex: currentIndex,
-                lastReportedDifficulty: progress[exerciseKey]?.difficulty,
+                lastReportedDifficulty: progress[exerciseKey]?.difficulty || null,
             };
 
             if (!sessionCreated.current) {
@@ -220,12 +220,21 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
     }, [user, userProfile, routine, sessionId, currentIndex, progress, sessionPlaylist]);
 
-    // Effect for cleanup on unmount
+    // Effect for cleanup on unmount/close
     useEffect(() => {
-        return () => {
+        const cleanupSession = () => {
             if (sessionCreated.current) {
                 deleteDoc(doc(db, "workoutSessions", sessionId));
             }
+        };
+
+        // Use beforeunload for closing tab/browser
+        window.addEventListener('beforeunload', cleanupSession);
+
+        return () => {
+            // Cleanup on component unmount
+            window.removeEventListener('beforeunload', cleanupSession);
+            cleanupSession();
         };
     }, [sessionId]);
 
@@ -233,6 +242,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     const handleSessionEnd = () => {
         if (sessionCreated.current) {
             deleteDoc(doc(db, "workoutSessions", sessionId));
+            sessionCreated.current = false;
         }
         onSessionEnd();
     };
