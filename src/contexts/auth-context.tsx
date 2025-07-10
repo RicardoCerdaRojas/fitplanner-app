@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (authUser) => {
       if (authUser) {
         setUser(authUser);
-        initializePresence(authUser.uid, null); // Initialize presence system without a session ref initially
+        initializePresence(authUser.uid); // Centralized presence initialization
       } else {
         setUser(null);
         setUserProfile(null);

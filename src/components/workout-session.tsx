@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Routine, Exercise, ExerciseProgress } from './athlete-routine-list';
 import { DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -8,8 +8,8 @@ import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video, CheckCircle2, Circle } from 'lucide-react';
 import ReactPlayer from 'react-player/lazy';
 import { useAuth } from '@/contexts/auth-context';
-import { db, initializePresence } from '@/lib/firebase';
-import { doc, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { doc, setDoc, Timestamp } from 'firebase/firestore';
 
 
 // A type for the items in our session "playlist"
@@ -183,38 +183,28 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     const [showVideo, setShowVideo] = useState(false);
     const [progress, setProgress] = useState<ExerciseProgress>(routine.progress || {});
     
-    // Effect for creating/updating the session document and managing presence
+    // Effect for creating/updating the session document in Firestore
     useEffect(() => {
         if (!sessionId || !user || !userProfile?.gymId) return;
 
         const sessionRef = doc(db, "workoutSessions", sessionId);
+        const currentItem = sessionPlaylist[currentIndex];
+        const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
 
-        const updateSession = () => {
-            const currentItem = sessionPlaylist[currentIndex];
-            const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
-
-            const sessionData = {
-                userId: user.uid,
-                userName: userProfile.name || user.email || 'Unknown User',
-                gymId: userProfile.gymId,
-                routineId: routine.id,
-                routineName: routine.routineTypeName || routine.routineName || 'Untitled Routine',
-                currentExerciseName: currentItem.name,
-                currentSetIndex: currentIndex,
-                totalSetsInSession: sessionPlaylist.length,
-                lastReportedDifficulty: progress[exerciseKey]?.difficulty || null,
-                startTime: Timestamp.now(), 
-                status: 'active'
-            };
-            setDoc(sessionRef, sessionData, { merge: true }).catch(err => console.error("Failed to update session", err));
+        const sessionData = {
+            userId: user.uid,
+            userName: userProfile.name || user.email || 'Unknown User',
+            gymId: userProfile.gymId,
+            routineId: routine.id,
+            routineName: routine.routineTypeName || routine.routineName || 'Untitled Routine',
+            currentExerciseName: currentItem.name,
+            currentSetIndex: currentIndex,
+            totalSetsInSession: sessionPlaylist.length,
+            lastReportedDifficulty: progress[exerciseKey]?.difficulty || null,
+            startTime: Timestamp.now(), 
+            status: 'active'
         };
-        
-        updateSession(); // Initial update
-        initializePresence(user.uid, sessionRef); // Link session to presence system
-
-        return () => {
-            // The presence system will handle cleanup on disconnect.
-        };
+        setDoc(sessionRef, sessionData, { merge: true }).catch(err => console.error("Failed to update session", err));
 
     }, [currentIndex, progress, user, userProfile, sessionId, routine, sessionPlaylist]);
 

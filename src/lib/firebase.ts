@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, doc, DocumentReference, deleteDoc } from "firebase/firestore";
-import { getDatabase, ref, onValue, set, onDisconnect as onDbDisconnect, serverTimestamp } from "firebase/database";
+import { getFirestore, doc, deleteDoc } from "firebase/firestore";
+import { getDatabase, ref, onValue, set, onDisconnect, serverTimestamp } from "firebase/database";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -22,13 +22,15 @@ const rtdb = getDatabase(app); // Realtime Database for presence
 
 /**
  * Initializes the Firebase Realtime Database presence system for the current user.
+ * This should be called once when the user authenticates.
+ * It sets up a listener that, upon disconnection, will clean up any active workout session for that user.
  * @param {string} uid - The current user's ID.
- * @param {DocumentReference | null} workoutSessionRef - Optional reference to a workout session document to clean up on disconnect.
  */
-export const initializePresence = (uid: string, workoutSessionRef: DocumentReference | null = null) => {
+export const initializePresence = (uid: string) => {
     if (typeof window === 'undefined' || !uid) return;
     
     const userStatusDatabaseRef = ref(rtdb, `/status/${uid}`);
+    const workoutSessionRef = doc(db, 'workoutSessions', uid);
 
     const isOfflineForDatabase = {
         state: 'offline',
@@ -42,21 +44,28 @@ export const initializePresence = (uid: string, workoutSessionRef: DocumentRefer
 
     onValue(ref(rtdb, '.info/connected'), (snapshot) => {
         if (snapshot.val() === false) {
-            // If the client is not connected, ensure any workout session is cleaned up on the Firestore side as a fallback.
-            if (workoutSessionRef) {
-                deleteDoc(workoutSessionRef);
-            }
+            // User is not connected, no need to set onDisconnect hooks.
+            // Firestore Functions can handle cleanup if necessary as a fallback.
             return;
         }
 
-        const onDisconnectRef = onDbDisconnect(userStatusDatabaseRef);
-        onDisconnectRef.set(isOfflineForDatabase).then(() => {
+        // When the user connects, set up the onDisconnect hooks.
+        // These will execute when the client's connection is lost.
+        onDisconnect(userStatusDatabaseRef).set(isOfflineForDatabase).then(() => {
+            // After successfully setting the onDisconnect hook, update the user's status to online.
             set(userStatusDatabaseRef, isOnlineForDatabase);
-             // If a workout session is active, set it to be deleted on disconnect.
-            if (workoutSessionRef) {
-                const sessionOnDisconnectRef = onDbDisconnect(ref(rtdb, `/sessions/${uid}`));
-                sessionOnDisconnectRef.remove(); // This is a placeholder write to trigger the Cloud Function
-            }
+
+            // Also set the workout session to be deleted on disconnect.
+            // This is a "last-will-and-testament" operation.
+            onDisconnect(ref(rtdb, `/sessionsToClean/${uid}`)).set({
+                firestoreSessionId: uid,
+                timestamp: serverTimestamp()
+            });
+            // This RTDB write on disconnect can trigger a Cloud Function to clean up the Firestore document.
+            // For now, we'll try a more direct approach if supported, or rely on this for backend cleanup.
+            // As a direct fallback for web, we can try to delete the doc.
+            // Note: This might not always fire reliably, hence the Cloud Function recommendation.
+            deleteDoc(workoutSessionRef);
         });
     });
 };
