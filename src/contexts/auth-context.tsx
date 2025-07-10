@@ -1,11 +1,10 @@
 
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, onSnapshot, Timestamp, collection, query, where } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
-import { useRouter } from 'next/navigation';
+import { createContext, useContext, useState, ReactNode } from 'react';
+import type { User } from 'firebase/auth';
+import type { Timestamp } from 'firebase/firestore';
+import { AuthProviderClient } from '@/components/auth-provider-client';
 
 type UserProfile = {
   name: string;
@@ -38,7 +37,12 @@ type AuthContextType = {
   activeMembership: Membership | null;
   gymProfile: GymProfile | null;
   loading: boolean;
+  setUser: (user: User | null) => void;
+  setUserProfile: (profile: UserProfile | null) => void;
+  setMemberships: (memberships: Membership[]) => void;
   setActiveMembership: (membership: Membership | null) => void;
+  setGymProfile: (gym: GymProfile | null) => void;
+  setLoading: (loading: boolean) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -51,85 +55,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [gymProfile, setGymProfile] = useState<GymProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
-      setLoading(true);
-      setUser(authUser);
-      if (!authUser) {
-        setUserProfile(null);
-        setMemberships([]);
-        setActiveMembership(null);
-        setGymProfile(null);
-        setLoading(false);
-      }
-    });
-    return () => unsubscribeAuth();
-  }, []);
-
-  useEffect(() => {
-    if (!user) {
-      if (auth.currentUser === null) {
-          setLoading(false);
-      }
-      return;
-    }
-
-    let profileUnsub: (() => void) | undefined;
-    let membershipsUnsub: (() => void) | undefined;
-    
-    setLoading(true);
-
-    profileUnsub = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
-      setUserProfile(docSnap.exists() ? (docSnap.data() as UserProfile) : null);
-    });
-
-    const membershipsQuery = query(collection(db, 'memberships'), where('userId', '==', user.uid), where('status', '==', 'active'));
-    membershipsUnsub = onSnapshot(membershipsQuery, (snapshot) => {
-      const fetchedMemberships = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
-      setMemberships(fetchedMemberships);
-      setLoading(false); 
-    }, (error) => {
-        console.error("Error fetching memberships:", error);
-        setLoading(false);
-    });
-
-    return () => {
-      if (profileUnsub) profileUnsub();
-      if (membershipsUnsub) membershipsUnsub();
-    };
-  }, [user]);
-
-  useEffect(() => {
-    if (memberships.length > 0) {
-      const sorted = [...memberships].sort((a, b) => {
-        const roles = { 'gym-admin': 0, 'coach': 1, 'athlete': 2 };
-        return roles[a.role] - roles[b.role];
-      });
-      const newActiveMembership = sorted[0];
-      
-      if (newActiveMembership?.id !== activeMembership?.id) {
-          setActiveMembership(newActiveMembership);
-      }
-    } else {
-      setActiveMembership(null);
-    }
-  }, [memberships, activeMembership]);
-
-  useEffect(() => {
-    if (!activeMembership) {
-      setGymProfile(null);
-      return;
-    }
-
-    if(gymProfile?.id === activeMembership.gymId) return;
-
-    const unsubGym = onSnapshot(doc(db, 'gyms', activeMembership.gymId), (doc) => {
-      setGymProfile(doc.exists() ? ({ id: doc.id, ...doc.data() } as GymProfile) : null);
-    });
-    return () => unsubGym();
-  }, [activeMembership, gymProfile?.id]);
-
-
   const contextValue: AuthContextType = {
     user,
     userProfile,
@@ -137,12 +62,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     activeMembership,
     gymProfile,
     loading,
+    setUser,
+    setUserProfile,
+    setMemberships,
     setActiveMembership,
+    setGymProfile,
+    setLoading,
   };
 
   return (
     <AuthContext.Provider value={contextValue}>
-      {children}
+      <AuthProviderClient>{children}</AuthProviderClient>
     </AuthContext.Provider>
   );
 };

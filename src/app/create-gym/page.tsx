@@ -47,6 +47,7 @@ export default function CreateGymPage() {
   });
 
   useEffect(() => {
+    // Redirect away if the user already has a gym
     if (!loading && activeMembership) {
       router.push('/');
     }
@@ -67,7 +68,6 @@ export default function CreateGymPage() {
     try {
         const batch = writeBatch(db);
         
-        // 1. Create Gym Document with an auto-generated ID
         const gymRef = doc(collection(db, 'gyms'));
         batch.set(gymRef, {
             name: values.gymName,
@@ -77,7 +77,6 @@ export default function CreateGymPage() {
             theme: selectedTheme.colors,
         });
 
-        // 2. Create Membership Document with a predictable ID that matches security rules
         const membershipId = `${user.uid}_${gymRef.id}`;
         const membershipRef = doc(db, 'memberships', membershipId); 
         batch.set(membershipRef, {
@@ -93,7 +92,6 @@ export default function CreateGymPage() {
         
         toast({ title: 'Success!', description: 'Your gym has been created. Redirecting...' });
         
-        // Force a full page reload to ensure the AuthContext is re-initialized with the new membership
         window.location.href = '/';
 
     } catch (error: any) {

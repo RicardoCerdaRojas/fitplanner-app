@@ -14,6 +14,7 @@ import { PieChart, ResponsiveContainer, Tooltip, Legend, Pie, Cell } from 'recha
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
+import { GuestHomepage } from '@/components/guest-homepage';
 
 type GymUser = { role: 'athlete' | 'coach' | 'gym-admin' };
 
@@ -25,7 +26,7 @@ const chartConfig: ChartConfig = {
 const COLORS = [chartConfig.athletes.color, chartConfig.coaches.color];
 
 export default function AdminDashboardPage() {
-    const { user, userProfile, loading } = useAuth();
+    const { user, activeMembership, loading } = useAuth();
     const router = useRouter();
 
     const [memberCount, setMemberCount] = useState(0);
@@ -34,19 +35,15 @@ export default function AdminDashboardPage() {
     const [roleDistribution, setRoleDistribution] = useState<{ name: string; value: number; }[]>([]);
 
     useEffect(() => {
-        if (!loading) {
-            if (!user) {
-                router.push('/login');
-            } else if (userProfile?.role !== 'gym-admin') {
-                router.push('/');
-            }
+        if (!loading && (!user || activeMembership?.role !== 'gym-admin')) {
+             router.push('/');
         }
-    }, [user, userProfile, loading, router]);
+    }, [user, activeMembership, loading, router]);
 
     useEffect(() => {
-        if (!userProfile?.gymId) return;
+        if (!activeMembership?.gymId) return;
 
-        const usersQuery = query(collection(db, 'users'), where('gymId', '==', userProfile.gymId));
+        const usersQuery = query(collection(db, 'users'), where('gymId', '==', activeMembership.gymId));
         const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
             const users = snapshot.docs.map(doc => doc.data() as GymUser);
             setMemberCount(users.length);
@@ -63,14 +60,14 @@ export default function AdminDashboardPage() {
             ].filter(r => r.value > 0));
         });
 
-        const invitesQuery = query(collection(db, 'invites'), where('gymId', '==', userProfile.gymId));
+        const invitesQuery = query(collection(db, 'invites'), where('gymId', '==', activeMembership.gymId));
         const unsubscribeInvites = onSnapshot(invitesQuery, (snapshot) => {
             setInviteCount(snapshot.docs.length);
         });
 
         const routinesQuery = query(
             collection(db, 'routines'),
-            where('gymId', '==', userProfile.gymId)
+            where('gymId', '==', activeMembership.gymId)
         );
         const unsubscribeRoutines = onSnapshot(routinesQuery, (snapshot) => {
             const oneMonthAgo = new Date();
@@ -89,9 +86,9 @@ export default function AdminDashboardPage() {
             unsubscribeRoutines();
         };
 
-    }, [userProfile?.gymId]);
+    }, [activeMembership?.gymId]);
 
-    if (loading || !user || userProfile?.role !== 'gym-admin') {
+    if (loading || !activeMembership || activeMembership.role !== 'gym-admin') {
         return (
             <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
                 <AppHeader />
