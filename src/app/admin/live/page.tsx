@@ -16,7 +16,6 @@ import { Activity } from 'lucide-react';
 export default function LiveActivityPage() {
     const { user, userProfile, loading } = useAuth();
     const router = useRouter();
-    const [allSessions, setAllSessions] = useState<WorkoutSessionData[]>([]);
     const [activeSessions, setActiveSessions] = useState<WorkoutSessionData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -30,7 +29,7 @@ export default function LiveActivityPage() {
         }
     }, [user, userProfile, loading, router]);
 
-    // Effect to fetch all active sessions from Firestore in real-time
+    // Effect to fetch and filter all active sessions from Firestore in real-time
     useEffect(() => {
         if (!userProfile?.gymId) return;
 
@@ -43,11 +42,22 @@ export default function LiveActivityPage() {
         );
 
         const unsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
+            const now = new Date();
             const fetchedSessions = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data(),
             } as WorkoutSessionData));
-            setAllSessions(fetchedSessions);
+
+            const trulyActiveSessions = fetchedSessions.filter(session => {
+                 if (session.lastUpdateTime) {
+                    const lastUpdate = session.lastUpdateTime.toDate();
+                    const diffSeconds = (now.getTime() - lastUpdate.getTime()) / 1000;
+                    return diffSeconds < 30; // Session is active if heartbeat was within 30 seconds
+                }
+                return false; // If no timestamp, consider it inactive
+            });
+
+            setActiveSessions(trulyActiveSessions);
             setIsLoading(false);
         }, (error) => {
             console.error("Error fetching live sessions:", error);
@@ -56,25 +66,6 @@ export default function LiveActivityPage() {
 
         return () => unsubscribe();
     }, [userProfile?.gymId]);
-
-    // Effect to filter for truly active sessions based on heartbeat
-    useEffect(() => {
-        const interval = setInterval(() => {
-            const now = new Date();
-            const filtered = allSessions.filter(session => {
-                if (session.lastUpdateTime) {
-                    const lastUpdate = session.lastUpdateTime.toDate();
-                    const diffSeconds = (now.getTime() - lastUpdate.getTime()) / 1000;
-                    return diffSeconds < 30; // Session is active if heartbeat was within 30 seconds
-                }
-                return false; // If no timestamp, consider it inactive
-            });
-            setActiveSessions(filtered);
-        }, 1000); // Check every second
-
-        return () => clearInterval(interval);
-    }, [allSessions]);
-
 
     if (loading || !user || userProfile?.role !== 'gym-admin') {
         return (
