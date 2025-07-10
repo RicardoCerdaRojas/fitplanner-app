@@ -37,15 +37,6 @@ export default function CreateGymPage() {
   const router = useRouter();
   const { user, userProfile, memberships, loading } = useAuth();
 
-  useEffect(() => {
-    // If the user data has loaded and they already have memberships,
-    // they should not be on this page. Redirect them away.
-    if (!loading && memberships.length > 0) {
-      router.push('/');
-    }
-  }, [loading, memberships, router]);
-
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {

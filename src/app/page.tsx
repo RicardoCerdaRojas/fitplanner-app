@@ -282,10 +282,6 @@ export default function Home() {
     const { user, loading, activeMembership } = useAuth();
     const router = useRouter();
 
-    // The redirection logic is now centralized in AuthContext.
-    // This component's responsibility is to show the correct content
-    // once the user is authenticated and on the correct page.
-
     if (loading) {
         return (
             <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
@@ -304,21 +300,19 @@ export default function Home() {
         return <GuestLandingPage />;
     }
 
-    // Determine which dashboard to render based on the active membership role.
+    // This component now only renders content. Redirection is handled by the AuthContext.
     const renderDashboardContent = () => {
        switch(activeMembership?.role) {
             case 'athlete':
                 return <AthleteDashboard />;
             case 'gym-admin':
             case 'coach':
-                 // Redirecting is handled by AuthContext. If the user lands here,
-                 // it means this is their correct dashboard. We show a welcome/loading
-                 // state while the browser redirects.
+                // The context will have already redirected them. This is a fallback state.
                 return (
                      <div className="w-full max-w-2xl text-center">
                         <Card className="p-8">
                             <CardHeader>
-                                <CardTitle className="text-3xl font-headline">Welcome, {activeMembership.role}!</CardTitle>
+                                <CardTitle className="text-3xl font-headline">Welcome!</CardTitle>
                                 <CardDescription>Redirecting to your dashboard...</CardDescription>
                             </CardHeader>
                         </Card>
@@ -331,8 +325,8 @@ export default function Home() {
                     <div className="w-full max-w-2xl text-center">
                         <Card className="p-8">
                             <CardHeader>
-                                <CardTitle className="text-3xl font-headline">Welcome!</CardTitle>
-                                <CardDescription>Finalizing your setup...</CardDescription>
+                                <CardTitle className="text-3xl font-headline">Finalizing Setup</CardTitle>
+                                <CardDescription>Please wait...</CardDescription>
                             </CardHeader>
                         </Card>
                     </div>

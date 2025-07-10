@@ -12,7 +12,7 @@ type UserProfile = {
   name: string;
   email: string;
   createdAt: Timestamp;
-  // Note: role and gymId are removed from here
+  dob?: Timestamp; // Added for athlete profiles created via AI generator
 };
 
 // Represents a user's role within a specific gym
@@ -73,6 +73,7 @@ const consumeInvitation = async (user: User) => {
                 name: inviteData.name,
                 email: lowerCaseEmail,
                 createdAt: new Date(),
+                dob: inviteData.dob || null, // Carry over DOB if it exists
             };
 
             const membershipData = {
@@ -83,9 +84,7 @@ const consumeInvitation = async (user: User) => {
                 gymName: gymName,
                 status: 'active'
             };
-
-            // This is an "upsert". It will create the user doc if it doesn't exist,
-            // or merge the data if it somehow already does. This avoids race conditions.
+            
             transaction.set(userDocRef, userData, { merge: true });
             transaction.set(membershipRef, membershipData);
             transaction.delete(inviteRef);
@@ -104,6 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [activeMembership, setActiveMembership] = useState<Membership | null>(null);
   const [gymProfile, setGymProfile] = useState<GymProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialAuthCheck, setInitialAuthCheck] = useState(false);
   const [membershipsLoaded, setMembershipsLoaded] = useState(false);
   const router = useRouter();
 
@@ -114,6 +114,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       setMembershipsLoaded(false);
       setUser(authUser);
+      
       if (!authUser) {
         // User logged out, reset everything
         setUserProfile(null);
@@ -122,61 +123,53 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setGymProfile(null);
         setLoading(false);
       }
+      setInitialAuthCheck(true);
     });
     return () => unsubscribeAuth();
   }, []);
-
-  // Effect to fetch user's global profile
+  
+  // Effect to fetch user's global profile and memberships
   useEffect(() => {
-    if (!user) {
-        if (!auth.currentUser) setLoading(false);
-        return;
-    }
+    if (!user) return;
     
+    // Reset states on user change
+    setUserProfile(null);
+    setMemberships([]);
+    setMembershipsLoaded(false);
+
     const userDocRef = doc(db, 'users', user.uid);
-    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-            const profile = docSnap.data() as UserProfile;
-            setUserProfile(profile);
-        } else {
-            // This is key: if profile doesn't exist yet, we still set it to null
-            // to signal that this loading step is complete.
-            setUserProfile(null);
-        }
+    const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
+        setUserProfile(docSnap.exists() ? docSnap.data() as UserProfile : null);
     }, (error) => {
         console.error("Error fetching user profile:", error);
         setUserProfile(null);
     });
-    
-    return () => unsubscribe();
-  }, [user]);
-  
-  // Effect to fetch all of a user's memberships and consume invitation
-  useEffect(() => {
-    if (!user) return;
 
     const membershipsQuery = query(collection(db, 'memberships'), where('userId', '==', user.uid));
-    const unsubscribe = onSnapshot(membershipsQuery, async (snapshot) => {
+    const unsubscribeMemberships = onSnapshot(membershipsQuery, async (snapshot) => {
         const fetchedMemberships = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
         
-        // This is the logic that runs for a new user after registration.
-        // It consumes the invite and creates their first membership.
-        if (fetchedMemberships.length === 0 && !membershipsLoaded) {
+        if (fetchedMemberships.length === 0 && !snapshot.metadata.hasPendingWrites && !membershipsLoaded) {
             await consumeInvitation(user);
+        } else {
+            setMemberships(fetchedMemberships);
         }
-        
-        setMemberships(fetchedMemberships);
-        setMembershipsLoaded(true); // Mark memberships as loaded
+        setMembershipsLoaded(true);
     }, (error) => {
         console.error("Error fetching memberships:", error);
-        setMembershipsLoaded(true); // Also mark as loaded on error to unblock loading state
+        setMembershipsLoaded(true);
     });
-
-    return () => unsubscribe();
-  }, [user, membershipsLoaded]); // Depend on membershipsLoaded to prevent re-running consumeInvitation
-
+    
+    return () => {
+        unsubscribeUser();
+        unsubscribeMemberships();
+    };
+  }, [user]);
+  
   // Effect to set active membership
   useEffect(() => {
+    if (!membershipsLoaded) return;
+
     if (memberships.length > 0) {
         if (!activeMembership || !memberships.find(m => m.id === activeMembership.id)) {
             const sorted = [...memberships].sort((a, b) => {
@@ -185,8 +178,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             });
             setActiveMembership(sorted[0]);
         }
+    } else {
+        setActiveMembership(null);
     }
-  }, [memberships, activeMembership]);
+  }, [memberships, membershipsLoaded, activeMembership]);
 
   // Effect to fetch active gym profile
   useEffect(() => {
@@ -197,11 +192,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const gymDocRef = doc(db, 'gyms', activeMembership.gymId);
     const unsubscribe = onSnapshot(gymDocRef, (doc) => {
-        if (doc.exists()) {
-            setGymProfile({ id: doc.id, ...doc.data() } as GymProfile);
-        } else {
-            setGymProfile(null);
-        }
+        setGymProfile(doc.exists() ? { id: doc.id, ...doc.data() } as GymProfile : null);
     }, (error) => {
         console.error('Error fetching gym profile:', error);
         setGymProfile(null);
@@ -211,28 +202,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Final loading state determination
   useEffect(() => {
-    if (!user && auth.currentUser === null) {
-        setLoading(false);
+    // Loading is true until we've checked auth and loaded memberships for a logged-in user
+    if (!initialAuthCheck) {
+        setLoading(true);
         return;
     }
-    
-    if (user && userProfile !== undefined && membershipsLoaded) {
+    if (user) {
+        // If there's a user, we wait until memberships are loaded
+        setLoading(!membershipsLoaded);
+    } else {
+        // If no user, we are done loading
         setLoading(false);
     }
-  }, [user, userProfile, membershipsLoaded]);
+  }, [user, membershipsLoaded, initialAuthCheck]);
 
 
-  // New Effect for centralized redirection logic
+  // Centralized redirection logic
   useEffect(() => {
     if (loading) return; // Do nothing until all data is loaded
 
     const guestRoutes = ['/login', '/signup'];
     const currentPath = window.location.pathname;
-
-    // Prevent redirection if on a guest route
-    if (guestRoutes.includes(currentPath)) {
-        return;
-    }
 
     if (user) {
         if (memberships.length === 0) {
@@ -245,10 +235,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const isCoachPath = currentPath.startsWith('/coach');
             const isRootPath = currentPath === '/';
 
-            if (role === 'gym-admin' && !isAdminPath && !isCoachPath) {
-                router.push('/admin');
+            if (role === 'gym-admin' && !isAdminPath) {
+                 if (currentPath === '/coach' || isRootPath) {
+                    router.push('/admin');
+                }
             } else if (role === 'coach' && !isCoachPath) {
-                 if (isRootPath) {
+                 if (isRootPath || isAdminPath) {
                      router.push('/coach');
                 }
             } else if (role === 'athlete' && (isAdminPath || isCoachPath)) {
