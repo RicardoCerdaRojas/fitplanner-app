@@ -180,8 +180,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     const [showVideo, setShowVideo] = useState(false);
     const [progress, setProgress] = useState<ExerciseProgress>(routine.progress || {});
     
-    const sessionCreated = useRef(false);
-
+    // Effect for creating and updating the live session document
     useEffect(() => {
         if (!user || !userProfile?.gymId) return;
 
@@ -190,41 +189,49 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
 
         const upsertSession = async () => {
-            const updateData: any = {
+             const sessionDoc = await setDoc(sessionRef, {
+                userId: user.uid,
+                userName: userProfile.name || user.email || 'Unknown User',
+                gymId: userProfile.gymId,
+                routineId: routine.id,
+                routineName: routine.routineTypeName || routine.routineName || 'Untitled Routine',
+                startTime: Timestamp.now(),
                 lastUpdateTime: Timestamp.now(),
+                status: 'active' as const,
                 currentExerciseName: currentItem.name,
                 currentSetIndex: currentIndex,
+                totalSetsInSession: sessionPlaylist.length,
                 lastReportedDifficulty: progress[exerciseKey]?.difficulty || null,
-            };
-
-            if (!sessionCreated.current) {
-                const createData = {
-                    ...updateData,
-                    userId: user.uid,
-                    userName: userProfile.name || user.email || 'Unknown User',
-                    gymId: userProfile.gymId,
-                    routineId: routine.id,
-                    routineName: routine.routineTypeName || routine.routineName || 'Untitled Routine',
-                    startTime: Timestamp.now(),
-                    status: 'active' as const,
-                    totalSetsInSession: sessionPlaylist.length,
-                };
-                await setDoc(sessionRef, createData);
-                sessionCreated.current = true;
-            } else {
-                await updateDoc(sessionRef, updateData);
-            }
+            }, { merge: true });
         };
         
         upsertSession();
 
     }, [user, userProfile, routine, sessionId, currentIndex, progress, sessionPlaylist]);
 
+
+    // Effect for heartbeat to keep the session alive
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                const sessionRef = doc(db, "workoutSessions", sessionId);
+                updateDoc(sessionRef, { lastUpdateTime: Timestamp.now() }).catch(err => {
+                    console.warn("Heartbeat failed, session may have been cleaned up.", err);
+                });
+            }
+        }, 15000); // Send heartbeat every 15 seconds
+
+        return () => clearInterval(intervalId);
+    }, [sessionId]);
+
+
     // Effect for cleanup on unmount/close
     useEffect(() => {
-        const cleanupSession = () => {
-            if (sessionCreated.current) {
-                deleteDoc(doc(db, "workoutSessions", sessionId));
+        const cleanupSession = async () => {
+            try {
+                await deleteDoc(doc(db, "workoutSessions", sessionId));
+            } catch (error) {
+                // It's okay if it fails, means it might have been cleaned up already.
             }
         };
 
@@ -239,12 +246,14 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     }, [sessionId]);
 
 
-    const handleSessionEnd = () => {
-        if (sessionCreated.current) {
-            deleteDoc(doc(db, "workoutSessions", sessionId));
-            sessionCreated.current = false;
+    const handleSessionEnd = async () => {
+        try {
+            await deleteDoc(doc(db, "workoutSessions", sessionId));
+        } catch(e) {
+            console.error("Could not delete session doc", e);
+        } finally {
+            onSessionEnd();
         }
-        onSessionEnd();
     };
 
     const currentItem = sessionPlaylist[currentIndex];

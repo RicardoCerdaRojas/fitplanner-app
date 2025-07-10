@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 
 import { AppHeader } from '@/components/app-header';
 import { AdminNav } from '@/components/admin-nav';
@@ -33,10 +33,14 @@ export default function LiveActivityPage() {
         if (!userProfile?.gymId) return;
 
         setIsLoading(true);
+
+        const thirtySecondsAgo = new Date(Date.now() - 30000);
+
         const sessionsQuery = query(
             collection(db, 'workoutSessions'),
             where('gymId', '==', userProfile.gymId),
-            where('status', '==', 'active')
+            where('status', '==', 'active'),
+            where('lastUpdateTime', '>', Timestamp.fromDate(thirtySecondsAgo))
         );
 
         const unsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
