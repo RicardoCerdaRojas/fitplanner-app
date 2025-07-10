@@ -45,31 +45,32 @@ export default function SignupPage() {
     const lowerCaseEmail = values.email.toLowerCase();
 
     try {
-      // 1. Create the user in Firebase Authentication. This also signs them in.
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const { user } = userCredential;
 
-      // 2. Now that the user is authenticated, check if an invitation exists for them.
       const inviteRef = doc(db, 'invites', lowerCaseEmail);
       const inviteSnap = await getDoc(inviteRef);
       const userDocRef = doc(db, 'users', user.uid);
 
       if (inviteSnap.exists()) {
-        // Invitation found: use its data to create the user profile.
-        const { role, gymId, name, dob, plan } = inviteSnap.data();
-        await setDoc(userDocRef, {
+        const inviteData = inviteSnap.data();
+        
+        const userData: any = {
           email: lowerCaseEmail,
-          role,
-          gymId,
-          name,
-          dob,
-          plan,
+          role: inviteData.role,
+          gymId: inviteData.gymId,
+          name: inviteData.name,
           status: 'active',
-        });
-        // 3. Clean up the invitation since it has been used.
+        };
+
+        if (inviteData.role === 'athlete') {
+            userData.dob = inviteData.dob;
+            userData.plan = inviteData.plan;
+        }
+        
+        await setDoc(userDocRef, userData);
         await deleteDoc(inviteRef);
       } else {
-        // No invitation: standard registration. They will be prompted to create a gym.
         await setDoc(userDocRef, {
           email: lowerCaseEmail,
           role: null,
