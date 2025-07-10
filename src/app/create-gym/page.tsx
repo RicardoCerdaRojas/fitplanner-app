@@ -38,9 +38,12 @@ export default function CreateGymPage() {
   const { user, userProfile, memberships, loading } = useAuth();
 
   useEffect(() => {
-    // This effect is now handled globally by AuthContext
-    // The component can focus solely on its rendering logic
-  }, []);
+    // If the user data has loaded and they already have memberships,
+    // they should not be on this page. Redirect them away.
+    if (!loading && memberships.length > 0) {
+      router.push('/');
+    }
+  }, [loading, memberships, router]);
 
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -103,16 +106,8 @@ export default function CreateGymPage() {
     }
   }
   
-  if (loading) {
+  if (loading || (!loading && memberships.length > 0)) {
     return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-96 w-full max-w-lg" /></div>
-  }
-  
-  if (memberships.length > 0) {
-      return (
-          <div className="flex items-center justify-center min-h-screen">
-              <p>You are already part of a gym. Redirecting to dashboard...</p>
-          </div>
-      );
   }
 
   return (
