@@ -50,6 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [gymProfile, setGymProfile] = useState<GymProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Handle user authentication state changes
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
       setLoading(true);
@@ -65,6 +66,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribeAuth();
   }, []);
 
+  // Fetch user profile and memberships when user is available
   useEffect(() => {
     if (!user) {
       return;
@@ -78,6 +80,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const membershipsUnsub = onSnapshot(membershipsQuery, (snapshot) => {
       const fetchedMemberships = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
       setMemberships(fetchedMemberships);
+      
+      // Once memberships are fetched (even if empty), we have enough info to stop loading.
+      setLoading(false); 
     });
 
     return () => {
@@ -86,6 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user]);
 
+  // Determine active membership
   useEffect(() => {
     if (memberships.length > 0) {
       const sorted = [...memberships].sort((a, b) => {
@@ -98,15 +104,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [memberships]);
 
+  // Fetch gym profile based on active membership
   useEffect(() => {
     if (!activeMembership) {
       setGymProfile(null);
-      setLoading(false);
       return;
     }
     const unsubGym = onSnapshot(doc(db, 'gyms', activeMembership.gymId), (doc) => {
       setGymProfile(doc.exists() ? ({ id: doc.id, ...doc.data() } as GymProfile) : null);
-      setLoading(false); // Stop loading once the gym profile is loaded
     });
     return () => unsubGym();
   }, [activeMembership]);
