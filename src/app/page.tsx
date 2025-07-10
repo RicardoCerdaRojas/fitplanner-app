@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { User, Building, Facebook, Twitter, Instagram, WandSparkles, ClipboardList, BarChart3, Quote, CheckCircle2 } from 'lucide-react';
+import { Facebook, Twitter, Instagram, WandSparkles, ClipboardList, BarChart3, Quote, CheckCircle2 } from 'lucide-react';
 import type { Routine as AthleteRoutine } from '@/components/athlete-routine-list';
 import { AthleteRoutineList } from '@/components/athlete-routine-list';
 import { AthleteNav } from '@/components/athlete-nav';
@@ -69,51 +69,6 @@ function AthleteDashboard() {
             ) : (
                 <AthleteRoutineList routines={routines} />
             )}
-        </div>
-    );
-}
-
-function CoachDashboard() {
-    return (
-        <div className="w-full max-w-2xl text-center">
-            <Card className="p-8">
-                <CardHeader>
-                    <CardTitle className="text-3xl font-headline">Welcome, Coach!</CardTitle>
-                    <CardDescription>You're in Coach Mode. Here you can manage your clients and their routines.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button asChild size="lg" className="bg-accent hover:bg-accent/90">
-                        <Link href="/coach">
-                            <User className="mr-2 h-4 w-4" /> Go to Client Routine Creator
-                        </Link>
-                    </Button>
-                </CardContent>
-            </Card>
-        </div>
-    );
-}
-
-function AdminDashboard() {
-    return (
-        <div className="w-full max-w-2xl text-center">
-            <Card className="p-8">
-                <CardHeader>
-                    <CardTitle className="text-3xl font-headline">Admin Dashboard</CardTitle>
-                    <CardDescription>Manage your gym, or create routines for your clients.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-4">
-                     <Button asChild size="lg">
-                        <Link href="/admin">
-                            <Building className="mr-2 h-4 w-4" /> Manage Gym
-                        </Link>
-                    </Button>
-                    <Button asChild size="lg" variant="outline">
-                        <Link href="/coach">
-                            <User className="mr-2 h-4 w-4" /> Create Routines
-                        </Link>
-                    </Button>
-                </CardContent>
-            </Card>
         </div>
     );
 }
@@ -328,8 +283,16 @@ export default function Home() {
     const router = useRouter();
 
     useEffect(() => {
-        if (!loading && user && !userProfile?.gymId) {
-            router.push('/create-gym');
+        if (loading) return;
+
+        if (user) {
+            if (!userProfile?.gymId) {
+                router.push('/create-gym');
+            } else if (userProfile.role === 'gym-admin') {
+                router.push('/admin');
+            } else if (userProfile.role === 'coach') {
+                router.push('/coach');
+            }
         }
     }, [user, userProfile, loading, router]);
 
@@ -353,20 +316,16 @@ export default function Home() {
         return <GuestLandingPage />;
     }
 
-    if (!userProfile?.gymId) {
+    if (userProfile?.role === 'gym-admin' || userProfile?.role === 'coach' || !userProfile?.gymId) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <p>Redirecting to gym setup...</p>
+                <p>Redirecting to your dashboard...</p>
             </div>
         );
     }
     
     const renderDashboardContent = () => {
         switch (userProfile.role) {
-            case 'gym-admin':
-                return <AdminDashboard />;
-            case 'coach':
-                return <CoachDashboard />;
             case 'athlete':
                 return <AthleteDashboard />;
             default:
