@@ -10,7 +10,7 @@ import ReactPlayer from 'react-player/lazy';
 import { useAuth } from '@/contexts/auth-context';
 import { db, rtdb } from '@/lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
-import { ref, onDisconnect, set, serverTimestamp } from 'firebase/database';
+import { ref, onDisconnect, set, serverTimestamp, remove } from 'firebase/database';
 
 
 // A type for the items in our session "playlist"
@@ -188,11 +188,9 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     useEffect(() => {
         if (!sessionId || !user || !userProfile?.gymId) return;
 
-        const sessionRef = doc(db, "workoutSessions", sessionId);
+        const firestoreSessionRef = doc(db, "workoutSessions", sessionId);
+        const rtdbSessionRef = ref(rtdb, `activeSessions/${sessionId}`);
         const currentItem = sessionPlaylist[currentIndex];
-        if (!currentItem) return;
-
-        const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
         
         const sessionData = {
             userId: user.uid,
@@ -201,34 +199,29 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
             routineId: routine.id,
             routineName: routine.routineTypeName || routine.routineName || 'Untitled Routine',
             startTime: Timestamp.now(),
-            lastUpdateTime: Timestamp.now(),
             status: 'active' as const,
             currentExerciseName: currentItem.name,
             currentSetIndex: currentIndex,
             totalSetsInSession: sessionPlaylist.length,
-            lastReportedDifficulty: progress[exerciseKey]?.difficulty || null,
+            lastReportedDifficulty: progress[`${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`]?.difficulty || null,
         };
 
-        // Create the session in Firestore and set up the disconnect hook
-        setDoc(sessionRef, sessionData).then(() => {
-            // After creating the doc, set up the onDisconnect hook to remove it
-            const rtdbSessionRef = ref(rtdb, `activeSessions/${sessionId}`);
-            onDisconnect(rtdbSessionRef).remove().then(() => {
-                // Once the hook is set, mark the session as active in RTDB
-                set(rtdbSessionRef, { firestoreId: sessionId, timestamp: serverTimestamp() });
-            });
-        });
+        // Create the session in both places
+        setDoc(firestoreSessionRef, sessionData);
+        set(rtdbSessionRef, { active: true, firestoreId: sessionId });
 
-        // Cleanup function for when the component unmounts
+        // When the client disconnects, remove the session from RTDB.
+        // A cloud function would then listen to RTDB to remove from Firestore.
+        // For this app, we'll also clean up Firestore on graceful unmount.
+        onDisconnect(rtdbSessionRef).remove();
+
         return () => {
-            const rtdbSessionRef = ref(rtdb, `activeSessions/${sessionId}`);
-            onDisconnect(rtdbSessionRef).cancel(); // Cancel previous onDisconnect
-            set(rtdbSessionRef, null); // Remove from RTDB
-            deleteDoc(sessionRef); // Clean up Firestore doc
+            // Graceful cleanup
+            remove(rtdbSessionRef);
+            deleteDoc(firestoreSessionRef);
         };
-
-    }, [sessionId]);
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sessionId]); // Run only once when the session starts
 
     // Update Firestore with progress
     useEffect(() => {
@@ -239,17 +232,16 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
         const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
 
+        // Using updateDoc to avoid overwriting the whole document
         updateDoc(sessionRef, {
             currentExerciseName: currentItem.name,
             currentSetIndex: currentIndex,
             lastReportedDifficulty: progress[exerciseKey]?.difficulty || null,
-            lastUpdateTime: Timestamp.now()
         }).catch(err => {
-            // This might happen if the doc was already deleted by another process
             console.warn("Could not update session doc, it might have been deleted:", err);
         });
 
-    }, [currentIndex, progress, sessionId]);
+    }, [currentIndex, progress, sessionId, sessionPlaylist]);
 
 
     const handleSessionEnd = async () => {
@@ -261,7 +253,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         const firestoreSessionRef = doc(db, "workoutSessions", sessionId);
         
         onDisconnect(rtdbSessionRef).cancel(); // Important to cancel the hook
-        await set(rtdbSessionRef, null);
+        await remove(rtdbSessionRef);
         await deleteDoc(firestoreSessionRef);
         onSessionEnd();
     };
