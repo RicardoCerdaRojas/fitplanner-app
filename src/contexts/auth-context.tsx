@@ -56,7 +56,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       setUser(authUser);
       if (!authUser) {
-        // Clear all state and stop loading when user logs out.
         setUserProfile(null);
         setMemberships([]);
         setActiveMembership(null);
@@ -84,11 +83,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUserProfile(docSnap.exists() ? (docSnap.data() as UserProfile) : null);
     });
 
-    const membershipsQuery = query(collection(db, 'memberships'), where('userId', '==', user.uid));
+    const membershipsQuery = query(collection(db, 'memberships'), where('userId', '==', user.uid), where('status', '==', 'active'));
     membershipsUnsub = onSnapshot(membershipsQuery, (snapshot) => {
       const fetchedMemberships = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
       setMemberships(fetchedMemberships);
-      setLoading(false); // End loading as soon as memberships are fetched.
+      setLoading(false); 
     }, (error) => {
         console.error("Error fetching memberships:", error);
         setLoading(false);
@@ -101,8 +100,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   useEffect(() => {
-    if (loading) return;
-    
     if (memberships.length > 0) {
       const sorted = [...memberships].sort((a, b) => {
         const roles = { 'gym-admin': 0, 'coach': 1, 'athlete': 2 };
@@ -110,14 +107,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       const newActiveMembership = sorted[0];
       
-      // Only update if the active membership has actually changed to avoid re-renders
       if (newActiveMembership?.id !== activeMembership?.id) {
           setActiveMembership(newActiveMembership);
       }
     } else {
       setActiveMembership(null);
     }
-  }, [memberships, loading, activeMembership]);
+  }, [memberships, activeMembership]);
 
   useEffect(() => {
     if (!activeMembership) {
@@ -125,7 +121,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // Avoid re-fetching if gym profile is already for the active membership
     if(gymProfile?.id === activeMembership.gymId) return;
 
     const unsubGym = onSnapshot(doc(db, 'gyms', activeMembership.gymId), (doc) => {

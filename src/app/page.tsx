@@ -117,27 +117,23 @@ export default function Home() {
     const router = useRouter();
 
     useEffect(() => {
-        if (loading) {
-            return; 
-        }
+        if (loading) return;
 
-        if (user) {
-            if (activeMembership) {
-                switch (activeMembership.role) {
-                    case 'gym-admin':
-                        router.push('/admin');
-                        break;
-                    case 'coach':
-                        router.push('/coach');
-                        break;
-                    case 'athlete':
-                        // Already on the correct page, do nothing.
-                        break;
-                }
-            } else {
-                router.push('/create-gym');
+        if (user && activeMembership) {
+            switch (activeMembership.role) {
+                case 'gym-admin':
+                    router.replace('/admin');
+                    break;
+                case 'coach':
+                    router.replace('/coach');
+                    break;
+                // Athlete case is handled by rendering the AthleteDashboard below
             }
+        } else if (user && !activeMembership) {
+            router.replace('/create-gym');
         }
+        // If no user, the GuestHomepage will be rendered, no redirection needed.
+
     }, [user, activeMembership, loading, router]);
     
     if (loading) {
@@ -152,5 +148,6 @@ export default function Home() {
         return <AthleteDashboard />;
     }
     
+    // This will be shown briefly for admin/coach before redirection, or for users without a membership.
     return <LoadingScreen />;
 }
