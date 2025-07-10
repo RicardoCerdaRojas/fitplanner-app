@@ -277,81 +277,63 @@ function GuestLandingPage() {
   );
 }
 
+function LoadingScreen() {
+    return (
+        <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
+             <div className="flex flex-col items-center gap-4">
+                <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p className="text-lg text-muted-foreground">Loading your experience...</p>
+            </div>
+        </div>
+    );
+}
+
 
 export default function Home() {
-    const { user, loading, activeMembership } = useAuth();
+    const { user, loading, activeMembership, memberships } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
         if (loading) {
-            return; // Do nothing while loading
+            return; // Wait until loading is finished
         }
+
         if (user) {
-            if (activeMembership) {
-                if (activeMembership.role === 'gym-admin') {
+            if (memberships.length > 0) {
+                // User has memberships, route based on active role
+                if (activeMembership?.role === 'gym-admin') {
                     router.push('/admin');
-                } else if (activeMembership.role === 'coach') {
+                } else if (activeMembership?.role === 'coach') {
                     router.push('/coach');
                 }
-                // If athlete, stay on this page
+                // Athlete stays on this page (/)
             } else {
                 // Logged in but no membership, go to create gym
                 router.push('/create-gym');
             }
         }
-        // If no user and not loading, GuestLandingPage will be shown, no redirect needed.
-    }, [user, loading, activeMembership, router]);
+        // If no user, GuestLandingPage will be shown
+    }, [user, loading, activeMembership, memberships, router]);
 
     if (loading) {
-        return (
-            <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
-                 <div className="flex flex-col items-center gap-4">
-                    <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <p className="text-lg text-muted-foreground">Loading your experience...</p>
-                </div>
-            </div>
-        );
+        return <LoadingScreen />;
     }
 
     if (!user) {
         return <GuestLandingPage />;
     }
 
-    // This component now only renders content. Redirection is handled by the useEffect above.
+    // This component now only renders content for ATHLETES or a fallback.
+    // Redirection for other roles is handled by the useEffect above.
     const renderDashboardContent = () => {
-       switch(activeMembership?.role) {
-            case 'athlete':
-                return <AthleteDashboard />;
-            case 'gym-admin':
-            case 'coach':
-                 // This is a fallback state while redirecting.
-                return (
-                     <div className="w-full max-w-2xl text-center">
-                        <Card className="p-8">
-                            <CardHeader>
-                                <CardTitle className="text-3xl font-headline">Welcome!</CardTitle>
-                                <CardDescription>Redirecting to your dashboard...</CardDescription>
-                            </CardHeader>
-                        </Card>
-                    </div>
-                )
-            default:
-                 // This case handles users who are logged in but have no memberships.
-                 // This is a fallback state while redirecting.
-                return (
-                    <div className="w-full max-w-2xl text-center">
-                        <Card className="p-8">
-                            <CardHeader>
-                                <CardTitle className="text-3xl font-headline">Finalizing Setup</CardTitle>
-                                <CardDescription>Please wait...</CardDescription>
-                            </CardHeader>
-                        </Card>
-                    </div>
-                );
+       if (activeMembership?.role === 'athlete') {
+            return <AthleteDashboard />;
        }
+       // Fallback for while redirection is happening for admin/coach
+       return <LoadingScreen />;
     };
     
     const isAthlete = activeMembership?.role === 'athlete';
@@ -373,3 +355,4 @@ export default function Home() {
         </div>
     );
 }
+

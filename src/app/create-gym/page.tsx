@@ -101,8 +101,6 @@ export default function CreateGymPage() {
     return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-96 w-full max-w-lg" /></div>
   }
 
-  // AuthContext handles redirection for logged-in users, so we don't need a manual push here.
-
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <Card className="w-full max-w-lg mx-auto">

@@ -5,7 +5,6 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, onSnapshot, Timestamp, runTransaction, collection, query, where } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import { useRouter } from 'next/navigation';
 
 // Global user profile, no gym-specific data
 type UserProfile = {
@@ -110,9 +109,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
       setLoading(true);
-      setUser(authUser);
-      if (!authUser) {
+      if (authUser) {
+        setUser(authUser);
+      } else {
         // Clear all state on logout
+        setUser(null);
         setUserProfile(null);
         setMemberships([]);
         setActiveMembership(null);
@@ -125,71 +126,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!user) {
-      // If user is logged out, no further data fetching needed.
-      // The loading state is handled by the auth state change.
       return;
     }
 
-    // Set up listeners for user profile and memberships
-    const profileRef = doc(db, 'users', user.uid);
-    const membershipsQuery = query(collection(db, 'memberships'), where('userId', '==', user.uid));
-    
     let profileUnsub: (() => void) | null = null;
     let membershipsUnsub: (() => void) | null = null;
-
-    const loadData = async () => {
-        let profileData: UserProfile | null = null;
-        let membershipsData: Membership[] | null = null;
     
-        const checkCompletion = () => {
-            // Only stop loading when both profile and memberships have been loaded.
-            if (profileData !== null && membershipsData !== null) {
-                setUserProfile(profileData);
-                setMemberships(membershipsData);
-                const sorted = [...membershipsData].sort((a, b) => {
-                    const roles = { 'gym-admin': 0, 'coach': 1, 'athlete': 2 };
-                    return roles[a.role] - roles[b.role];
-                });
-                setActiveMembership(sorted[0] || null);
-                setLoading(false);
+    // Listen to user profile
+    profileUnsub = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
+        setUserProfile(docSnap.exists() ? (docSnap.data() as UserProfile) : null);
+    }, (error) => {
+        console.error("Error fetching user profile:", error);
+        setUserProfile(null);
+    });
+
+    // Listen to memberships
+    const membershipsQuery = query(collection(db, 'memberships'), where('userId', '==', user.uid));
+    membershipsUnsub = onSnapshot(membershipsQuery, async (snapshot) => {
+        if (!snapshot.metadata.hasPendingWrites && snapshot.empty) {
+            const consumed = await consumeInvitation(user);
+            if (!consumed) {
+                setMemberships([]);
+                setLoading(false); // No memberships found and no invitation consumed
             }
-        };
-
-        profileUnsub = onSnapshot(profileRef, (docSnap) => {
-            profileData = docSnap.exists() ? (docSnap.data() as UserProfile) : { name: '', email: '', createdAt: Timestamp.now() }; // Provide a default object to signal completion
-            checkCompletion();
-        }, (error) => {
-            console.error("Error fetching user profile:", error);
-            profileData = { name: '', email: '', createdAt: Timestamp.now() };
-            checkCompletion();
-        });
-
-        membershipsUnsub = onSnapshot(membershipsQuery, async (snapshot) => {
-            if (snapshot.empty && !snapshot.metadata.hasPendingWrites) {
-                const consumed = await consumeInvitation(user);
-                if (!consumed) {
-                    membershipsData = [];
-                    checkCompletion();
-                }
-                // If consumed, the listener will be triggered again with the new data.
-            } else {
-                membershipsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
-                checkCompletion();
-            }
-        }, (error) => {
-            console.error("Error fetching memberships:", error);
-            membershipsData = [];
-            checkCompletion();
-        });
-    }
-
-    loadData();
+            // If invitation is consumed, this listener will re-fire with new data.
+        } else {
+            const fetchedMemberships = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
+            setMemberships(fetchedMemberships);
+            setLoading(false); // Memberships loaded
+        }
+    }, (error) => {
+        console.error("Error fetching memberships:", error);
+        setMemberships([]);
+        setLoading(false);
+    });
 
     return () => {
       if (profileUnsub) profileUnsub();
       if (membershipsUnsub) membershipsUnsub();
     };
   }, [user]);
+
+  useEffect(() => {
+    if (memberships.length > 0) {
+      const sorted = [...memberships].sort((a, b) => {
+        const roles = { 'gym-admin': 0, 'coach': 1, 'athlete': 2 };
+        return roles[a.role] - roles[b.role];
+      });
+      setActiveMembership(sorted[0]);
+    } else {
+      setActiveMembership(null);
+    }
+  }, [memberships]);
 
   useEffect(() => {
     if (!activeMembership) {
