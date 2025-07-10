@@ -199,7 +199,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
             routineName: routine.routineTypeName || routine.routineName || 'Untitled Routine',
             startTime: Timestamp.now(),
             lastUpdateTime: Timestamp.now(),
-            status: 'active',
+            status: 'active' as const,
             currentExerciseName: currentItem.name,
             currentSetIndex: currentIndex,
             totalSetsInSession: sessionPlaylist.length,
@@ -208,31 +208,45 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         await setDoc(sessionRef, sessionData, { merge: true });
     };
 
-    // Effect to start and manage the heartbeat
+    // Effect to create/update session on mount and when the current exercise changes
     useEffect(() => {
-        updateSessionDocument(); // Create/update session on mount/change
+        updateSessionDocument();
+    }, [currentIndex, progress]);
 
+    const handleSessionEnd = async () => {
+        if (heartbeatInterval.current) clearInterval(heartbeatInterval.current);
+        if (sessionId) {
+            try {
+                await deleteDoc(doc(db, 'workoutSessions', sessionId));
+            } catch (error) {
+                console.error("Error deleting session doc:", error);
+            }
+        }
+        onSessionEnd();
+    };
+
+    // Effect to start/manage the heartbeat
+    useEffect(() => {
         if (heartbeatInterval.current) clearInterval(heartbeatInterval.current);
         
         heartbeatInterval.current = setInterval(async () => {
             if (!sessionId) return;
             const sessionRef = doc(db, "workoutSessions", sessionId);
-            await updateDoc(sessionRef, { lastUpdateTime: Timestamp.now() });
+            try {
+                await updateDoc(sessionRef, { lastUpdateTime: Timestamp.now() });
+            } catch (error) {
+                 // The doc might have been deleted by another process, or permissions changed.
+                 // We can probably ignore this error.
+                console.log("Heartbeat failed, session might have ended:", error);
+            }
         }, 15000); // Send heartbeat every 15 seconds
 
         return () => {
             if (heartbeatInterval.current) {
                 clearInterval(heartbeatInterval.current);
             }
-        };
-    }, [currentIndex, progress, sessionId]);
-
-    // Cleanup session on component unmount
-    useEffect(() => {
-        return () => {
-            if (sessionId) {
-                deleteDoc(doc(db, 'workoutSessions', sessionId));
-            }
+            // Cleanup on unmount (e.g. tab close, refresh)
+            handleSessionEnd();
         };
     }, [sessionId]);
 
@@ -269,12 +283,6 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         }
     };
     
-    const handleSessionEnd = async () => {
-        if (heartbeatInterval.current) clearInterval(heartbeatInterval.current);
-        if (sessionId) await deleteDoc(doc(db, 'workoutSessions', sessionId));
-        onSessionEnd();
-    };
-
     const handlePrev = () => {
         setShowVideo(false);
         if (currentIndex > 0) {
