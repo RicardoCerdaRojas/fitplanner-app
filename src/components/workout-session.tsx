@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import type { Routine, ExerciseProgress } from './athlete-routine-list';
+import type { Routine, Exercise, ExerciseProgress } from './athlete-routine-list';
 import { DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -11,6 +11,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import ReactPlayer from 'react-player/lazy';
+
+
+// A type for the items in our session "playlist"
+type SessionExercise = Exercise & {
+    blockName: string;
+    blockSets: string;
+    blockIndex: number;
+    exerciseIndex: number;
+    setIndex: number;
+    totalSets: number;
+};
+
 
 // Timer Component
 const Timer = ({ durationString, isCurrent }: { durationString: string; isCurrent: boolean }) => {
@@ -78,39 +90,53 @@ type WorkoutSessionProps = {
 };
 
 export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: WorkoutSessionProps) {
-    const allExercises = useMemo(() => routine.blocks.flatMap((block, bIndex) => 
-        block.exercises.map((exercise, eIndex) => ({ 
-            ...exercise,
-            blockName: block.name,
-            sets: block.sets,
-            blockIndex: bIndex, 
-            exerciseIndex: eIndex 
-        }))
-    ), [routine.blocks]);
+    
+    // Create a "playlist" of all exercise sets in the correct order (station style)
+    const sessionPlaylist = useMemo(() => {
+        const playlist: SessionExercise[] = [];
+        routine.blocks.forEach((block, bIndex) => {
+            const totalSets = parseInt(block.sets.match(/\d+/)?.[0] || '1', 10);
+            block.exercises.forEach((exercise, eIndex) => {
+                for (let sIndex = 0; sIndex < totalSets; sIndex++) {
+                    playlist.push({
+                        ...exercise,
+                        blockName: block.name,
+                        blockSets: block.sets,
+                        blockIndex: bIndex,
+                        exerciseIndex: eIndex,
+                        setIndex: sIndex,
+                        totalSets: totalSets,
+                    });
+                }
+            });
+        });
+        return playlist;
+    }, [routine.blocks]);
   
     const [currentIndex, setCurrentIndex] = useState(() => {
-        const firstUncompletedIndex = allExercises.findIndex(exercise => {
-            const key = `${exercise.blockIndex}-${exercise.exerciseIndex}`;
+        const firstUncompletedIndex = sessionPlaylist.findIndex(item => {
+            const key = `${item.blockIndex}-${item.exerciseIndex}-${item.setIndex}`;
             return !routine.progress?.[key]?.completed;
         });
         return firstUncompletedIndex === -1 ? 0 : firstUncompletedIndex;
     });
+
     const [showVideo, setShowVideo] = useState(false);
     const [progress, setProgress] = useState<ExerciseProgress>(routine.progress || {});
 
-    const currentExerciseWithMeta = allExercises[currentIndex];
-    const exerciseKey = `${currentExerciseWithMeta.blockIndex}-${currentExerciseWithMeta.exerciseIndex}`;
-    const currentExerciseProgress = progress?.[exerciseKey];
+    const currentItem = sessionPlaylist[currentIndex];
+    const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
+    const currentSetProgress = progress?.[exerciseKey];
     
     const handleProgressUpdate = (newData: { completed?: boolean; difficulty?: 'easy' | 'medium' | 'hard' }) => {
-        const updatedProgressForExercise = {
-            ...(progress[exerciseKey] || { completed: false }),
+        const updatedProgressForSet = {
+            ...(progress[exerciseKey] || { completed: false, difficulty: 'medium' }),
             ...newData,
         };
 
         const newProgressState = {
             ...progress,
-            [exerciseKey]: updatedProgressForExercise,
+            [exerciseKey]: updatedProgressForSet,
         };
         
         setProgress(newProgressState);
@@ -119,7 +145,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
     const handleNext = () => {
         setShowVideo(false);
-        if (currentIndex < allExercises.length - 1) {
+        if (currentIndex < sessionPlaylist.length - 1) {
             setCurrentIndex(currentIndex + 1);
         } else {
             onSessionEnd();
@@ -137,7 +163,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         setShowVideo(false);
     }, [currentIndex]);
     
-    const progressPercentage = ((currentIndex + 1) / allExercises.length) * 100;
+    const progressPercentage = ((currentIndex + 1) / sessionPlaylist.length) * 100;
 
     return (
         <DialogContent className="max-w-5xl h-[95vh] flex flex-col p-0 gap-0">
@@ -145,16 +171,16 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                 <DialogTitle className="font-headline text-xl">{routine.routineTypeName || routine.routineName}</DialogTitle>
                 <div className="space-y-1 mt-2">
                     <Progress value={progressPercentage} />
-                    <p className="text-xs text-muted-foreground text-center">Exercise {currentIndex + 1} of {allExercises.length}</p>
+                    <p className="text-xs text-muted-foreground text-center">Step {currentIndex + 1} of {sessionPlaylist.length}</p>
                 </div>
             </DialogHeader>
 
             <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-muted/20 overflow-y-auto">
-                {showVideo && currentExerciseWithMeta.videoUrl ? (
+                {showVideo && currentItem.videoUrl ? (
                     <div className="w-full max-w-2xl flex flex-col items-center gap-4">
                         <div className="w-full aspect-video bg-black rounded-lg overflow-hidden">
                            <ReactPlayer
-                                url={currentExerciseWithMeta.videoUrl}
+                                url={currentItem.videoUrl}
                                 playing
                                 controls
                                 width="100%"
@@ -176,23 +202,23 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                 ) : (
                     <Card className="w-full max-w-md bg-background shadow-xl">
                         <CardContent className="p-8">
-                            <p className="font-semibold text-accent">{currentExerciseWithMeta.blockName} ({currentExerciseWithMeta.sets})</p>
-                            <h2 className="text-4xl font-bold font-headline my-4">{currentExerciseWithMeta.name}</h2>
+                            <p className="font-semibold text-accent">{currentItem.blockName} &bull; Set {currentItem.setIndex + 1} of {currentItem.totalSets}</p>
+                            <h2 className="text-4xl font-bold font-headline my-4">{currentItem.name}</h2>
                             
-                            {currentExerciseWithMeta.repType === 'duration' && currentExerciseWithMeta.duration ? (
-                                <Timer durationString={currentExerciseWithMeta.duration} isCurrent={!!currentExerciseWithMeta}/>
+                            {currentItem.repType === 'duration' && currentItem.duration ? (
+                                <Timer durationString={currentItem.duration} isCurrent={!!currentItem}/>
                             ) : (
                                 <div className="text-8xl font-bold font-mono text-primary flex items-center justify-center gap-4">
                                     <Repeat className="h-16 w-16" />
-                                    <span>{currentExerciseWithMeta.reps}</span>
+                                    <span>{currentItem.reps}</span>
                                 </div>
                             )}
 
                             <div className="flex justify-center items-center gap-8 mt-8 text-muted-foreground">
-                                {currentExerciseWithMeta.weight && (
-                                    <div className="flex items-center gap-2"><Dumbbell className="w-5 h-5" /><span>{currentExerciseWithMeta.weight}</span></div>
+                                {currentItem.weight && (
+                                    <div className="flex items-center gap-2"><Dumbbell className="w-5 h-5" /><span>{currentItem.weight}</span></div>
                                 )}
-                                {currentExerciseWithMeta.videoUrl && (
+                                {currentItem.videoUrl && (
                                     <Button variant="outline" onClick={() => setShowVideo(true)}><Video className="w-5 h-5 mr-2" /> Watch Example</Button>
                                 )}
                             </div>
@@ -206,14 +232,14 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                     <div className="flex items-center gap-2">
                         <Checkbox 
                             id={`session-cb-${exerciseKey}`}
-                            checked={currentExerciseProgress?.completed || false}
+                            checked={currentSetProgress?.completed || false}
                             onCheckedChange={(checked) => handleProgressUpdate({ completed: !!checked })}
                         />
-                        <label htmlFor={`session-cb-${exerciseKey}`} className="text-sm font-medium">Mark as Complete</label>
+                        <label htmlFor={`session-cb-${exerciseKey}`} className="text-sm font-medium">Mark Set as Complete</label>
                     </div>
                     <Select 
                         onValueChange={(value: 'easy' | 'medium' | 'hard') => handleProgressUpdate({ difficulty: value })}
-                        value={currentExerciseProgress?.difficulty}
+                        value={currentSetProgress?.difficulty}
                     >
                         <SelectTrigger className="w-[140px] h-9 text-xs"><SelectValue placeholder="Rate Difficulty" /></SelectTrigger>
                         <SelectContent>
@@ -228,7 +254,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                         <ChevronLeft className="h-4 w-4 mr-2" /> Previous
                     </Button>
                     <Button onClick={handleNext}>
-                        {currentIndex === allExercises.length - 1 ? 'Finish Workout' : 'Next'} <ChevronRight className="h-4 w-4 ml-2" />
+                        {currentIndex === sessionPlaylist.length - 1 ? 'Finish Workout' : 'Next'} <ChevronRight className="h-4 w-4 ml-2" />
                     </Button>
                  </div>
             </DialogFooter>

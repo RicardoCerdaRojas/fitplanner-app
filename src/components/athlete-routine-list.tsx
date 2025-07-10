@@ -10,8 +10,6 @@ import {
 } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -19,9 +17,10 @@ import { format } from 'date-fns';
 import { Calendar, ClipboardList, PlaySquare, Dumbbell, Repeat, Clock, Rocket } from 'lucide-react';
 import { WorkoutSession } from './workout-session';
 import ReactPlayer from 'react-player/lazy';
+import { Progress } from './ui/progress';
 
 export type ExerciseProgress = {
-  [key: string]: {
+  [key: string]: { // The key is now `${blockIndex}-${exerciseIndex}-${setIndex}`
     completed: boolean;
     difficulty: 'easy' | 'medium' | 'hard';
   };
@@ -44,7 +43,7 @@ export type Block = {
 
 export type Routine = {
   id: string; 
-  routineName?: string; // For backwards compatibility
+  routineName?: string; 
   routineTypeName?: string;
   routineTypeId?: string;
   routineDate: Date;
@@ -137,7 +136,7 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
               <div className="flex items-center gap-4">
                   <Calendar className="w-5 h-5 text-primary"/>
                   <div className="flex flex-col items-start text-left">
-                    <span className="text-lg font-bold font-headline">{routine.routineTypeName || routine.routineName || 'Untitled Routine'}</span>
+                    <span className="text-lg font-bold font-headline">{routine.routineTypeName || 'Untitled Routine'}</span>
                     <span className="text-sm text-muted-foreground">{format(routine.routineDate, 'PPP')}</span>
                   </div>
               </div>
@@ -157,8 +156,15 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
                       </div>
                     <div className="space-y-3">
                       {block.exercises.map((exercise, exIndex) => {
-                        const exerciseKey = `${blockIndex}-${exIndex}`;
-                        const currentProgress = routine.progress?.[exerciseKey];
+                        const totalSets = parseInt(block.sets.match(/\d+/)?.[0] || '1', 10);
+                        let completedSets = 0;
+                        for (let i = 0; i < totalSets; i++) {
+                            const setKey = `${blockIndex}-${exIndex}-${i}`;
+                            if (routine.progress?.[setKey]?.completed) {
+                                completedSets++;
+                            }
+                        }
+                        const progressPercentage = totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
                         
                         return (
                           <div key={exIndex} className="p-3 border-l-4 border-primary/30 ml-1 space-y-4">
@@ -174,39 +180,19 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
                                   <div className="flex items-center gap-2"><Dumbbell className="w-4 h-4 text-accent" /><div><p className="font-semibold">Weight</p><p>{exercise.weight}</p></div></div>
                               )}
                             </div>
-                            <div className="space-y-4">
-                              {exercise.videoUrl && (
+                             {exercise.videoUrl && (
                                 <div>
                                     <Button variant="outline" size="sm" className="text-xs" onClick={() => setVideoUrl(exercise.videoUrl)}>
                                         <PlaySquare className="w-4 h-4 mr-2" /> Watch Example
                                     </Button>
                                 </div>
                               )}
-                              <div className="mt-4 pt-4 border-t border-dashed flex justify-between items-center gap-4 flex-wrap">
-                                  <div className="flex items-center gap-2">
-                                      <Checkbox 
-                                        id={`cb-${routine.id}-${exerciseKey}`}
-                                        checked={currentProgress?.completed || false}
-                                        onCheckedChange={(checked) => handleProgressChange(routine.id, exerciseKey, currentProgress, { completed: !!checked })}
-                                        />
-                                      <label htmlFor={`cb-${routine.id}-${exerciseKey}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                        Mark as Complete
-                                      </label>
-                                  </div>
-                                  <Select 
-                                    onValueChange={(value: 'easy' | 'medium' | 'hard') => handleProgressChange(routine.id, exerciseKey, currentProgress, { difficulty: value })}
-                                    value={currentProgress?.difficulty}
-                                  >
-                                      <SelectTrigger className="w-[140px] h-9 text-xs">
-                                          <SelectValue placeholder="Rate Difficulty" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                          <SelectItem value="easy">Easy</SelectItem>
-                                          <SelectItem value="medium">Medium</SelectItem>
-                                          <SelectItem value="hard">Hard</SelectItem>
-                                      </SelectContent>
-                                  </Select>
-                              </div>
+                            <div className="mt-4 pt-4 border-t border-dashed">
+                                <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
+                                    <span className="font-medium">Progress</span>
+                                    <span>{completedSets} / {totalSets} sets</span>
+                                </div>
+                                <Progress value={progressPercentage} className="h-2" />
                             </div>
                           </div>
                         )
