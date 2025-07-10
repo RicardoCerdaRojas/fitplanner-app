@@ -210,46 +210,49 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
     // Effect to create/update session on mount and when the current exercise changes
     useEffect(() => {
+        if (!sessionId) return;
         updateSessionDocument();
-    }, [currentIndex, progress]);
 
-    const handleSessionEnd = async () => {
+        // Heartbeat to keep session alive
         if (heartbeatInterval.current) clearInterval(heartbeatInterval.current);
-        if (sessionId) {
-            try {
-                await deleteDoc(doc(db, 'workoutSessions', sessionId));
-            } catch (error) {
-                console.error("Error deleting session doc:", error);
-            }
-        }
-        onSessionEnd();
-    };
-
-    // Effect to start/manage the heartbeat
-    useEffect(() => {
-        if (heartbeatInterval.current) clearInterval(heartbeatInterval.current);
-        
         heartbeatInterval.current = setInterval(async () => {
-            if (!sessionId) return;
-            const sessionRef = doc(db, "workoutSessions", sessionId);
-            try {
-                await updateDoc(sessionRef, { lastUpdateTime: Timestamp.now() });
-            } catch (error) {
-                 // The doc might have been deleted by another process, or permissions changed.
-                 // We can probably ignore this error.
-                console.log("Heartbeat failed, session might have ended:", error);
-            }
-        }, 15000); // Send heartbeat every 15 seconds
+             const sessionRef = doc(db, "workoutSessions", sessionId);
+             try {
+                 await updateDoc(sessionRef, { lastUpdateTime: Timestamp.now() });
+             } catch (error) {
+                 console.log("Heartbeat failed, session might have ended:", error);
+                 if (heartbeatInterval.current) clearInterval(heartbeatInterval.current);
+             }
+        }, 15000);
 
-        return () => {
+    }, [sessionId, currentIndex, progress]);
+
+    // Cleanup effect for unmount
+    useEffect(() => {
+        if (!sessionId) return;
+        const sessionRef = doc(db, "workoutSessions", sessionId);
+        
+        const cleanup = async () => {
             if (heartbeatInterval.current) {
                 clearInterval(heartbeatInterval.current);
             }
-            // Cleanup on unmount (e.g. tab close, refresh)
-            handleSessionEnd();
+            try {
+                await deleteDoc(sessionRef);
+            } catch (error) {
+                console.error("Error deleting session doc on unmount:", error);
+            }
+        };
+
+        return () => {
+            cleanup();
         };
     }, [sessionId]);
 
+
+    const handleSessionEnd = () => {
+        // The cleanup effect will handle deleting the doc
+        onSessionEnd();
+    };
 
     const currentItem = sessionPlaylist[currentIndex];
     const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
