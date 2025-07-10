@@ -24,6 +24,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
 const formSchema = z.object({
+  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   email: z.string().email({ message: 'Please enter a valid email.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
 });
@@ -35,6 +36,7 @@ export default function SignupPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: '',
       email: '',
       password: '',
     },
@@ -49,15 +51,16 @@ export default function SignupPage() {
       const { user } = userCredential;
 
       // Step 2: Create a basic user profile in Firestore.
-      // The logic to consume an invitation will be handled by the AuthContext after the first login.
+      // This document contains only global user information.
+      // The logic to consume an invitation and create a "membership" will be handled
+      // by the AuthContext after the user's first login.
       await setDoc(doc(db, 'users', user.uid), {
+        name: values.name,
         email: lowerCaseEmail,
-        role: null,
-        gymId: null,
-        status: 'active',
         createdAt: new Date(),
       });
       
+      // Redirect to home, where AuthContext will take over.
       router.push('/');
 
     } catch (error: any) {
@@ -96,6 +99,23 @@ export default function SignupPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-gray-300">Full Name</FormLabel>
+                    <FormControl>
+                       <Input 
+                        placeholder="John Doe" 
+                        {...field} 
+                        className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:ring-blue-500"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="email"

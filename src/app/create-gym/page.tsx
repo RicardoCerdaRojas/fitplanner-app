@@ -34,14 +34,14 @@ const formSchema = z.object({
 export default function CreateGymPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user, userProfile, loading } = useAuth();
+  const { user, userProfile, memberships, loading } = useAuth();
 
   useEffect(() => {
-    // Redirect if the user is loaded and already has a gym
-    if (!loading && userProfile?.gymId) {
+    // Redirect if the user is loaded and already has a gym membership
+    if (!loading && memberships.length > 0) {
       router.push('/');
     }
-  }, [userProfile, loading, router]);
+  }, [memberships, loading, router]);
 
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -53,7 +53,7 @@ export default function CreateGymPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) {
+    if (!user || !userProfile) {
         toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to create a gym.' });
         return;
     }
@@ -68,6 +68,7 @@ export default function CreateGymPage() {
       const gymCollectionRef = collection(db, 'gyms');
       const newGymRef = doc(gymCollectionRef);
       const userRef = doc(db, 'users', user.uid);
+      const membershipRef = doc(db, 'memberships', `${user.uid}_${newGymRef.id}`);
       const logoUrl = `https://placehold.co/100x50.png?text=${encodeURIComponent(values.gymName)}`;
 
       await runTransaction(db, async (transaction) => {
@@ -75,10 +76,8 @@ export default function CreateGymPage() {
         if (!userDoc.exists()) {
           throw new Error('User profile not found.');
         }
-        if (userDoc.data().gymId) {
-          throw new Error('User is already part of a gym.');
-        }
-
+        
+        // Create the Gym document
         transaction.set(newGymRef, {
           name: values.gymName,
           adminUid: user.uid,
@@ -87,9 +86,14 @@ export default function CreateGymPage() {
           theme: selectedTheme.colors,
         });
 
-        transaction.update(userRef, {
-          role: 'gym-admin',
-          gymId: newGymRef.id,
+        // Create the admin's membership document
+        transaction.set(membershipRef, {
+            userId: user.uid,
+            gymId: newGymRef.id,
+            role: 'gym-admin',
+            userName: userProfile.name || user.email,
+            gymName: values.gymName,
+            status: 'active'
         });
       });
 
@@ -109,7 +113,7 @@ export default function CreateGymPage() {
     return null;
   }
 
-  if (userProfile?.gymId) {
+  if (memberships.length > 0) {
       return (
           <div className="flex items-center justify-center min-h-screen">
               <p>You are already part of a gym. Redirecting to dashboard...</p>

@@ -279,22 +279,34 @@ function GuestLandingPage() {
 
 
 export default function Home() {
-    const { user, userProfile, loading } = useAuth();
+    const { user, userProfile, memberships, loading, activeMembership } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
         if (loading) return;
 
-        if (user) {
-            if (!userProfile?.gymId) {
+        if (user && userProfile) { // User is logged in and profile exists
+            if (memberships.length === 0) {
+                // User has a profile but no gym memberships
                 router.push('/create-gym');
-            } else if (userProfile.role === 'gym-admin') {
-                router.push('/admin');
-            } else if (userProfile.role === 'coach') {
-                router.push('/coach');
+            } else if (activeMembership) {
+                // User has memberships, redirect based on active role
+                switch (activeMembership.role) {
+                    case 'gym-admin':
+                        router.push('/admin');
+                        break;
+                    case 'coach':
+                        router.push('/coach');
+                        break;
+                    // Athlete stays on this page, which renders the athlete dashboard.
+                    case 'athlete':
+                        break;
+                }
             }
+            // If there's no active membership yet (e.g., multi-role user needs to select one),
+            // stay on a landing/selection page. For now, we default to the first role's dashboard.
         }
-    }, [user, userProfile, loading, router]);
+    }, [user, userProfile, memberships, activeMembership, loading, router]);
 
     if (loading) {
         return (
@@ -316,7 +328,8 @@ export default function Home() {
         return <GuestLandingPage />;
     }
 
-    if (userProfile?.role === 'gym-admin' || userProfile?.role === 'coach' || !userProfile?.gymId) {
+    // If user is logged in, but we are still waiting for redirection logic to run
+    if (!activeMembership && memberships.length > 0) {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <p>Redirecting to your dashboard...</p>
@@ -324,25 +337,25 @@ export default function Home() {
         );
     }
     
+    // Default content for ATHLETE role, or if no other role matches
     const renderDashboardContent = () => {
-        switch (userProfile.role) {
-            case 'athlete':
-                return <AthleteDashboard />;
-            default:
-                return (
-                    <div className="w-full max-w-2xl text-center">
-                        <Card className="p-8">
-                            <CardHeader>
-                                <CardTitle className="text-3xl font-headline">Welcome!</CardTitle>
-                                <CardDescription>Your account is pending configuration by your gym administrator.</CardDescription>
-                            </CardHeader>
-                        </Card>
-                    </div>
-                );
-        }
+       if (activeMembership?.role === 'athlete') {
+            return <AthleteDashboard />;
+       }
+       // Fallback for unexpected states or roles without a specific dashboard
+       return (
+            <div className="w-full max-w-2xl text-center">
+                <Card className="p-8">
+                    <CardHeader>
+                        <CardTitle className="text-3xl font-headline">Welcome!</CardTitle>
+                        <CardDescription>Your dashboard is being prepared.</CardDescription>
+                    </CardHeader>
+                </Card>
+            </div>
+        );
     };
     
-    const isAthlete = userProfile.role === 'athlete';
+    const isAthlete = activeMembership?.role === 'athlete';
 
     return (
         <div className={cn("flex flex-col min-h-screen", isAthlete && "pb-16 md:pb-0")}>
