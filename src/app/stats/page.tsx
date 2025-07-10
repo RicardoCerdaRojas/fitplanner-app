@@ -17,7 +17,7 @@ import { ChartConfig, ChartContainer, ChartTooltipContent, ChartLegend, ChartLeg
 
 type StatsData = {
   totalWorkouts: number;
-  totalExercisesLogged: number;
+  totalSetsLogged: number;
   totalVolumeLifted: number;
   difficultyBreakdown: { name: string; value: number }[];
   workoutPerformance: { date: string; completed: number }[];
@@ -27,7 +27,7 @@ type StatsData = {
 
 const chartConfig: ChartConfig = {
   completed: {
-    label: 'Exercises Completed',
+    label: 'Sets Completed',
     color: 'hsl(var(--primary))',
   },
   volume: {
@@ -90,76 +90,79 @@ export default function StatsPage() {
     if (routines.length > 0) {
       const difficultyCounts = { easy: 0, medium: 0, hard: 0 };
       const routineTypeCounts: { [key: string]: number } = {};
-      let totalExercisesLogged = 0;
+      let totalSetsLogged = 0;
       let totalVolumeLifted = 0;
+      
+      const completedRoutines = new Set<string>();
 
-      const workoutPerformance = routines.map(routine => {
-        const completedCount = Object.values(routine.progress || {}).filter(p => p.completed).length;
-        totalExercisesLogged += completedCount;
+      const volumeByDate = routines.map(routine => {
+        let completedSetsCount = 0;
+        let routineVolume = 0;
+        
+        if (routine.progress) {
+          for (const key in routine.progress) {
+            const setProgress = routine.progress[key];
+            if (setProgress.completed) {
+              completedSetsCount++;
+              
+              if(setProgress.difficulty) {
+                difficultyCounts[setProgress.difficulty]++;
+              }
 
-        const routineTypeName = routine.routineTypeName || routine.routineName || 'Uncategorized';
-        if (completedCount > 0) {
-            routineTypeCounts[routineTypeName] = (routineTypeCounts[routineTypeName] || 0) + 1;
-        }
-
-        Object.values(routine.progress || {}).forEach(p => {
-          if (p.difficulty) {
-            difficultyCounts[p.difficulty]++;
+              const [blockIndex, exerciseIndex] = key.split('-').map(Number);
+              const exercise = routine.blocks?.[blockIndex]?.exercises?.[exerciseIndex];
+              
+              if (exercise) {
+                let reps = 0;
+                if (exercise.repType === 'reps' && exercise.reps) {
+                    const repParts = exercise.reps.split('-').map(r => parseInt(r.trim(), 10));
+                    if (repParts.length > 1 && !isNaN(repParts[0]) && !isNaN(repParts[1])) {
+                        reps = (repParts[0] + repParts[1]) / 2;
+                    } else if (!isNaN(repParts[0])) {
+                        reps = repParts[0];
+                    }
+                }
+                
+                const weight = parseInt(exercise.weight?.match(/\d+/)?.[0] || '0', 10);
+                
+                if (!isNaN(reps) && reps > 0 && !isNaN(weight) && weight > 0) {
+                    routineVolume += reps * weight;
+                }
+              }
+            }
           }
-        });
+        }
+        
+        totalSetsLogged += completedSetsCount;
+        totalVolumeLifted += routineVolume;
+
+        if (completedSetsCount > 0) {
+            const routineTypeName = routine.routineTypeName || routine.routineName || 'Uncategorized';
+            if (!completedRoutines.has(routineTypeName)) {
+                routineTypeCounts[routineTypeName] = (routineTypeCounts[routineTypeName] || 0) + 1;
+                completedRoutines.add(routineTypeName);
+            }
+        }
         
         return {
           date: new Date(routine.routineDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          completed: completedCount,
+          completed: completedSetsCount, // this is now sets completed per workout
+          volume: routineVolume,
         };
-      }).filter(item => item.completed > 0);
-
-      const volumeByDate = routines.map(routine => {
-        let routineVolume = 0;
-        if(routine.progress) {
-            routine.blocks.forEach((block, blockIndex) => {
-                const sets = parseInt(block.sets.match(/\d+/)?.[0] || '1', 10);
-                block.exercises.forEach((exercise, exerciseIndex) => {
-                    const exerciseKey = `${blockIndex}-${exerciseIndex}`;
-                    if (routine.progress?.[exerciseKey]?.completed) {
-                        const weight = parseInt(exercise.weight?.match(/\d+/)?.[0] || '0', 10);
-                        if(weight > 0) {
-                            let reps = 0;
-                            if (exercise.repType === 'reps' && exercise.reps) {
-                                const repParts = exercise.reps.split('-').map(r => parseInt(r.trim(), 10));
-                                if (repParts.length > 1 && !isNaN(repParts[0]) && !isNaN(repParts[1])) {
-                                    reps = (repParts[0] + repParts[1]) / 2;
-                                } else if (!isNaN(repParts[0])) {
-                                    reps = repParts[0];
-                                }
-                            }
-                            if (!isNaN(reps) && reps > 0 && !isNaN(sets)) {
-                               routineVolume += sets * reps * weight;
-                            }
-                        }
-                    }
-                });
-            });
-        }
-        totalVolumeLifted += routineVolume;
-        return {
-            date: new Date(routine.routineDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            volume: routineVolume,
-        };
-      }).filter(v => v.volume > 0);
+      });
 
 
       setStats({
         totalWorkouts: routines.length,
-        totalExercisesLogged: totalExercisesLogged,
+        totalSetsLogged,
         totalVolumeLifted,
         difficultyBreakdown: [
           { name: 'easy', value: difficultyCounts.easy },
           { name: 'medium', value: difficultyCounts.medium },
           { name: 'hard', value: difficultyCounts.hard },
         ].filter(d => d.value > 0),
-        workoutPerformance,
-        volumeByDate,
+        workoutPerformance: volumeByDate.filter(item => item.completed > 0),
+        volumeByDate: volumeByDate.filter(v => v.volume > 0),
         routineTypeBreakdown: Object.entries(routineTypeCounts).map(([name, value], index) => ({
             name,
             value,
@@ -214,8 +217,8 @@ export default function StatsPage() {
                       <CardContent><p className="text-4xl font-bold">{stats.totalWorkouts}</p></CardContent>
                   </Card>
                    <Card>
-                      <CardHeader><CardTitle>Exercises Logged</CardTitle></CardHeader>
-                      <CardContent><p className="text-4xl font-bold">{stats.totalExercisesLogged}</p></CardContent>
+                      <CardHeader><CardTitle>Total Sets Logged</CardTitle></CardHeader>
+                      <CardContent><p className="text-4xl font-bold">{stats.totalSetsLogged}</p></CardContent>
                   </Card>
                   <Card>
                       <CardHeader><CardTitle>Total Volume Lifted (kg)</CardTitle></CardHeader>
@@ -225,7 +228,7 @@ export default function StatsPage() {
 
               <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
                  <Card>
-                    <CardHeader><CardTitle>Workout Performance</CardTitle><CardDescription>Completed exercises over time.</CardDescription></CardHeader>
+                    <CardHeader><CardTitle>Workout Performance</CardTitle><CardDescription>Completed sets over time.</CardDescription></CardHeader>
                     <CardContent>
                       <ChartContainer config={chartConfig} className="h-[300px] w-full">
                         <BarChart data={stats.workoutPerformance} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
@@ -240,7 +243,7 @@ export default function StatsPage() {
                   </Card>
 
                  <Card>
-                    <CardHeader><CardTitle>Difficulty Breakdown</CardTitle><CardDescription>How you've rated your exercises.</CardDescription></CardHeader>
+                    <CardHeader><CardTitle>Difficulty Breakdown</CardTitle><CardDescription>How you've rated your sets.</CardDescription></CardHeader>
                     <CardContent className="flex items-center justify-center">
                        <ChartContainer config={chartConfig} className="h-[300px] w-full">
                             <PieChart>
@@ -273,7 +276,7 @@ export default function StatsPage() {
               <Card>
                 <CardHeader>
                     <CardTitle>Total Workout Volume (kg)</CardTitle>
-                    <CardDescription>Total weight lifted (Sets x Reps x Weight) per workout.</CardDescription>
+                    <CardDescription>Total weight lifted (Reps x Weight) per workout.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <ChartContainer config={chartConfig} className="h-[300px] w-full">
