@@ -66,15 +66,20 @@ export default function AdminDashboardPage() {
             setInviteCount(snapshot.docs.length);
         });
 
-        const oneMonthAgo = new Date();
-        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
         const routinesQuery = query(
             collection(db, 'routines'),
-            where('gymId', '==', userProfile.gymId),
-            where('createdAt', '>=', Timestamp.fromDate(oneMonthAgo))
+            where('gymId', '==', userProfile.gymId)
         );
         const unsubscribeRoutines = onSnapshot(routinesQuery, (snapshot) => {
-            setRoutinesThisMonth(snapshot.docs.length);
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+            const oneMonthAgoTimestamp = Timestamp.fromDate(oneMonthAgo);
+            
+            const routinesInLastMonth = snapshot.docs.filter(doc => {
+                const createdAt = doc.data().createdAt as Timestamp;
+                return createdAt && createdAt >= oneMonthAgoTimestamp;
+            });
+            setRoutinesThisMonth(routinesInLastMonth.length);
         });
 
         return () => {
