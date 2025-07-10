@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video, CheckCircle2, Circle } from 'lucide-react';
 import ReactPlayer from 'react-player/lazy';
+import { useAuth } from '@/contexts/auth-context';
+import { db } from '@/lib/firebase';
+import { doc, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 
 
 // A type for the items in our session "playlist"
@@ -142,15 +145,14 @@ type WorkoutSessionProps = {
 };
 
 export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: WorkoutSessionProps) {
-    
-    // Create a "playlist" of all exercise sets in a circuit-style order
+    const { user, userProfile } = useAuth();
+    const sessionId = routine.id;
+
     const sessionPlaylist = useMemo(() => {
         const playlist: SessionExercise[] = [];
         routine.blocks.forEach((block, bIndex) => {
             const totalSets = parseInt(block.sets.match(/\d+/)?.[0] || '1', 10);
-            // Loop through sets/rounds first (circuit-style)
             for (let sIndex = 0; sIndex < totalSets; sIndex++) {
-                // Then loop through exercises for that round
                 block.exercises.forEach((exercise, eIndex) => {
                     playlist.push({
                         ...exercise,
@@ -177,6 +179,63 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
     const [showVideo, setShowVideo] = useState(false);
     const [progress, setProgress] = useState<ExerciseProgress>(routine.progress || {});
+    
+    const sessionCreated = useRef(false);
+
+    useEffect(() => {
+        if (!user || !userProfile?.gymId) return;
+
+        const sessionRef = doc(db, "workoutSessions", sessionId);
+        const currentItem = sessionPlaylist[currentIndex];
+        const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
+
+        const upsertSession = async () => {
+            const updateData: any = {
+                lastUpdateTime: Timestamp.now(),
+                currentExerciseName: currentItem.name,
+                currentSetIndex: currentIndex,
+                lastReportedDifficulty: progress[exerciseKey]?.difficulty,
+            };
+
+            if (!sessionCreated.current) {
+                const createData = {
+                    ...updateData,
+                    userId: user.uid,
+                    userName: userProfile.name || user.email || 'Unknown User',
+                    gymId: userProfile.gymId,
+                    routineId: routine.id,
+                    routineName: routine.routineTypeName || routine.routineName || 'Untitled Routine',
+                    startTime: Timestamp.now(),
+                    status: 'active' as const,
+                    totalSetsInSession: sessionPlaylist.length,
+                };
+                await setDoc(sessionRef, createData);
+                sessionCreated.current = true;
+            } else {
+                await updateDoc(sessionRef, updateData);
+            }
+        };
+        
+        upsertSession();
+
+    }, [user, userProfile, routine, sessionId, currentIndex, progress, sessionPlaylist]);
+
+    // Effect for cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (sessionCreated.current) {
+                deleteDoc(doc(db, "workoutSessions", sessionId));
+            }
+        };
+    }, [sessionId]);
+
+
+    const handleSessionEnd = () => {
+        if (sessionCreated.current) {
+            deleteDoc(doc(db, "workoutSessions", sessionId));
+        }
+        onSessionEnd();
+    };
 
     const currentItem = sessionPlaylist[currentIndex];
     const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
@@ -206,7 +265,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         if (currentIndex < sessionPlaylist.length - 1) {
             setCurrentIndex(currentIndex + 1);
         } else {
-            onSessionEnd();
+            handleSessionEnd();
         }
     };
 

@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Users, ClipboardList, Layers, Palette, LayoutDashboard } from 'lucide-react';
+import { Users, ClipboardList, Layers, Palette, LayoutDashboard, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function AdminBottomNav() {
@@ -11,8 +11,8 @@ export function AdminBottomNav() {
 
   const links = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/admin/live', label: 'Live', icon: Activity },
     { href: '/admin/members', label: 'Members', icon: Users },
-    { href: '/admin/routine-types', label: 'Types', icon: Layers },
     { href: '/admin/settings', label: 'Branding', icon: Palette },
     { href: '/coach', label: 'Routines', icon: ClipboardList },
   ];
