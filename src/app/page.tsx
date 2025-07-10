@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { User, Building, Facebook, Twitter, Instagram, WandSparkles, ClipboardList, BarChart3, Quote } from 'lucide-react';
+import { User, Building, Facebook, Twitter, Instagram, WandSparkles, ClipboardList, BarChart3, Quote, CheckCircle2 } from 'lucide-react';
 import type { Routine as AthleteRoutine } from '@/components/athlete-routine-list';
 import { AthleteRoutineList } from '@/components/athlete-routine-list';
 import { AthleteNav } from '@/components/athlete-nav';
