@@ -148,15 +148,11 @@ function GuestLandingPage() {
       quote: "Fitness Flow revolutionized how I train my clients. The routine creator is a game-changer and saves me hours every week.",
       name: "Alex R.",
       role: "Head Coach, Velocity Gym",
-      avatar: "/testimonial-avatar-1.jpg",
-      aiHint: "man face"
     },
     {
       quote: "As an athlete, having my workouts on my phone and tracking my progress so easily has been incredibly motivating. The AI generator is brilliant for my off-days!",
       name: "Samantha B.",
       role: "Athlete",
-      avatar: "/testimonial-avatar-2.jpg",
-      aiHint: "woman face"
     },
   ];
 
@@ -168,9 +164,8 @@ function GuestLandingPage() {
           <Image
             src="/hero-background.jpg"
             alt="Fitness motivation"
-            layout="fill"
-            objectFit="cover"
-            className="opacity-40"
+            fill
+            className="object-cover opacity-40"
             data-ai-hint="muscular man fitness"
             priority
           />
@@ -268,7 +263,19 @@ function GuestLandingPage() {
                   <Quote className="h-8 w-8 text-blue-500 mb-4" />
                   <p className="text-lg text-gray-300">"{testimonial.quote}"</p>
                   <div className="flex items-center gap-4 mt-6">
-                    <Image src={testimonial.avatar} alt={testimonial.name} width={48} height={48} className="rounded-full" data-ai-hint={testimonial.aiHint} />
+                    <div className="flex-shrink-0">
+                      <svg
+                        className="h-12 w-12 rounded-full bg-gray-800 p-2 text-gray-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                        strokeWidth="1.5"
+                      >
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                      </svg>
+                    </div>
                     <div>
                       <p className="font-bold">{testimonial.name}</p>
                       <p className="text-sm text-gray-400">{testimonial.role}</p>
