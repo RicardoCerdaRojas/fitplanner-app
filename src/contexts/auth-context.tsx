@@ -54,10 +54,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Handle user authentication state changes
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
-      setLoading(true);
       setUser(authUser);
       if (!authUser) {
         setUserProfile(null);
@@ -70,27 +68,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribeAuth();
   }, []);
 
-  // Fetch user profile and memberships when user is available
   useEffect(() => {
     if (!user) {
-      if (auth.currentUser === null) {
-        setLoading(false);
-      }
+      if (auth.currentUser === null) setLoading(false);
       return;
     }
 
+    setLoading(true);
+    let profileUnsubscribed = false;
+    let membershipsUnsubscribed = false;
+
     const profileUnsub = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
       setUserProfile(docSnap.exists() ? (docSnap.data() as UserProfile) : null);
+      profileUnsubscribed = true;
+      if (membershipsUnsubscribed) setLoading(false);
     });
 
     const membershipsQuery = query(collection(db, 'memberships'), where('userId', '==', user.uid));
     const membershipsUnsub = onSnapshot(membershipsQuery, (snapshot) => {
       const fetchedMemberships = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
       setMemberships(fetchedMemberships);
-      setLoading(false); 
-    }, (error) => {
-        console.error("Error fetching memberships: ", error);
-        setLoading(false);
+      membershipsUnsubscribed = true;
+      if (profileUnsubscribed) setLoading(false);
+    }, () => {
+        membershipsUnsubscribed = true;
+        if(profileUnsubscribed) setLoading(false);
     });
 
     return () => {
@@ -99,7 +101,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user]);
 
-  // Determine active membership
   useEffect(() => {
     if (memberships.length > 0) {
       const sorted = [...memberships].sort((a, b) => {
@@ -112,7 +113,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [memberships]);
 
-  // Fetch gym profile based on active membership
   useEffect(() => {
     if (!activeMembership) {
       setGymProfile(null);
@@ -126,45 +126,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Centralized redirection logic
   useEffect(() => {
-    if (loading) {
-      return; // Do nothing while loading
-    }
-    
+    if (loading) return;
+
     const isGuestPage = pathname === '/login' || pathname === '/signup';
     const isCreateGymPage = pathname === '/create-gym';
-    
-    // If logged in...
+
     if (user) {
-      // And has a membership...
       if (activeMembership) {
-        // ...but is on a guest or create-gym page, redirect them away.
-        if (isGuestPage || isCreateGymPage) {
-          if (activeMembership.role === 'gym-admin') router.push('/admin');
-          else if (activeMembership.role === 'coach') router.push('/coach');
-          else router.push('/');
-        }
-        // ...and is on the home page but should be on a specific dashboard.
-        else if (pathname === '/') {
+        // User has a role and is on a page that is NOT their dashboard
+        if (pathname === '/') {
           if (activeMembership.role === 'gym-admin') router.push('/admin');
           else if (activeMembership.role === 'coach') router.push('/coach');
         }
-      } 
-      // ...but has NO membership, send to create a gym, unless they are already there or on a guest page.
-      else if (!isCreateGymPage && !isGuestPage) {
-        router.push('/create-gym');
+      } else {
+        // User is logged in but has no membership
+        if (!isCreateGymPage && !isGuestPage) {
+          router.push('/create-gym');
+        }
+      }
+    } else {
+      // Not logged in
+      if (!isGuestPage && pathname !== '/') {
+        router.push('/login');
       }
     }
-    
-    // If not logged in and tries to access a protected page
-    else if (!isGuestPage) {
-        // Allow access to home page for guests
-        if (pathname !== '/') {
-           router.push('/login');
-        }
-    }
-
   }, [user, activeMembership, loading, pathname, router]);
-  
+
   const contextValue: AuthContextType = {
     user,
     userProfile,

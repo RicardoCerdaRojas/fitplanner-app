@@ -61,9 +61,6 @@ export default function SignupPage() {
       const { user } = userCredential;
 
       // Step 2: Create a basic user profile in Firestore.
-      // This document contains only global user information.
-      // The logic to consume an invitation and create a "membership" will be handled
-      // by the AuthContext after the user's first login.
       await setDoc(doc(db, 'users', user.uid), {
         name: values.name,
         email: lowerCaseEmail,
