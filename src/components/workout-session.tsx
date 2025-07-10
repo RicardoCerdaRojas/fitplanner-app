@@ -210,51 +210,34 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     }, [user, userProfile, routine, sessionId, currentIndex, progress, sessionPlaylist]);
 
 
-    // Effect for heartbeat to keep the session alive
+    // Effect for heartbeat to keep the session alive and cleanup on unmount
     useEffect(() => {
+        const sessionRef = doc(db, "workoutSessions", sessionId);
+        
         const intervalId = setInterval(() => {
             if (document.visibilityState === 'visible') {
-                const sessionRef = doc(db, "workoutSessions", sessionId);
                 updateDoc(sessionRef, { lastUpdateTime: Timestamp.now() }).catch(err => {
                     console.warn("Heartbeat failed, session may have been cleaned up.", err);
                 });
             }
         }, 15000); // Send heartbeat every 15 seconds
 
-        return () => clearInterval(intervalId);
-    }, [sessionId]);
-
-
-    // Effect for cleanup on unmount/close
-    useEffect(() => {
-        const cleanupSession = async () => {
-            try {
-                await deleteDoc(doc(db, "workoutSessions", sessionId));
-            } catch (error) {
-                // It's okay if it fails, means it might have been cleaned up already.
-            }
-        };
-
-        // Use beforeunload for closing tab/browser
-        window.addEventListener('beforeunload', cleanupSession);
-
         return () => {
-            // Cleanup on component unmount
-            window.removeEventListener('beforeunload', cleanupSession);
-            cleanupSession();
+            clearInterval(intervalId);
+            // On unmount, delete the session document
+            deleteDoc(sessionRef).catch(err => {
+                console.warn("Could not delete session doc on unmount", err);
+            });
         };
     }, [sessionId]);
 
 
-    const handleSessionEnd = async () => {
-        try {
-            await deleteDoc(doc(db, "workoutSessions", sessionId));
-        } catch(e) {
-            console.error("Could not delete session doc", e);
-        } finally {
-            onSessionEnd();
-        }
+    const handleSessionEnd = () => {
+        // The cleanup is now handled by the useEffect return function.
+        // This function just needs to trigger the dialog close.
+        onSessionEnd();
     };
+
 
     const currentItem = sessionPlaylist[currentIndex];
     const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
