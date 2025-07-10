@@ -5,9 +5,11 @@ import { useAuth } from '@/contexts/auth-context';
 import { AppHeader } from '@/components/app-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 function DiagnosticCard() {
-    const { user, loading, activeMembership, memberships } = useAuth();
+    const { user, loading, activeMembership, memberships, gymProfile } = useAuth();
 
     return (
         <Card className="w-full max-w-lg mx-auto">
@@ -25,12 +27,16 @@ function DiagnosticCard() {
                     <span className="font-mono">{user ? user.email : 'null'}</span>
                 </div>
                 <div className="flex justify-between p-2 border rounded-md">
+                    <span className="font-semibold">Memberships Loaded:</span>
+                    <span className="font-mono">{memberships.length}</span>
+                </div>
+                <div className="flex justify-between p-2 border rounded-md">
                     <span className="font-semibold">Active Membership Role:</span>
                     <span className="font-mono">{activeMembership ? activeMembership.role : 'null'}</span>
                 </div>
                 <div className="flex justify-between p-2 border rounded-md">
-                    <span className="font-semibold">Memberships Loaded:</span>
-                    <span className="font-mono">{memberships.length}</span>
+                    <span className="font-semibold">Gym Profile Name:</span>
+                    <span className="font-mono">{gymProfile ? gymProfile.name : 'null'}</span>
                 </div>
             </CardContent>
         </Card>

@@ -69,6 +69,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Fetch user profile and memberships when user is available
   useEffect(() => {
     if (!user) {
+      if (auth.currentUser === null) {
+        setLoading(false);
+      }
       return;
     }
 
@@ -83,6 +86,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Once memberships are fetched (even if empty), we have enough info to stop loading.
       setLoading(false); 
+    }, (error) => {
+        console.error("Error fetching memberships: ", error);
+        setLoading(false); // Stop loading even if there's an error
     });
 
     return () => {
@@ -93,6 +99,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Determine active membership
   useEffect(() => {
+    if (loading) return; // Don't determine active membership until all data is loaded
+
     if (memberships.length > 0) {
       const sorted = [...memberships].sort((a, b) => {
         const roles = { 'gym-admin': 0, 'coach': 1, 'athlete': 2 };
@@ -102,7 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else {
       setActiveMembership(null);
     }
-  }, [memberships]);
+  }, [memberships, loading]);
 
   // Fetch gym profile based on active membership
   useEffect(() => {
