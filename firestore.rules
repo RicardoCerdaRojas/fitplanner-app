@@ -1,26 +1,12 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to check if the request comes from an authenticated user.
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // Rules for the 'users' collection
-    match /users/{userId} {
-      // Any authenticated user can read user profiles.
-      allow read: if isSignedIn();
-      // A user can only create or update their own profile. This is a critical security rule we keep.
-      allow create, update: if isSignedIn() && request.auth.uid == userId;
-    }
-
-    // Open rules for all other collections for any authenticated user.
-    // This is a temporary measure to facilitate development.
-    match /{collection}/{docId} {
-      allow read, write: if isSignedIn();
+    // WARNING: These rules are permissive and are not recommended for production.
+    // They are configured to allow for rapid development and should be secured
+    // before deploying to a live environment.
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }
