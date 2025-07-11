@@ -71,7 +71,7 @@ export function GuestHomepage() {
                     layout="fill"
                     objectFit="cover"
                     objectPosition="top right"
-                    className="opacity-30"
+                    className="opacity-50"
                     priority
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-[#0B0C10] via-[#0B0C10]/90 to-transparent"></div>
