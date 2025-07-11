@@ -1,6 +1,6 @@
 'use client';
 
-import { useFieldArray, useWatch } from 'react-hook-form';
+import { useFieldArray } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -14,8 +14,6 @@ export function RoutineCreatorNav() {
     control,
     name: 'blocks',
   });
-
-  const watchedBlocks = useWatch({ control, name: 'blocks' });
 
   const handleAddBlock = () => {
     const newBlockIndex = blockFields.length;
@@ -43,13 +41,13 @@ export function RoutineCreatorNav() {
       control,
       name: `blocks.${blockIndex}.exercises`,
     });
-    const exercises = useWatch({ control, name: `blocks.${blockIndex}.exercises` });
     
     const handleAddExercise = (e: React.MouseEvent) => {
         e.stopPropagation();
         const newExerciseIndex = exerciseFields.length;
         appendExercise(defaultExerciseValues);
         setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: newExerciseIndex });
+        onCloseNav?.();
     };
 
     const handleRemoveExercise = (e: React.MouseEvent, exerciseIndex: number) => {
@@ -74,7 +72,7 @@ export function RoutineCreatorNav() {
                             className="w-full justify-start text-left h-auto py-1.5 px-2 text-sm font-normal flex-1"
                             onClick={() => handleSelect({ type: 'exercise', blockIndex, exerciseIndex: eIndex })}
                         >
-                            {exercises?.[eIndex]?.name || 'Untitled Exercise'}
+                            {exercise.name || 'Untitled Exercise'}
                         </Button>
                         <Button
                             variant="ghost"
@@ -107,17 +105,17 @@ export function RoutineCreatorNav() {
             <div key={block.id}>
               <div
                 className="group/block flex items-center rounded-md cursor-pointer"
-                onClick={() => handleSelect({ type: 'block', blockIndex: bIndex })}
               >
                  <div
                     className={cn(
                         'flex-1 justify-start text-left h-auto py-2 px-3 rounded-md',
                         isBlockActive ? 'bg-secondary' : 'bg-transparent hover:bg-muted/50'
                     )}
+                    onClick={() => handleSelect({ type: 'block', blockIndex: bIndex })}
                 >
                     <div className="flex-1">
-                        <p className="font-semibold">{watchedBlocks[bIndex]?.name || 'Untitled Block'}</p>
-                        <p className="text-xs text-muted-foreground">{watchedBlocks[bIndex]?.sets} sets &bull; {watchedBlocks[bIndex]?.exercises?.length || 0} exercises</p>
+                        <p className="font-semibold">{block.name || 'Untitled Block'}</p>
+                        <p className="text-xs text-muted-foreground">{block.sets} sets &bull; {block.exercises?.length || 0} exercises</p>
                     </div>
                 </div>
                 {blockFields.length > 1 && (
