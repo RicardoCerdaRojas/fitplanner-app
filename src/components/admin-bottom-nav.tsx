@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Users, ClipboardList, Layers, Palette, LayoutDashboard, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 
 export function AdminBottomNav() {
   const pathname = usePathname();
@@ -48,17 +48,12 @@ export function AdminBottomNav() {
          {links.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href;
             return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  buttonVariants({ variant: isActive ? 'default' : 'ghost' }),
-                  'font-semibold'
-                )}
-              >
-                <Icon className="mr-2 h-4 w-4" />
-                {label}
-              </Link>
+              <Button key={href} asChild variant={isActive ? 'default' : 'ghost'} className="font-semibold">
+                <Link href={href}>
+                  <Icon className="mr-2 h-4 w-4" />
+                  {label}
+                </Link>
+              </Button>
             );
           })}
       </nav>
