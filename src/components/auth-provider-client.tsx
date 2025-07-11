@@ -2,7 +2,6 @@
 'use client';
 
 import { useEffect, ReactNode } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -11,18 +10,15 @@ import type { UserProfile, Membership, GymProfile } from '@/contexts/auth-contex
 
 export function AuthProviderClient({ children }: { children: ReactNode }) {
     const {
-        user,
-        activeMembership,
-        loading,
         setUser,
         setUserProfile,
         setMemberships,
         setActiveMembership,
         setGymProfile,
         setLoading,
+        user,
+        activeMembership
     } = useAuth();
-    const router = useRouter();
-    const pathname = usePathname();
 
     // Effect for handling Firebase Auth state changes
     useEffect(() => {
@@ -87,6 +83,10 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
     useEffect(() => {
         if (!activeMembership) {
             setGymProfile(null);
+            // If user exists but has no active membership, they are done loading
+            if (user) {
+                setLoading(false);
+            }
             return;
         }
 
@@ -100,96 +100,7 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
 
         return () => unsubGym();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeMembership]);
-
-    // Effect for handling routing logic after authentication state is resolved
-    useEffect(() => {
-        if (loading) {
-            return; // Don't do anything while loading
-        }
-
-        const isGuestPage = ['/login', '/signup'].includes(pathname);
-        const isCreateGymPage = pathname === '/create-gym';
-
-        if (user) {
-            if (isGuestPage) {
-                // If user is logged in and on a guest page, redirect to home
-                router.replace('/');
-                return;
-            }
-
-            if (activeMembership) {
-                // User has a gym membership
-                if (isCreateGymPage) {
-                    router.replace('/'); // Don't let them create another gym
-                    return;
-                }
-                // Redirect to the correct dashboard from the root page
-                if (pathname === '/') {
-                    switch (activeMembership.role) {
-                        case 'gym-admin':
-                            router.replace('/admin');
-                            break;
-                        case 'coach':
-                            router.replace('/coach');
-                            break;
-                        // Athlete stays on '/' to see their dashboard
-                        default:
-                            break;
-                    }
-                }
-            } else {
-                // User is logged in but has no membership
-                if (!isCreateGymPage) {
-                    router.replace('/create-gym');
-                }
-            }
-        } else {
-            // No user is logged in
-            const isProtectedRoute = !isGuestPage && !isCreateGymPage && pathname !== '/';
-            if (isProtectedRoute) {
-                router.replace('/login');
-            }
-        }
-    }, [user, activeMembership, loading, pathname, router]);
-
-
-    // Renders a loading screen for protected pages, or the page itself for public pages
-    // This prevents flicker while auth state is being determined.
-    if (loading && !['/login', '/signup', '/'].includes(pathname)) {
-         return (
-            <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
-                <div className="flex flex-col items-center gap-4">
-                    <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <p className="text-lg text-muted-foreground">Loading Your Dashboard...</p>
-                </div>
-            </div>
-        );
-    }
+    }, [activeMembership, user]);
     
-    // For the root path, we need to show the correct content based on auth state, not just a loader
-    if (pathname === '/') {
-      if (loading) return (
-            <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
-                <div className="flex flex-col items-center gap-4">
-                    <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <p className="text-lg text-muted-foreground">Loading...</p>
-                </div>
-            </div>
-        );
-      if (user && activeMembership?.role === 'athlete') {
-        // Handled by AthleteDashboard component rendered in page.tsx
-      } else if (!user) {
-        // Handled by GuestHomepage component rendered in page.tsx
-      }
-    }
-
-
     return <>{children}</>;
 }

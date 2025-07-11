@@ -24,7 +24,7 @@ const chartConfig: ChartConfig = {
 const COLORS = [chartConfig.athletes.color, chartConfig.coaches.color];
 
 export default function AdminDashboardPage() {
-    const { user, activeMembership, loading } = useAuth();
+    const { user, userProfile, loading } = useAuth();
     const router = useRouter();
 
     const [memberCount, setMemberCount] = useState(0);
@@ -33,15 +33,19 @@ export default function AdminDashboardPage() {
     const [roleDistribution, setRoleDistribution] = useState<{ name: string; value: number; }[]>([]);
 
     useEffect(() => {
-        if (!loading && (!user || activeMembership?.role !== 'gym-admin')) {
-             router.push('/');
+        if (!loading) {
+            if (!user) {
+                router.push('/login');
+            } else if (userProfile?.role !== 'gym-admin') {
+                router.push('/');
+            }
         }
-    }, [user, activeMembership, loading, router]);
+    }, [user, userProfile, loading, router]);
 
     useEffect(() => {
-        if (!activeMembership?.gymId) return;
+        if (!userProfile?.gymId) return;
 
-        const usersQuery = query(collection(db, 'users'), where('gymId', '==', activeMembership.gymId));
+        const usersQuery = query(collection(db, 'users'), where('gymId', '==', userProfile.gymId));
         const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
             const users = snapshot.docs.map(doc => doc.data() as GymUser);
             setMemberCount(users.length);
@@ -58,14 +62,14 @@ export default function AdminDashboardPage() {
             ].filter(r => r.value > 0));
         });
 
-        const invitesQuery = query(collection(db, 'invites'), where('gymId', '==', activeMembership.gymId));
+        const invitesQuery = query(collection(db, 'invites'), where('gymId', '==', userProfile.gymId));
         const unsubscribeInvites = onSnapshot(invitesQuery, (snapshot) => {
             setInviteCount(snapshot.docs.length);
         });
 
         const routinesQuery = query(
             collection(db, 'routines'),
-            where('gymId', '==', activeMembership.gymId)
+            where('gymId', '==', userProfile.gymId)
         );
         const unsubscribeRoutines = onSnapshot(routinesQuery, (snapshot) => {
             const oneMonthAgo = new Date();
@@ -84,9 +88,9 @@ export default function AdminDashboardPage() {
             unsubscribeRoutines();
         };
 
-    }, [activeMembership?.gymId]);
+    }, [userProfile?.gymId]);
 
-    if (loading || !activeMembership || activeMembership.role !== 'gym-admin') {
+    if (loading || !user || userProfile?.role !== 'gym-admin') {
         return (
             <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
                 <AppHeader />

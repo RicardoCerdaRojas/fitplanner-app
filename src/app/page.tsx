@@ -10,6 +10,7 @@ import { AthleteNav } from '@/components/athlete-nav';
 import { AthleteRoutineList, type Routine } from '@/components/athlete-routine-list';
 import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useRouter } from 'next/navigation';
 
 function AthleteDashboard() {
   const { user } = useAuth();
@@ -96,6 +97,26 @@ function LoadingScreen() {
 
 export default function Home() {
     const { user, activeMembership, loading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (loading) return;
+
+        if (user) {
+            if (activeMembership) {
+                if (activeMembership.role === 'gym-admin') {
+                    router.replace('/admin');
+                } else if (activeMembership.role === 'coach') {
+                    router.replace('/coach');
+                }
+                // Athletes will stay on this page to see their dashboard
+            } else {
+                // User is logged in but has no membership
+                router.replace('/create-gym');
+            }
+        }
+        // If no user, GuestHomepage will be rendered, no redirection needed.
+    }, [user, activeMembership, loading, router]);
     
     if (loading) {
         return <LoadingScreen />;
@@ -109,7 +130,6 @@ export default function Home() {
         return <AthleteDashboard />;
     }
 
-    // Fallback for when the redirection from AuthProviderClient is happening
-    // or for roles that land on '/' before being redirected.
+    // Fallback for when redirection is happening or for roles without a specific dashboard on '/'
     return <LoadingScreen />;
 }
