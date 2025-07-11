@@ -212,10 +212,17 @@ export function RoutineCreatorForm() {
       )}
 
       {activeSelection.type === 'exercise' && activeSelection.exerciseIndex !== undefined && (
-        <ExerciseForm 
-          blockIndex={activeSelection.blockIndex}
-          exerciseIndex={activeSelection.exerciseIndex}
-        />
+        <>
+           <ExercisesForBlock
+            key={`exercise-list-${activeSelection.blockIndex}`}
+            blockIndex={activeSelection.blockIndex}
+           />
+           <ExerciseForm 
+            key={`exercise-form-${activeSelection.blockIndex}-${activeSelection.exerciseIndex}`}
+            blockIndex={activeSelection.blockIndex}
+            exerciseIndex={activeSelection.exerciseIndex}
+          />
+        </>
       )}
 
       <div className="flex justify-end items-center gap-4 pt-4 border-t">
