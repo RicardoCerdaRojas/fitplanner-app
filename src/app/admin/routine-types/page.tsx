@@ -48,7 +48,6 @@ export default function RoutineTypesPage() {
     const { activeMembership, loading } = useAuth();
     const [routineTypes, setRoutineTypes] = useState<RoutineType[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [editingType, setEditingType] = useState<RoutineType | null>(null);
     const [typeToDelete, setTypeToDelete] = useState<RoutineType | null>(null);
 
@@ -104,26 +103,25 @@ export default function RoutineTypesPage() {
             toast({ variant: 'destructive', title: 'Error', description: `Could not ${action} routine type.` });
         } finally {
             setIsSubmitting(false);
+            setEditingType(null);
         }
     }
     
     async function handleDeleteConfirm() {
         if (!typeToDelete) return;
-
-        setIsDeleting(typeToDelete.id);
         try {
             await deleteDoc(doc(db, "routineTypes", typeToDelete.id));
             toast({ title: 'Routine Type Deleted', description: `The type "${typeToDelete.name}" has been removed.`});
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not delete the routine type.' });
         } finally {
-            setIsDeleting(null);
             setTypeToDelete(null);
         }
     }
 
     const handleCancelEdit = () => {
         setEditingType(null);
+        form.reset();
     };
 
     if (loading || !activeMembership || activeMembership.role !== 'gym-admin') {
@@ -153,10 +151,9 @@ export default function RoutineTypesPage() {
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleDeleteConfirm}
-                            disabled={isDeleting === typeToDelete?.id}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                            {isDeleting === typeToDelete?.id ? 'Deleting...' : 'Delete'}
+                            Delete
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -190,7 +187,7 @@ export default function RoutineTypesPage() {
                                                                     variant="ghost"
                                                                     size="icon"
                                                                     onClick={() => setEditingType(type)}
-                                                                    disabled={isDeleting === type.id || !!editingType}
+                                                                    disabled={!!editingType}
                                                                 >
                                                                     <Edit className="h-4 w-4" />
                                                                 </Button>
@@ -198,7 +195,7 @@ export default function RoutineTypesPage() {
                                                                     variant="ghost"
                                                                     size="icon"
                                                                     onClick={() => setTypeToDelete(type)}
-                                                                    disabled={isDeleting === type.id || !!editingType}
+                                                                    disabled={!!editingType}
                                                                 >
                                                                     <Trash2 className="h-4 w-4 text-destructive" />
                                                                 </Button>
