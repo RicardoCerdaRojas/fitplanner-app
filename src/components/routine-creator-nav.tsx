@@ -4,7 +4,7 @@ import { useFieldArray, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useRoutineCreator } from './coach-routine-creator';
+import { useRoutineCreator, defaultExerciseValues } from './coach-routine-creator';
 
 export function RoutineCreatorNav() {
   const { form, activeSelection, setActiveSelection, onCloseNav } = useRoutineCreator();
@@ -39,12 +39,19 @@ export function RoutineCreatorNav() {
   };
   
   const ExercisesNavList = ({ blockIndex }: { blockIndex: number }) => {
-    const { fields: exerciseFields, remove: removeExercise } = useFieldArray({
+    const { fields: exerciseFields, remove: removeExercise, append: appendExercise } = useFieldArray({
       control,
       name: `blocks.${blockIndex}.exercises`,
     });
     const exercises = useWatch({ control, name: `blocks.${blockIndex}.exercises` });
     
+    const handleAddExercise = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const newExerciseIndex = exerciseFields.length;
+        appendExercise(defaultExerciseValues);
+        setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: newExerciseIndex });
+    };
+
     const handleRemoveExercise = (e: React.MouseEvent, exerciseIndex: number) => {
         e.stopPropagation();
         removeExercise(exerciseIndex);
@@ -56,33 +63,36 @@ export function RoutineCreatorNav() {
         }
     };
     
-    if (exerciseFields.length === 0) return null;
-
     return (
         <ul className="pl-6 pr-2 py-1 space-y-1 mt-1 border-l-2 ml-4">
-        {exerciseFields.map((exercise, eIndex) => {
-             const isExerciseActive = activeSelection.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === eIndex;
-             return (
-                <li key={exercise.id} className="flex items-center group">
-                    <Button
-                        variant={isExerciseActive ? 'secondary' : 'ghost'}
-                        className="w-full justify-start text-left h-auto py-1.5 px-2 text-sm font-normal flex-1"
-                        onClick={() => handleSelect({ type: 'exercise', blockIndex, exerciseIndex: eIndex })}
-                    >
-                        {exercises?.[eIndex]?.name || 'Untitled Exercise'}
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                        onClick={(e) => handleRemoveExercise(e, eIndex)}
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
-                </li>
-             )
-        })}
-     </ul>
+            {exerciseFields.map((exercise, eIndex) => {
+                 const isExerciseActive = activeSelection.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === eIndex;
+                 return (
+                    <li key={exercise.id} className="flex items-center group/item">
+                        <Button
+                            variant={isExerciseActive ? 'secondary' : 'ghost'}
+                            className="w-full justify-start text-left h-auto py-1.5 px-2 text-sm font-normal flex-1"
+                            onClick={() => handleSelect({ type: 'exercise', blockIndex, exerciseIndex: eIndex })}
+                        >
+                            {exercises?.[eIndex]?.name || 'Untitled Exercise'}
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => handleRemoveExercise(e, eIndex)}
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </li>
+                 )
+            })}
+             <li>
+                <Button variant="link" size="sm" className="w-full justify-start text-left h-auto py-1.5 px-2 text-sm font-normal" onClick={handleAddExercise}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Exercise
+                </Button>
+            </li>
+         </ul>
     )
   }
 
@@ -91,12 +101,12 @@ export function RoutineCreatorNav() {
     <div className="h-full flex flex-col p-2 bg-card rounded-lg border">
       <div className="flex-grow overflow-y-auto pr-1 space-y-1">
         {blockFields.map((block, bIndex) => {
-          const isBlockActive = activeSelection.type === 'block' && activeSelection.blockIndex === bIndex;
+          const isBlockActive = activeSelection.blockIndex === bIndex;
 
           return (
             <div key={block.id}>
               <div
-                className="group flex items-center rounded-md cursor-pointer"
+                className="group/block flex items-center rounded-md cursor-pointer"
                 onClick={() => handleSelect({ type: 'block', blockIndex: bIndex })}
               >
                  <div
@@ -121,7 +131,7 @@ export function RoutineCreatorNav() {
                      </Button>
                 )}
               </div>
-              <ExercisesNavList blockIndex={bIndex} />
+              {isBlockActive && <ExercisesNavList blockIndex={bIndex} />}
             </div>
           );
         })}

@@ -8,90 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Plus, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useRoutineCreator } from './coach-routine-creator';
+import { useRoutineCreator, defaultExerciseValues } from './coach-routine-creator';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { StepperInput } from './ui/stepper-input';
 
-// --- Sub-component for an exercise item in the list ---
-const ExerciseListItem = ({ blockIndex, exerciseIndex }: { blockIndex: number, exerciseIndex: number }) => {
-    const { form: { control }, setActiveSelection, onCloseNav } = useRoutineCreator();
-    const { remove } = useFieldArray({ control, name: `blocks.${blockIndex}.exercises` });
-    
-    const exerciseName = useWatch({
-        control,
-        name: `blocks.${blockIndex}.exercises.${exerciseIndex}.name`
-    });
-    
-    const handleRemove = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        remove(exerciseIndex);
-        setActiveSelection({ type: 'block', blockIndex });
-    };
-
-    const handleSelect = () => {
-        setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex });
-        onCloseNav?.();
-    }
-
-    return (
-        <div onClick={handleSelect} className="group flex items-center justify-between p-2 rounded-md border bg-muted/50 cursor-pointer">
-            <span className="font-medium truncate pr-2">{exerciseName || 'Untitled Exercise'}</span>
-            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0 opacity-0 group-hover:opacity-100" onClick={handleRemove}>
-                <Trash2 className="h-4 w-4" />
-            </Button>
-        </div>
-    );
-};
-
-// --- Sub-component for the list of exercises in a block ---
-const ExercisesForBlock = ({ blockIndex }: { blockIndex: number }) => {
-    const { form: { control }, setActiveSelection } = useRoutineCreator();
-    
-    const { fields, append } = useFieldArray({
-      control,
-      name: `blocks.${blockIndex}.exercises`,
-      keyName: "id",
-    });
-    
-    const blockName = useWatch({ control, name: `blocks.${blockIndex}.name` });
-
-    const handleAddExercise = () => {
-      const newExerciseIndex = fields.length;
-      append({ name: '', repType: 'reps', reps: '12', duration: '30 seconds', weight: 'Bodyweight', videoUrl: '' });
-      setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: newExerciseIndex });
-    };
-
-    return (
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>Exercises for <span className="text-primary">{blockName}</span></CardTitle>
-              <CardDescription>Add or remove exercises for this block.</CardDescription>
-            </div>
-            <Button type="button" variant="outline" size="sm" onClick={handleAddExercise}><Plus className="mr-2 h-4 w-4" /> Add Exercise</Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {fields.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No exercises added yet. Click "Add Exercise" to start.</p>
-          ) : (
-            fields.map((field, index) => (
-                <ExerciseListItem
-                  key={field.id}
-                  blockIndex={blockIndex}
-                  exerciseIndex={index}
-                />
-            ))
-          )}
-        </CardContent>
-      </Card>
-    );
-};
-
-// --- Sub-component for editing a single exercise ---
 const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerciseIndex: number }) => {
     const { form: { control }, setActiveSelection } = useRoutineCreator();
     const { append, fields } = useFieldArray({ control, name: `blocks.${blockIndex}.exercises` });
@@ -101,7 +24,7 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
 
     const handleAddAnother = () => {
         const newExerciseIndex = fields.length;
-        append({ name: '', repType: 'reps', reps: '12', duration: '30 seconds', weight: 'Bodyweight', videoUrl: '' });
+        append(defaultExerciseValues);
         setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: newExerciseIndex });
     };
 
@@ -130,11 +53,29 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
           )} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {repType === 'reps' ? (
-              <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`} render={({ field }) => (<FormItem><FormLabel>Reps</FormLabel><FormControl><Input placeholder="e.g., 8-12" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`} render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Reps</FormLabel>
+                        <FormControl><StepperInput field={field} step={1} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
             ) : (
-              <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`} render={({ field }) => (<FormItem><FormLabel>Duration</FormLabel><FormControl><Input placeholder="e.g., 45 seconds" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`} render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Duration (minutes)</FormLabel>
+                        <FormControl><StepperInput field={field} step={1} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
             )}
-            <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`} render={({ field }) => (<FormItem><FormLabel>Weight</FormLabel><FormControl><Input placeholder="e.g., 50kg or Bodyweight" {...field} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`} render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Weight (kg)</FormLabel>
+                    <FormControl><StepperInput field={field} step={5} allowText="Bodyweight" /></FormControl>
+                    <FormMessage />
+                </FormItem>
+            )} />
           </div>
           <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.videoUrl`} render={({ field }) => (<FormItem><FormLabel>Example Video URL</FormLabel><FormControl><Input placeholder="https://example.com/video.mp4" {...field} /></FormControl><FormMessage /></FormItem>)} />
         </CardContent>
@@ -219,10 +160,6 @@ export function RoutineCreatorForm() {
               <FormField control={control} name={`blocks.${activeSelection.blockIndex}.sets`} render={({ field }) => (<FormItem><FormLabel>Sets / Rounds</FormLabel><FormControl><Input placeholder="e.g., 3" {...field} /></FormControl><FormMessage /></FormItem>)} />
             </CardContent>
           </Card>
-          <ExercisesForBlock
-            key={activeSelection.blockIndex} 
-            blockIndex={activeSelection.blockIndex}
-          />
         </>
       )}
 

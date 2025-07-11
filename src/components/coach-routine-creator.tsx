@@ -84,6 +84,15 @@ type CoachRoutineCreatorProps = {
   onRoutineSaved: () => void;
 };
 
+export const defaultExerciseValues = { 
+  name: '', 
+  repType: 'reps' as const, 
+  reps: '10', 
+  duration: '1', 
+  weight: '5', 
+  videoUrl: '' 
+};
+
 export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdit, onRoutineSaved }: CoachRoutineCreatorProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
