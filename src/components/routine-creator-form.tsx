@@ -18,7 +18,7 @@ import type { RoutineType } from '@/app/admin/routine-types/page';
 import type { RoutineFormValues } from './coach-routine-creator';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-function ExerciseListItem({ control, blockIndex, exerciseIndex, onRemove }: { control: Control<RoutineFormValues>, blockIndex: number, exerciseIndex: number, onRemove: () => void }) {
+function ExerciseListItem({ control, blockIndex, exerciseIndex, onRemove }: { control: Control<RoutineFormValues>, blockIndex: number, exerciseIndex: number, onRemove: (e: React.MouseEvent) => void }) {
     const exerciseName = useWatch({
         control,
         name: `blocks.${blockIndex}.exercises.${exerciseIndex}.name`
