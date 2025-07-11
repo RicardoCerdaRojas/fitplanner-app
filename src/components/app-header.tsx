@@ -80,7 +80,7 @@ export function AppHeader() {
                     </>
                 ) : (
                      <div className='flex items-center gap-2'>
-                        <Button asChild variant="outline" className="border-white text-white hover:bg-white/10 hover:text-white">
+                        <Button asChild variant="secondary" className="bg-white text-gray-800 hover:bg-gray-200">
                             <Link href="/login">
                                 Login
                             </Link>
