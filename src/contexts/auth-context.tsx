@@ -11,7 +11,10 @@ import {
   updateDoc,
   deleteDoc,
   writeBatch,
-  Timestamp
+  Timestamp,
+  collection,
+  query,
+  where,
 } from 'firebase/firestore';
 import { AuthProviderClient } from '@/components/auth-provider-client';
 
@@ -21,7 +24,6 @@ type UserProfile = {
   createdAt: Timestamp;
   gymId?: string;
   dob?: Timestamp;
-  plan?: 'basic' | 'premium' | 'pro';
 };
 
 export type Membership = {
@@ -66,64 +68,60 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [gymProfile, setGymProfile] = useState<GymProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Effect to check for and process pending invitations when a user logs in.
+  // Effect to check for and process pending memberships when a user logs in.
   useEffect(() => {
-    const checkForInvite = async () => {
-      if (!user?.email || userProfile?.gymId) {
+    const claimPendingMembership = async () => {
+      if (!user?.email || (userProfile && userProfile.gymId)) {
         // Don't run if there's no email, or if the user already belongs to a gym.
         return;
       }
 
-      const inviteRef = doc(db, 'invites', user.email.toLowerCase());
-      const inviteSnap = await getDoc(inviteRef);
+      const pendingMembershipRef = doc(db, 'memberships', user.email.toLowerCase());
+      const pendingSnap = await getDoc(pendingMembershipRef);
 
-      if (inviteSnap.exists()) {
+      if (pendingSnap.exists() && pendingSnap.data().status === 'pending') {
         setLoading(true);
-        const inviteData = inviteSnap.data();
-        const gymRef = doc(db, 'gyms', inviteData.gymId);
-        const gymSnap = await getDoc(gymRef);
+        const pendingData = pendingSnap.data();
+        const batch = writeBatch(db);
 
-        if (gymSnap.exists()) {
-          const gymData = gymSnap.data();
-          const batch = writeBatch(db);
+        // 1. Create a new 'active' membership document with the correct composite key
+        const newMembershipId = `${user.uid}_${pendingData.gymId}`;
+        const newMembershipRef = doc(db, 'memberships', newMembershipId);
+        batch.set(newMembershipRef, {
+          userId: user.uid,
+          gymId: pendingData.gymId,
+          role: pendingData.role,
+          userName: pendingData.name,
+          gymName: pendingData.gymName,
+          status: 'active',
+        });
 
-          // 1. Create a new membership document
-          const membershipId = `${user.uid}_${inviteData.gymId}`;
-          const membershipRef = doc(db, 'memberships', membershipId);
-          batch.set(membershipRef, {
-            userId: user.uid,
-            gymId: inviteData.gymId,
-            role: inviteData.role,
-            userName: userProfile?.name || inviteData.name,
-            gymName: gymData.name,
-            status: 'active',
-          });
+        // 2. Update the user's profile with gymId and other details from the pending membership
+        const userRef = doc(db, 'users', user.uid);
+        const userUpdateData: any = {
+          gymId: pendingData.gymId,
+          name: pendingData.name,
+        };
+        if (pendingData.dob) userUpdateData.dob = pendingData.dob;
+        batch.update(userRef, userUpdateData);
 
-          // 2. Update the user's profile with gymId and other details from invite
-          const userRef = doc(db, 'users', user.uid);
-          const userUpdateData: Partial<UserProfile> = {
-            gymId: inviteData.gymId,
-          };
-          if (inviteData.dob) userUpdateData.dob = inviteData.dob;
-          if (inviteData.plan) userUpdateData.plan = inviteData.plan;
-          batch.update(userRef, userUpdateData);
+        // 3. Delete the processed pending membership document
+        batch.delete(pendingMembershipRef);
 
-          // 3. Delete the processed invitation
-          batch.delete(inviteRef);
-
-          try {
-            await batch.commit();
-            // The onSnapshot listeners in AuthProviderClient will automatically
-            // pick up the new membership and profile data.
-          } catch (error) {
-            console.error("Error claiming invitation:", error);
-            setLoading(false);
-          }
+        try {
+          await batch.commit();
+          // The onSnapshot listeners in AuthProviderClient will automatically
+          // pick up the new active membership and updated profile data.
+        } catch (error) {
+          console.error("Error claiming pending membership:", error);
+          setLoading(false);
         }
       }
     };
 
-    checkForInvite();
+    if (user && userProfile) {
+        claimPendingMembership();
+    }
   }, [user, userProfile]);
 
 

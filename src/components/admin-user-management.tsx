@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, Calendar as CalendarIcon, Trash2, Search, MoreVertical, Send, UserX, Edit, ShieldCheck, Dumbbell } from 'lucide-react';
+import { UserPlus, Calendar as CalendarIcon, Trash2, Search, MoreVertical, Send, UserX, Edit, ShieldCheck, Dumbbell, ClipboardList, Clock } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, Timestamp, deleteDoc, updateDoc } from 'firebase/firestore';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -32,7 +32,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogClose,
   DialogFooter
 } from "@/components/ui/dialog"
@@ -40,7 +39,6 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import { User } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { ClipboardList } from 'lucide-react';
 
 
 const formSchema = z.object({
@@ -48,14 +46,10 @@ const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
   role: z.enum(['coach', 'athlete'], { required_error: 'Please select a role.' }),
   dob: z.date().optional(),
-  plan: z.enum(['basic', 'premium', 'pro']).optional(),
 }).superRefine((data, ctx) => {
     if (data.role === 'athlete') {
         if (!data.dob) {
             ctx.addIssue({ code: 'custom', message: 'Date of birth is required.', path: ['dob'] });
-        }
-        if (!data.plan) {
-            ctx.addIssue({ code: 'custom', message: 'Plan is required.', path: ['plan'] });
         }
     }
 });
@@ -64,37 +58,36 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 type Member = {
-    id: string;
+    id: string; // userId
     type: 'member';
     email: string;
     name?: string;
-    role: 'athlete' | 'coach' | 'gym-admin' | null;
-    plan?: string;
+    role: 'athlete' | 'coach' | 'gym-admin';
     dob?: Timestamp;
+    gymName: string;
 };
 
-type Invite = {
-    id: string;
-    type: 'invite';
+type PendingMembership = {
+    id: string; // email as id
+    type: 'pending';
     email: string;
     name?: string;
     role: 'athlete' | 'coach';
-    plan?: string;
     dob?: Timestamp;
+    gymName: string;
 }
 
-type CombinedUser = Member | Invite;
+type CombinedUser = Member | PendingMembership;
 
 
-function MemberForm({ gymId, onFormSubmitted, userToEdit }: { gymId: string, onFormSubmitted: () => void, userToEdit: CombinedUser | null }) {
+function MemberForm({ gymId, gymName, onFormSubmitted, userToEdit }: { gymId: string, gymName: string, onFormSubmitted: () => void, userToEdit: CombinedUser | null }) {
     const { toast } = useToast();
     const isEditing = !!userToEdit;
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
-        defaultValues: { name: '', email: '', role: undefined, dob: undefined, plan: undefined },
+        defaultValues: { name: '', email: '', role: undefined, dob: undefined },
     });
-    const selectedRole = form.watch('role');
 
     useEffect(() => {
         if (userToEdit) {
@@ -103,45 +96,53 @@ function MemberForm({ gymId, onFormSubmitted, userToEdit }: { gymId: string, onF
                 email: userToEdit.email,
                 role: userToEdit.role === 'athlete' || userToEdit.role === 'coach' ? userToEdit.role : undefined,
                 dob: userToEdit.dob ? userToEdit.dob.toDate() : undefined,
-                plan: userToEdit.plan as 'basic' | 'premium' | 'pro' | undefined,
             });
         } else {
-            form.reset({ name: '', email: '', role: undefined, dob: undefined, plan: undefined });
+            form.reset({ name: '', email: '', role: undefined, dob: undefined});
         }
     }, [userToEdit, form]);
 
     async function onSubmit(values: FormValues) {
-        const collectionName = isEditing && userToEdit?.type === 'member' ? 'users' : 'invites';
-        const docId = isEditing ? userToEdit.id : values.email.toLowerCase();
-        const docRef = doc(db, collectionName, docId);
-
-        const dataToSave: any = {
-            gymId,
-            email: values.email.toLowerCase(),
-            name: values.name,
-            role: values.role,
-        };
-        
-        if (values.role === 'athlete') {
-            dataToSave.dob = values.dob ? Timestamp.fromDate(values.dob) : null;
-            dataToSave.plan = values.plan || null;
-        }
-
-
-        try {
-            if (isEditing) {
-                await updateDoc(docRef, dataToSave);
+        if (isEditing) {
+            // Logic to update an existing user (member)
+            const docRef = doc(db, "users", userToEdit.id);
+            const dataToUpdate: any = {
+                name: values.name,
+                role: values.role,
+                dob: values.role === 'athlete' && values.dob ? Timestamp.fromDate(values.dob) : null,
+            };
+            try {
+                await updateDoc(docRef, dataToUpdate);
                 toast({ title: 'Success!', description: `${values.name}'s details have been updated.` });
-            } else {
-                 const inviteData = { ...dataToSave, invitedAt: Timestamp.now() };
-                await setDoc(docRef, inviteData);
-                toast({ title: 'Success!', description: `Invitation sent to ${values.email}.` });
+            } catch(error: any) {
+                 toast({ variant: 'destructive', title: 'Error', description: `Could not update the member.` });
             }
-            onFormSubmitted();
-        } catch (error: any) {
-            console.error("Error submitting form:", error);
-            toast({ variant: 'destructive', title: 'Error', description: `Could not ${isEditing ? 'update' : 'send'} the ${isEditing ? 'member' : 'invitation'}.` });
+
+        } else {
+            // Logic to create a new pending membership
+            const docRef = doc(db, 'memberships', values.email.toLowerCase());
+            const dataToSave: any = {
+                gymId,
+                gymName,
+                status: 'pending',
+                email: values.email.toLowerCase(),
+                name: values.name,
+                role: values.role,
+                createdAt: Timestamp.now(),
+            };
+            if (values.role === 'athlete') {
+                dataToSave.dob = values.dob ? Timestamp.fromDate(values.dob) : null;
+            }
+
+            try {
+                await setDoc(docRef, dataToSave);
+                toast({ title: 'Success!', description: `Membership for ${values.email} is ready. They can now sign up.` });
+            } catch (error: any) {
+                console.error("Error creating pending membership:", error);
+                toast({ variant: 'destructive', title: 'Error', description: `Could not create the membership.` });
+            }
         }
+        onFormSubmitted();
     }
 
     return (
@@ -163,57 +164,41 @@ function MemberForm({ gymId, onFormSubmitted, userToEdit }: { gymId: string, onF
                 <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>)}/>
                 <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="member@example.com" {...field} disabled={isEditing} /></FormControl><FormMessage /></FormItem>)}/>
                 
-                { selectedRole === 'athlete' && (
-                    <>
-                        <FormField control={form.control} name="dob" render={({ field }) => (
-                            <FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                            <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                            </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                            mode="single"
-                                            selected={field.value}
-                                            onSelect={field.onChange}
-                                            captionLayout="dropdown"
-                                            fromYear={1940}
-                                            toYear={new Date().getFullYear()}
-                                            disabled={(date) =>
-                                                date > new Date() || date < new Date("1940-01-01")
-                                            }
-                                            initialFocus
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                                <FormMessage />
-                            </FormItem>
-                        )}/>
-                        <FormField control={form.control} name="plan" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Plan</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a plan" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="basic">Basic</SelectItem>
-                                        <SelectItem value="premium">Premium</SelectItem>
-                                        <SelectItem value="pro">Pro</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}/>
-                    </>
+                { form.watch('role') === 'athlete' && (
+                    <FormField control={form.control} name="dob" render={({ field }) => (
+                        <FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                    </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={field.value}
+                                        onSelect={field.onChange}
+                                        captionLayout="dropdown"
+                                        fromYear={1940}
+                                        toYear={new Date().getFullYear()}
+                                        disabled={(date) =>
+                                            date > new Date() || date < new Date("1940-01-01")
+                                        }
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                        </FormItem>
+                    )}/>
                 )}
                 <DialogFooter className='pt-4'>
                     <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
                     <Button type="submit" disabled={form.formState.isSubmitting}>
-                        {form.formState.isSubmitting ? (isEditing ? 'Saving...' : 'Sending...') : (isEditing ? 'Save Changes' : 'Send Invitation')}
+                        {form.formState.isSubmitting ? (isEditing ? 'Saving...' : 'Creating...') : (isEditing ? 'Save Changes' : 'Create Membership')}
                     </Button>
                 </DialogFooter>
             </form>
@@ -229,50 +214,62 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
     const [roleFilter, setRoleFilter] = useState('all');
     const [isFormModalOpen, setFormModalOpen] = useState(false);
     const [userToEdit, setUserToEdit] = useState<CombinedUser | null>(null);
+    const [gymName, setGymName] = useState('');
 
     useEffect(() => {
         setIsLoading(true);
         const usersQuery = query(collection(db, 'users'), where('gymId', '==', gymId));
-        const invitesQuery = query(collection(db, 'invites'), where('gymId', '==', gymId));
+        const pendingQuery = query(collection(db, 'memberships'), where('gymId', '==', gymId), where('status', '==', 'pending'));
 
         const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
             const fetchedUsers = snapshot.docs.map(doc => ({ id: doc.id, type: 'member' as const, ...doc.data() } as Member));
-            setAllUsers(prev => [...fetchedUsers.filter(u => u.role), ...prev.filter(p => p.type !== 'member')]);
-            setIsLoading(false);
+            setAllUsers(prev => [...fetchedUsers, ...prev.filter(p => p.type !== 'member')]);
+            if(fetchedUsers.length > 0) setGymName(fetchedUsers[0].gymName);
         });
 
-        const unsubscribeInvites = onSnapshot(invitesQuery, (snapshot) => {
-            const fetchedInvites = snapshot.docs.map(doc => ({ id: doc.id, type: 'invite' as const, ...doc.data() } as Invite));
-            setAllUsers(prev => [...fetchedInvites, ...prev.filter(p => p.type !== 'invite')]);
+        const unsubscribePending = onSnapshot(pendingQuery, (snapshot) => {
+            const fetchedPending = snapshot.docs.map(doc => ({ id: doc.id, type: 'pending' as const, ...doc.data() } as PendingMembership));
+            setAllUsers(prev => [...fetchedPending, ...prev.filter(p => p.type !== 'pending')]);
+            if(fetchedPending.length > 0) setGymName(fetchedPending[0].gymName);
         });
         
-        const timer = setTimeout(() => setIsLoading(false), 2000);
+        const timer = setTimeout(() => setIsLoading(false), 1500);
 
         return () => {
             unsubscribeUsers();
-            unsubscribeInvites();
+            unsubscribePending();
             clearTimeout(timer);
         };
     }, [gymId]);
     
     async function deleteItem(item: CombinedUser) {
-        const collectionName = item.type === 'member' ? 'users' : 'invites';
+        const collectionName = item.type === 'member' ? 'memberships' : 'memberships';
+        const docId = item.type === 'member' ? `${item.id}_${gymId}` : item.id;
+        
         if (!window.confirm(`Are you sure you want to delete ${item.name || item.email}? This action cannot be undone.`)) return;
         
         try {
-            await deleteDoc(doc(db, collectionName, item.id));
-            toast({ title: `${item.type === 'member' ? 'Member' : 'Invitation'} Deleted`, description: `${item.name || item.email} has been removed.`});
+            await deleteDoc(doc(db, collectionName, docId));
+            if(item.type === 'member') {
+                // Also clear gymId from user profile
+                await updateDoc(doc(db, 'users', item.id), { gymId: null });
+            }
+            toast({ title: `Record Deleted`, description: `${item.name || item.email} has been removed.`});
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not delete the item.' });
         }
     }
 
-    const openInviteDialog = () => {
+    const openCreateDialog = () => {
         setUserToEdit(null);
         setFormModalOpen(true);
     };
 
     const openEditDialog = (user: CombinedUser) => {
+        if (user.type === 'pending') {
+            toast({ title: 'Action Not Allowed', description: 'Please delete and recreate the pending membership to make changes.'});
+            return;
+        }
         setUserToEdit(user);
         setFormModalOpen(true);
     };
@@ -287,7 +284,7 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
 
                 const matchesFilter = roleFilter === 'all' ||
                     user.role === roleFilter ||
-                    (roleFilter === 'invited' && user.type === 'invite');
+                    (roleFilter === 'pending' && user.type === 'pending');
                 
                 return matchesSearch && matchesFilter;
             })
@@ -300,9 +297,9 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
         let icon: React.ReactNode;
         let className: string;
     
-        if (user.type === 'invite') {
-            roleName = 'Invited';
-            icon = <Send className="h-4 w-4" />;
+        if (user.type === 'pending') {
+            roleName = 'Pending';
+            icon = <Clock className="h-4 w-4" />;
             className = 'text-blue-500';
         } else {
             switch(user.role) {
@@ -351,10 +348,10 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
                             <CardTitle>Gym Members</CardTitle>
-                            <CardDescription>Search, filter, and manage all members and invitations.</CardDescription>
+                            <CardDescription>Search, filter, and manage all members and pending sign-ups.</CardDescription>
                         </div>
-                        <Button className="w-full sm:w-auto" onClick={openInviteDialog}>
-                            <UserPlus className="mr-2 h-4 w-4" /> Invite Member
+                        <Button className="w-full sm:w-auto" onClick={openCreateDialog}>
+                            <UserPlus className="mr-2 h-4 w-4" /> Add Member
                         </Button>
                     </div>
                     <div className="flex flex-col md:flex-row gap-2 pt-4">
@@ -370,7 +367,7 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                                 <SelectItem value="all">All Roles</SelectItem>
                                 <SelectItem value="athlete">Athletes</SelectItem>
                                 <SelectItem value="coach">Coaches</SelectItem>
-                                <SelectItem value="invited">Invited</SelectItem>
+                                <SelectItem value="pending">Pending</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -384,7 +381,7 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                                 <UserX className="mx-auto h-12 w-12 text-muted-foreground" />
                                 <h3 className="mt-4 text-lg font-semibold">No users found</h3>
                                 <p className="mt-1 text-sm text-muted-foreground">
-                                    Try adjusting your search or filter, or invite a new member.
+                                    Try adjusting your search or filter, or add a new member.
                                 </p>
                             </div>
                         ) : (
@@ -395,7 +392,7 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                                             {user.name ? user.name.charAt(0).toUpperCase() : <User />}
                                         </AvatarFallback>
                                     </Avatar>
-                                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-4 items-center">
+                                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-center">
                                         <div className="sm:col-span-1">
                                             <div className='flex items-center gap-2'>
                                                 {getRoleIcon(user)}
@@ -404,10 +401,6 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                                             <p className="text-sm text-muted-foreground truncate">{user.email}</p>
                                         </div>
                                         <div className="hidden sm:block">
-                                            <p className="text-sm font-semibold">{user.plan || 'N/A'}</p>
-                                            <p className="text-xs text-muted-foreground">Plan</p>
-                                        </div>
-                                        <div className="hidden md:block">
                                             <p className="text-sm font-semibold">{user.dob ? format(user.dob.toDate(), 'PPP') : 'N/A'}</p>
                                             <p className="text-xs text-muted-foreground">DOB</p>
                                         </div>
@@ -419,19 +412,14 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                                            <DropdownMenuItem onClick={() => openEditDialog(user)} disabled={user.type === 'pending'}>
                                                 <Edit className="mr-2 h-4 w-4" /> Edit
                                             </DropdownMenuItem>
-                                            {user.type === 'member' && (
+                                            {user.type === 'member' && user.role !== 'gym-admin' && (
                                                 <DropdownMenuItem asChild>
                                                     <Link href={`/coach?athleteId=${user.id}`}>
                                                         <ClipboardList className="mr-2" /> View Routines
                                                     </Link>
-                                                </DropdownMenuItem>
-                                            )}
-                                            {user.type === 'invite' && (
-                                                <DropdownMenuItem>
-                                                    <Send className="mr-2" /> Resend Invite
                                                 </DropdownMenuItem>
                                             )}
                                             <DropdownMenuItem onClick={() => deleteItem(user)} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
@@ -448,12 +436,12 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
 
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{userToEdit ? 'Edit Member' : 'Invite New Member'}</DialogTitle>
+                    <DialogTitle>{userToEdit ? 'Edit Member' : 'Add New Member'}</DialogTitle>
                     <DialogDescription>
-                        {userToEdit ? `Update the details for ${userToEdit.name}.` : 'Add a new coach or athlete to your gym. They will receive an email to sign up.'}
+                        {userToEdit ? `Update the details for ${userToEdit.name}.` : 'Create a new membership. The user can then sign up with this email to get access.'}
                     </DialogDescription>
                 </DialogHeader>
-                <MemberForm gymId={gymId} onFormSubmitted={() => setFormModalOpen(false)} userToEdit={userToEdit} />
+                <MemberForm gymId={gymId} gymName={gymName} onFormSubmitted={() => setFormModalOpen(false)} userToEdit={userToEdit} />
             </DialogContent>
         </Dialog>
     );

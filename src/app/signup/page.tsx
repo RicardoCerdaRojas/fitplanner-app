@@ -63,14 +63,15 @@ export default function SignupPage() {
       const { user } = userCredential;
 
       // Step 2: Create a basic user profile in Firestore.
-      // This profile will be updated by the invitation claim logic if an invite exists.
+      // This profile will be updated by the membership claim logic if a pending membership exists.
       await setDoc(doc(db, 'users', user.uid), {
         name: values.name,
         email: lowerCaseEmail,
         createdAt: Timestamp.now(),
+        gymId: null, // Explicitly set gymId to null initially
       });
       
-      // Redirect to home, where logic in AuthContext will handle checking for an invite.
+      // Redirect to home, where logic in AuthContext will handle checking for a pending membership.
       router.push('/');
 
     } catch (error: any) {
