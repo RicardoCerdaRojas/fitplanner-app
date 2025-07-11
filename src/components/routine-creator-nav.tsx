@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFieldArray } from 'react-hook-form';
@@ -8,14 +7,9 @@ import { cn } from '@/lib/utils';
 import { useRoutineCreator, defaultExerciseValues } from './coach-routine-creator';
 
 export function RoutineCreatorNav() {
-  const { form, activeSelection, setActiveSelection, onCloseNav } = useRoutineCreator();
-  const { control } = form;
+  const { control } = useRoutineCreator().form;
+  const { activeSelection, setActiveSelection, onCloseNav, blockFields, appendBlock, removeBlock } = useRoutineCreator();
   
-  const { fields: blockFields, append: appendBlock, remove: removeBlock } = useFieldArray({
-    control,
-    name: 'blocks',
-  });
-
   const handleAddBlock = () => {
     const newBlockIndex = blockFields.length;
     appendBlock({ name: `Block ${newBlockIndex + 1}`, sets: '3', exercises: [] });
@@ -38,7 +32,6 @@ export function RoutineCreatorNav() {
   };
   
   const ExercisesNavList = ({ blockIndex }: { blockIndex: number }) => {
-    const { control } = useRoutineCreator().form;
     const { fields, append, remove } = useFieldArray({
       control,
       name: `blocks.${blockIndex}.exercises`,

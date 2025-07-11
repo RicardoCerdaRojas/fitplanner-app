@@ -19,6 +19,7 @@ import { RoutineCreatorForm } from './routine-creator-form';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { PanelLeft } from 'lucide-react';
+import { useFieldArray } from 'react-hook-form';
 
 const exerciseSchema = z.object({
   name: z.string().min(2, 'Exercise name is required.'),
@@ -64,6 +65,9 @@ type RoutineCreatorContextType = {
   isSubmitting: boolean;
   onCancel: () => void;
   onCloseNav?: () => void;
+  blockFields: ReturnType<typeof useFieldArray<RoutineFormValues, 'blocks'>>['fields'];
+  appendBlock: ReturnType<typeof useFieldArray<RoutineFormValues, 'blocks'>>['append'];
+  removeBlock: ReturnType<typeof useFieldArray<RoutineFormValues, 'blocks'>>['remove'];
 };
 
 const RoutineCreatorContext = createContext<RoutineCreatorContextType | null>(null);
@@ -124,6 +128,11 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
     resolver: zodResolver(routineSchema),
     defaultValues,
     mode: 'onBlur'
+  });
+  
+  const { fields: blockFields, append: appendBlock, remove: removeBlock } = useFieldArray({
+    control: form.control,
+    name: 'blocks',
   });
   
   useEffect(() => {
@@ -190,6 +199,9 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
     isSubmitting,
     onCancel: onRoutineSaved,
     onCloseNav: () => isMobile && setIsNavOpen(false),
+    blockFields,
+    appendBlock,
+    removeBlock,
   };
 
   return (
