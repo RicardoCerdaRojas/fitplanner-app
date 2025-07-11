@@ -1,7 +1,7 @@
 'use client';
 
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
-import type { UseFormReturn } from 'react-hook-form';
+import type { Control, UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -28,6 +28,23 @@ type RoutineCreatorFormProps = {
   isSubmitting: boolean;
   onCancel: () => void;
 };
+
+// New component to safely use the useWatch hook
+function ExerciseListItem({ control, blockIndex, exerciseIndex, onRemove }: { control: Control<RoutineFormValues>, blockIndex: number, exerciseIndex: number, onRemove: () => void }) {
+    const exerciseName = useWatch({
+        control,
+        name: `blocks.${blockIndex}.exercises.${exerciseIndex}.name`
+    });
+
+    return (
+        <div className="flex items-center justify-between p-2 rounded-md border bg-muted/50">
+            <span className="font-medium">{exerciseName || 'Untitled Exercise'}</span>
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={onRemove}>
+                <Trash2 className="h-4 w-4" />
+            </Button>
+        </div>
+    );
+}
 
 export function RoutineCreatorForm({
   form,
@@ -166,12 +183,13 @@ export function RoutineCreatorForm({
                     <p className="text-sm text-muted-foreground text-center py-4">No exercises added yet. Click "Add Exercise" to start.</p>
                 ) : (
                     fields.map((field, index) => (
-                        <div key={field.id} className="flex items-center justify-between p-2 rounded-md border bg-muted/50">
-                           <span className="font-medium">{useWatch({ control, name: `blocks.${activeSelection.blockIndex}.exercises.${index}.name` }) || 'Untitled Exercise'}</span>
-                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => remove(index)}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </div>
+                        <ExerciseListItem 
+                            key={field.id}
+                            control={control}
+                            blockIndex={activeSelection.blockIndex}
+                            exerciseIndex={index}
+                            onRemove={() => remove(index)}
+                        />
                     ))
                 )}
             </CardContent>
