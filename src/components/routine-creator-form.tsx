@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Plus, Trash2, Edit } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { Member } from '@/app/coach/page';
@@ -29,7 +29,7 @@ type RoutineCreatorFormProps = {
   onCancel: () => void;
 };
 
-// New component to safely use the useWatch hook
+// New component to safely use the useWatch hook inside a loop
 function ExerciseListItem({ control, blockIndex, exerciseIndex, onRemove }: { control: Control<RoutineFormValues>, blockIndex: number, exerciseIndex: number, onRemove: () => void }) {
     const exerciseName = useWatch({
         control,
@@ -44,6 +44,41 @@ function ExerciseListItem({ control, blockIndex, exerciseIndex, onRemove }: { co
             </Button>
         </div>
     );
+}
+
+// New component for the exercise form to avoid conditional hook calls
+function ExerciseForm({ control, blockIndex, exerciseIndex }: { control: Control<RoutineFormValues>; blockIndex: number; exerciseIndex: number }) {
+  const repType = useWatch({ control, name: `blocks.${blockIndex}.exercises.${exerciseIndex}.repType` });
+  const blockName = useWatch({ control, name: `blocks.${blockIndex}.name` });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Editing Exercise</CardTitle>
+        <CardDescription>Define the details for this exercise within the <span className="font-semibold text-primary">{blockName}</span> block.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`} render={({ field }) => (<FormItem><FormLabel>Exercise Name</FormLabel><FormControl><Input placeholder="e.g., Bench Press" {...field} /></FormControl><FormMessage /></FormItem>)} />
+        <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`} render={({ field }) => (
+          <FormItem className="space-y-2"><FormLabel>Repetitions or Duration?</FormLabel>
+            <FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
+              <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="reps" /></FormControl><FormLabel className="font-normal">Reps</FormLabel></FormItem>
+              <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="duration" /></FormControl><FormLabel className="font-normal">Duration</FormLabel></FormItem>
+            </RadioGroup></FormControl><FormMessage />
+          </FormItem>
+        )} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {repType === 'reps' ? (
+            <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`} render={({ field }) => (<FormItem><FormLabel>Reps</FormLabel><FormControl><Input placeholder="e.g., 8-12" {...field} /></FormControl><FormMessage /></FormItem>)} />
+          ) : (
+            <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`} render={({ field }) => (<FormItem><FormLabel>Duration</FormLabel><FormControl><Input placeholder="e.g., 45 seconds" {...field} /></FormControl><FormMessage /></FormItem>)} />
+          )}
+          <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`} render={({ field }) => (<FormItem><FormLabel>Weight</FormLabel><FormControl><Input placeholder="e.g., 50kg or Bodyweight" {...field} /></FormControl><FormMessage /></FormItem>)} />
+        </div>
+        <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.videoUrl`} render={({ field }) => (<FormItem><FormLabel>Example Video URL</FormLabel><FormControl><Input placeholder="https://example.com/video.mp4" {...field} /></FormControl><FormMessage /></FormItem>)} />
+      </CardContent>
+    </Card>
+  )
 }
 
 export function RoutineCreatorForm({
@@ -140,31 +175,11 @@ export function RoutineCreatorForm({
       )}
 
       {activeSelection.type === 'exercise' && activeSelection.exerciseIndex !== undefined && (
-        <Card>
-            <CardHeader>
-                <CardTitle>Editing Exercise</CardTitle>
-                <CardDescription>Define the details for this exercise within the <span className="font-semibold text-primary">{blockName}</span> block.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                 <FormField control={control} name={`blocks.${activeSelection.blockIndex}.exercises.${activeSelection.exerciseIndex}.name`} render={({ field }) => (<FormItem><FormLabel>Exercise Name</FormLabel><FormControl><Input placeholder="e.g., Bench Press" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={control} name={`blocks.${activeSelection.blockIndex}.exercises.${activeSelection.exerciseIndex}.repType`} render={({ field }) => (
-                    <FormItem className="space-y-2"><FormLabel>Repetitions or Duration?</FormLabel>
-                    <FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
-                        <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="reps" /></FormControl><FormLabel className="font-normal">Reps</FormLabel></FormItem>
-                        <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="duration" /></FormControl><FormLabel className="font-normal">Duration</FormLabel></FormItem>
-                    </RadioGroup></FormControl><FormMessage /></FormItem>
-                )}/>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {useWatch({ control, name: `blocks.${activeSelection.blockIndex}.exercises.${activeSelection.exerciseIndex}.repType` }) === 'reps' ? (
-                       <FormField control={control} name={`blocks.${activeSelection.blockIndex}.exercises.${activeSelection.exerciseIndex}.reps`} render={({ field }) => (<FormItem><FormLabel>Reps</FormLabel><FormControl><Input placeholder="e.g., 8-12" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    ) : (
-                       <FormField control={control} name={`blocks.${activeSelection.blockIndex}.exercises.${activeSelection.exerciseIndex}.duration`} render={({ field }) => (<FormItem><FormLabel>Duration</FormLabel><FormControl><Input placeholder="e.g., 45 seconds" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    )}
-                    <FormField control={control} name={`blocks.${activeSelection.blockIndex}.exercises.${activeSelection.exerciseIndex}.weight`} render={({ field }) => (<FormItem><FormLabel>Weight</FormLabel><FormControl><Input placeholder="e.g., 50kg or Bodyweight" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                </div>
-                <FormField control={control} name={`blocks.${activeSelection.blockIndex}.exercises.${activeSelection.exerciseIndex}.videoUrl`} render={({ field }) => (<FormItem><FormLabel>Example Video URL</FormLabel><FormControl><Input placeholder="https://example.com/video.mp4" {...field} /></FormControl><FormMessage /></FormItem>)}/>
-            </CardContent>
-        </Card>
+        <ExerciseForm 
+          control={control}
+          blockIndex={activeSelection.blockIndex}
+          exerciseIndex={activeSelection.exerciseIndex}
+        />
       )}
 
       {activeSelection.type === 'block' && (
