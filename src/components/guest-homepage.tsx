@@ -71,7 +71,7 @@ export function GuestHomepage() {
                         data-ai-hint="fitness workout"
                         layout="fill"
                         objectFit="cover"
-                        objectPosition="center top"
+                        objectPosition="top"
                         className="opacity-20 md:opacity-100"
                         priority
                     />
