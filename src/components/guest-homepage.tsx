@@ -64,19 +64,18 @@ export function GuestHomepage() {
         <div className="w-full bg-[#0B0C10] text-white overflow-hidden">
             {/* Hero Section */}
             <div className="relative min-h-screen w-full">
-                <div className="absolute top-0 right-0 h-full w-full md:w-3/5 lg:w-1/2 z-0">
-                    <Image
-                        src="/hero-background.jpg"
-                        alt="Fitness model"
-                        data-ai-hint="fitness workout"
-                        layout="fill"
-                        objectFit="cover"
-                        objectPosition="top right"
-                        className="opacity-20 md:opacity-100"
-                        priority
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#0B0C10] via-[#0B0C10] to-transparent"></div>
-                </div>
+                <Image
+                    src="/hero-background.jpg"
+                    alt="Fitness model"
+                    data-ai-hint="fitness workout"
+                    layout="fill"
+                    objectFit="cover"
+                    objectPosition="top right"
+                    className="opacity-20"
+                    priority
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#0B0C10] via-[#0B0C10]/90 to-transparent"></div>
+                
                 <div className="relative z-10 flex flex-col min-h-screen">
                     <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
                         <AppHeader />

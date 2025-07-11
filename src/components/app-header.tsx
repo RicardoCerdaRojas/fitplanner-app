@@ -79,7 +79,7 @@ export function AppHeader() {
                         </Button>
                     </>
                 ) : (
-                     <Button asChild variant="outline" className="text-white border-white/50 hover:bg-white/10 hover:text-white">
+                     <Button asChild className="bg-white text-gray-800 hover:bg-gray-200">
                         <Link href="/login">
                             Login
                         </Link>
