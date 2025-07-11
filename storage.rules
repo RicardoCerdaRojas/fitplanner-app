@@ -2,20 +2,15 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    
-    // Helper function to check if a user is an admin of a specific gym by checking Firestore.
-    function isGymAdmin(userId, gymId) {
-      let membershipPath = /databases/(default)/documents/memberships/$(userId + '_' + gymId);
-      return exists(membershipPath) && get(membershipPath).data.role == 'gym-admin';
-    }
-
-    // Rules for gym logos stored in the 'logos' folder.
     match /logos/{gymId}/{allPaths=**} {
-      // Allow anyone to read the logos (e.g., for public display in the app header).
+      // Anyone can read logos, as they are public branding assets.
       allow read: if true;
-      
-      // Allow write (create, update, delete) only if the user is an admin of that specific gym.
-      allow write: if request.auth != null && isGymAdmin(request.auth.uid, gymId);
+
+      // Allow write (create, update, delete) only if the user is a gym-admin for the specified gymId.
+      // We verify this by checking their membership document in Firestore.
+      allow write: if request.auth != null &&
+                    exists(/databases/(default)/documents/memberships/$(request.auth.uid)_$(gymId)) &&
+                    get(/databases/(default)/documents/memberships/$(request.auth.uid)_$(gymId)).data.role == 'gym-admin';
     }
   }
 }
