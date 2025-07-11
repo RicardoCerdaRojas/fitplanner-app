@@ -51,6 +51,8 @@ export function RoutineCreatorNav() {
         // If the deleted exercise was the active one, fallback to block view
         if (activeSelection.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === exerciseIndex) {
             setActiveSelection({ type: 'block', blockIndex });
+        } else if (activeSelection.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex && activeSelection.exerciseIndex > exerciseIndex) {
+            setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: activeSelection.exerciseIndex - 1});
         }
     };
     
@@ -61,18 +63,18 @@ export function RoutineCreatorNav() {
         {exerciseFields.map((exercise, eIndex) => {
              const isExerciseActive = activeSelection.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === eIndex;
              return (
-                <li key={exercise.id} className="group/menu-item flex items-center">
+                <li key={exercise.id} className="flex items-center group">
                     <Button
                         variant={isExerciseActive ? 'secondary' : 'ghost'}
-                        className="w-full justify-start text-left h-auto py-1.5 px-2 text-sm font-normal"
-                        onClick={() => handleSelect({ type: 'exercise', blockIndex: bIndex, exerciseIndex: eIndex })}
+                        className="w-full justify-start text-left h-auto py-1.5 px-2 text-sm font-normal flex-1"
+                        onClick={() => handleSelect({ type: 'exercise', blockIndex, exerciseIndex: eIndex })}
                     >
                         {exercises?.[eIndex]?.name || 'Untitled Exercise'}
                     </Button>
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 shrink-0 opacity-0 group-hover/menu-item:opacity-100 text-muted-foreground hover:text-destructive"
+                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
                         onClick={(e) => handleRemoveExercise(e, eIndex)}
                     >
                         <Trash2 className="h-4 w-4" />
@@ -99,7 +101,7 @@ export function RoutineCreatorNav() {
               >
                  <div
                     className={cn(
-                        'w-full justify-start text-left h-auto py-2 px-3 rounded-md',
+                        'flex-1 justify-start text-left h-auto py-2 px-3 rounded-md',
                         isBlockActive ? 'bg-secondary' : 'bg-transparent hover:bg-muted/50'
                     )}
                 >
@@ -112,7 +114,7 @@ export function RoutineCreatorNav() {
                      <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
                         onClick={(e) => handleRemoveBlock(e, bIndex)}
                      >
                         <Trash2 className="h-4 w-4" />
