@@ -100,51 +100,25 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
     );
 };
 
-const BlockForm = ({ blockIndex }: { blockIndex: number }) => {
-    const { form, setActiveSelection } = useRoutineCreator();
-    const { control } = form;
-    
-    const { fields, append, remove } = useFieldArray({
-        control,
-        name: `blocks.${blockIndex}.exercises`,
-    });
-    
-    const blockName = useWatch({ control, name: `blocks.${blockIndex}.name` });
-    const watchedExercises = useWatch({ control, name: `blocks.${blockIndex}.exercises` });
-
-    const handleAddExercise = () => {
-        const newExerciseIndex = fields.length;
-        append(defaultExerciseValues);
-        setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: newExerciseIndex });
-    };
-
-    return (
-         <Card>
-            <CardHeader>
-                <div className='flex justify-between items-center'>
-                    <div>
-                        <CardTitle>Editing Block: <span className="text-primary">{blockName}</span></CardTitle>
-                        <CardDescription>Define the name and number of sets for this block.</CardDescription>
-                    </div>
-                    <Button type="button" variant="outline" onClick={handleAddExercise}>
-                        <Plus className="mr-2 h-4 w-4" /> Add Exercise
-                    </Button>
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (<FormItem><FormLabel>Block Name</FormLabel><FormControl><Input placeholder="e.g., Upper Body Focus" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (<FormItem><FormLabel>Sets / Rounds</FormLabel><FormControl><Input placeholder="e.g., 3" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                </div>
-            </CardContent>
-        </Card>
-    )
-}
-
 
 export function RoutineCreatorForm() {
-    const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel } = useRoutineCreator();
+    const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel, setActiveSelection } = useRoutineCreator();
     const { control } = form;
+    const { fields: blockFields } = useFieldArray({ control, name: 'blocks' });
+
+    const activeBlock = blockFields[activeSelection.blockIndex];
+    if (!activeBlock) return null; // Or some fallback UI
+
+    const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
+        control,
+        name: `blocks.${activeSelection.blockIndex}.exercises`,
+    });
+
+    const handleAddExercise = () => {
+        const newExerciseIndex = exerciseFields.length;
+        appendExercise(defaultExerciseValues);
+        setActiveSelection({ type: 'exercise', blockIndex: activeSelection.blockIndex, exerciseIndex: newExerciseIndex });
+    };
 
     return (
         <div className="space-y-6">
@@ -205,7 +179,25 @@ export function RoutineCreatorForm() {
             </Card>
             
             {activeSelection.type === 'block' && (
-                <BlockForm key={`block-form-${activeSelection.blockIndex}`} blockIndex={activeSelection.blockIndex} />
+                <Card>
+                    <CardHeader>
+                        <div className='flex justify-between items-center'>
+                            <div>
+                                <CardTitle>Editing Block: <span className="text-primary">{control._getWatch(`blocks.${activeSelection.blockIndex}.name`)}</span></CardTitle>
+                                <CardDescription>Define the name and number of sets for this block.</CardDescription>
+                            </div>
+                            <Button type="button" variant="outline" onClick={handleAddExercise}>
+                                <Plus className="mr-2 h-4 w-4" /> Add Exercise
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField control={control} name={`blocks.${activeSelection.blockIndex}.name`} render={({ field }) => (<FormItem><FormLabel>Block Name</FormLabel><FormControl><Input placeholder="e.g., Upper Body Focus" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={control} name={`blocks.${activeSelection.blockIndex}.sets`} render={({ field }) => (<FormItem><FormLabel>Sets / Rounds</FormLabel><FormControl><Input placeholder="e.g., 3" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        </div>
+                    </CardContent>
+                </Card>
             )}
 
             {activeSelection.type === 'exercise' && activeSelection.exerciseIndex !== undefined ? (
@@ -225,4 +217,3 @@ export function RoutineCreatorForm() {
         </div>
     );
 }
-
