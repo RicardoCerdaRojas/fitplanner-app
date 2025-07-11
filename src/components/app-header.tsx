@@ -80,12 +80,12 @@ export function AppHeader() {
                     </>
                 ) : (
                      <div className='flex items-center gap-2'>
-                        <Button asChild variant="outline" className="border-white/50 text-white hover:bg-white/10 hover:text-white">
+                        <Button asChild variant="outline" className="border-white text-white hover:bg-white/10 hover:text-white">
                             <Link href="/login">
                                 Login
                             </Link>
                         </Button>
-                         <Button asChild className="bg-white text-gray-800 hover:bg-gray-200">
+                         <Button asChild className="bg-[#3A7CFD] hover:bg-[#3a7cfd]/90 text-white">
                             <Link href="/signup">
                                 Sign Up
                             </Link>
