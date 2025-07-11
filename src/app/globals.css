@@ -66,3 +66,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+    .dark ::-webkit-input-placeholder {
+       color: hsl(217.9 10.6% 64.9% / 0.8);
+    }
+}
