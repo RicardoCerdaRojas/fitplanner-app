@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFieldArray } from 'react-hook-form';
@@ -37,22 +38,23 @@ export function RoutineCreatorNav() {
   };
   
   const ExercisesNavList = ({ blockIndex }: { blockIndex: number }) => {
-    const { fields: exerciseFields, remove: removeExercise, append: appendExercise } = useFieldArray({
+    const { control } = useRoutineCreator().form;
+    const { fields, append, remove } = useFieldArray({
       control,
       name: `blocks.${blockIndex}.exercises`,
     });
     
     const handleAddExercise = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const newExerciseIndex = exerciseFields.length;
-        appendExercise(defaultExerciseValues);
+        const newExerciseIndex = fields.length;
+        append(defaultExerciseValues);
         setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: newExerciseIndex });
         onCloseNav?.();
     };
 
     const handleRemoveExercise = (e: React.MouseEvent, exerciseIndex: number) => {
         e.stopPropagation();
-        removeExercise(exerciseIndex);
+        remove(exerciseIndex);
         // If the deleted exercise was the active one, fallback to block view
         if (activeSelection.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === exerciseIndex) {
             setActiveSelection({ type: 'block', blockIndex });
@@ -63,7 +65,7 @@ export function RoutineCreatorNav() {
     
     return (
         <ul className="pl-6 pr-2 py-1 space-y-1 mt-1 border-l-2 ml-4">
-            {exerciseFields.map((exercise, eIndex) => {
+            {fields.map((exercise, eIndex) => {
                  const isExerciseActive = activeSelection.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === eIndex;
                  return (
                     <li key={exercise.id} className="flex items-center group/item">
@@ -72,7 +74,7 @@ export function RoutineCreatorNav() {
                             className="w-full justify-start text-left h-auto py-1.5 px-2 text-sm font-normal flex-1"
                             onClick={() => handleSelect({ type: 'exercise', blockIndex, exerciseIndex: eIndex })}
                         >
-                            {exercise.name || 'Untitled Exercise'}
+                            {(exercise as any).name || 'Untitled Exercise'}
                         </Button>
                         <Button
                             variant="ghost"
@@ -100,6 +102,7 @@ export function RoutineCreatorNav() {
       <div className="flex-grow overflow-y-auto pr-1 space-y-1">
         {blockFields.map((block, bIndex) => {
           const isBlockActive = activeSelection.blockIndex === bIndex;
+          const exercises = (block as any).exercises || [];
 
           return (
             <div key={block.id}>
@@ -109,13 +112,13 @@ export function RoutineCreatorNav() {
                  <div
                     className={cn(
                         'flex-1 justify-start text-left h-auto py-2 px-3 rounded-md',
-                        isBlockActive ? 'bg-secondary' : 'bg-transparent hover:bg-muted/50'
+                        isBlockActive && activeSelection.type === 'block' ? 'bg-secondary' : 'bg-transparent hover:bg-muted/50'
                     )}
                     onClick={() => handleSelect({ type: 'block', blockIndex: bIndex })}
                 >
                     <div className="flex-1">
                         <p className="font-semibold">{block.name || 'Untitled Block'}</p>
-                        <p className="text-xs text-muted-foreground">{block.sets} sets &bull; {block.exercises?.length || 0} exercises</p>
+                        <p className="text-xs text-muted-foreground">{block.sets} sets &bull; {exercises.length || 0} exercises</p>
                     </div>
                 </div>
                 {blockFields.length > 1 && (

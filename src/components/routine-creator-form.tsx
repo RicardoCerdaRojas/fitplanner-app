@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useFieldArray, useWatch } from 'react-hook-form';
+import { useFieldArray } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -12,27 +12,27 @@ import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useRoutineCreator, defaultExerciseValues } from './coach-routine-creator';
+import { useRoutineCreator } from './coach-routine-creator';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StepperInput } from './ui/stepper-input';
 
 const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerciseIndex: number }) => {
     const { form, setActiveSelection, onCloseNav } = useRoutineCreator();
-    const { control, setValue } = form;
+    const { control, setValue, watch } = form;
     
-    const repType = useWatch({ control, name: `blocks.${blockIndex}.exercises.${exerciseIndex}.repType` });
-    const blockName = useWatch({ control, name: `blocks.${blockIndex}.name` });
+    const blockName = watch(`blocks.${blockIndex}.name`);
+    const repType = watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`);
 
     const handleRepTypeChange = (value: 'reps' | 'duration') => {
         setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, value);
         if (value === 'reps') {
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, '10');
-            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, undefined);
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`, '5');
+            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, undefined);
         } else {
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, undefined);
-            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, '1');
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`, '0');
+            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, '1');
         }
     };
     
@@ -88,31 +88,50 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
     );
 };
 
+const ExercisesForBlock = ({ blockIndex }: { blockIndex: number }) => {
+    const { form, setActiveSelection } = useRoutineCreator();
+    const { control, getValues } = form;
+    const { fields, append, remove } = useFieldArray({ control, name: `blocks.${blockIndex}.exercises` });
+  
+    if (fields.length === 0) return null;
+  
+    return (
+      <div className="space-y-2 mt-4">
+        <h3 className="text-sm font-semibold text-muted-foreground">Exercises in this block</h3>
+        {fields.map((field, index) => (
+          <div key={field.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50 text-sm">
+            <span>{getValues(`blocks.${blockIndex}.exercises.${index}.name`) || 'Untitled Exercise'}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: index })}
+            >
+              Edit
+            </Button>
+          </div>
+        ))}
+      </div>
+    );
+  };
+  
 
 export function RoutineCreatorForm() {
-    const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel, setActiveSelection } = useRoutineCreator();
+    const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel } = useRoutineCreator();
     const { control } = form;
 
     const { fields: blockFields } = useFieldArray({ control, name: 'blocks' });
     
     // This hook call MUST happen before any early returns.
-    const { fields: exerciseFields, append: appendExercise } = useFieldArray({
+    const { append: appendExercise } = useFieldArray({
         control,
         name: `blocks.${activeSelection.blockIndex}.exercises`,
     });
     
     const activeBlock = blockFields[activeSelection.blockIndex];
     
-    // Now we can safely return if the active block doesn't exist.
     if (!activeBlock) {
         return null;
     }
-
-    const handleAddExercise = () => {
-        const newExerciseIndex = exerciseFields.length;
-        appendExercise(defaultExerciseValues);
-        setActiveSelection({ type: 'exercise', blockIndex: activeSelection.blockIndex, exerciseIndex: newExerciseIndex });
-    };
 
     return (
         <div className="space-y-6">
@@ -180,9 +199,6 @@ export function RoutineCreatorForm() {
                                 <CardTitle>Editing Block: <span className="text-primary">{control._getWatch(`blocks.${activeSelection.blockIndex}.name`)}</span></CardTitle>
                                 <CardDescription>Define the name and number of sets for this block.</CardDescription>
                             </div>
-                            <Button type="button" variant="outline" onClick={handleAddExercise}>
-                                <Plus className="mr-2 h-4 w-4" /> Add Exercise
-                            </Button>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -190,6 +206,7 @@ export function RoutineCreatorForm() {
                             <FormField control={control} name={`blocks.${activeSelection.blockIndex}.name`} render={({ field }) => (<FormItem><FormLabel>Block Name</FormLabel><FormControl><Input placeholder="e.g., Upper Body Focus" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={control} name={`blocks.${activeSelection.blockIndex}.sets`} render={({ field }) => (<FormItem><FormLabel>Sets / Rounds</FormLabel><FormControl><Input placeholder="e.g., 3" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         </div>
+                         <ExercisesForBlock blockIndex={activeSelection.blockIndex} />
                     </CardContent>
                 </Card>
             )}
