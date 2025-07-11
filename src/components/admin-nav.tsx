@@ -30,7 +30,7 @@ export function AdminNav() {
             className={cn(
               buttonVariants({ variant: isActive ? 'default' : 'ghost' }),
               "h-auto justify-start p-3 flex items-center gap-3",
-              isActive ? "shadow" : ""
+              isActive && "shadow"
             )}
           >
             <link.icon className="h-5 w-5 flex-shrink-0" />

@@ -145,15 +145,13 @@ export default function GymSettingsPage() {
     }
     
     return (
-        <div className="flex flex-col min-h-screen pb-16 md:pb-0">
+        <div className="flex flex-col min-h-screen">
             <AppHeader />
-            <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
+            <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-16 md:pb-8">
                 <div className="w-full max-w-4xl">
                     <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
                     <AdminNav />
-                </div>
-                
-                <div className="w-full max-w-4xl">
+                    
                     <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                         <Card>
@@ -228,8 +226,8 @@ export default function GymSettingsPage() {
                     </form>
                     </Form>
                 </div>
-                <AdminBottomNav />
             </main>
+            <AdminBottomNav />
             <footer className="w-full text-center p-4 text-muted-foreground text-sm">
                 <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
             </footer>

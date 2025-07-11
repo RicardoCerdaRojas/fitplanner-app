@@ -102,15 +102,13 @@ export default function AdminDashboardPage() {
     }
     
     return (
-        <div className="flex flex-col min-h-screen pb-16 md:pb-0">
+        <div className="flex flex-col min-h-screen">
             <AppHeader />
-            <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
+            <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-16 md:pb-8">
                 <div className="w-full max-w-6xl">
                     <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
                     <AdminNav />
-                </div>
                 
-                <div className="w-full max-w-6xl">
                     <div className="grid gap-4 grid-cols-2 md:grid-cols-3 mb-8">
                         <Card className="p-3">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-2">
@@ -190,8 +188,8 @@ export default function AdminDashboardPage() {
                         </Card>
                     </div>
                 </div>
-                <AdminBottomNav />
             </main>
+            <AdminBottomNav />
              <footer className="w-full text-center p-4 text-muted-foreground text-sm">
                 <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
             </footer>

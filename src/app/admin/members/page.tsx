@@ -8,8 +8,6 @@ import { useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AdminNav } from '@/components/admin-nav';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
-import { UserPlus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 export default function AdminMembersPage() {
     const { user, userProfile, loading } = useAuth();
@@ -39,9 +37,9 @@ export default function AdminMembersPage() {
     }
     
     return (
-        <div className="flex flex-col min-h-screen pb-28 md:pb-0">
+        <div className="flex flex-col min-h-screen">
             <AppHeader />
-            <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
+            <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-28 md:pb-8">
                  <div className="w-full max-w-6xl">
                     <div className="md:flex md:items-center md:justify-between mb-4">
                         <h1 className="text-3xl font-bold font-headline">Manage Members</h1>
@@ -49,17 +47,13 @@ export default function AdminMembersPage() {
                     <div className="hidden md:block">
                         <AdminNav />
                     </div>
-                 </div>
-                <div className="w-full max-w-6xl">
                     {userProfile.gymId && <AdminUserManagement gymId={userProfile.gymId} />}
-                </div>
-                <AdminBottomNav />
+                 </div>
             </main>
+            <AdminBottomNav />
              <footer className="w-full text-center p-4 text-muted-foreground text-sm">
                 <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
             </footer>
         </div>
     );
 }
-
-    
