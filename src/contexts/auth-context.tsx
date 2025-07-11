@@ -1,16 +1,27 @@
 
 'use client';
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import type { User } from 'firebase/auth';
-import type { Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  writeBatch,
+  Timestamp
+} from 'firebase/firestore';
 import { AuthProviderClient } from '@/components/auth-provider-client';
 
 type UserProfile = {
   name: string;
   email: string;
   createdAt: Timestamp;
+  gymId?: string;
   dob?: Timestamp;
+  plan?: 'basic' | 'premium' | 'pro';
 };
 
 export type Membership = {
@@ -18,7 +29,7 @@ export type Membership = {
     userId: string;
     gymId: string;
     role: 'athlete' | 'coach' | 'gym-admin';
-    userName: string;
+    userName:string;
     gymName: string;
     status: 'active' | 'pending';
 };
@@ -54,6 +65,67 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [activeMembership, setActiveMembership] = useState<Membership | null>(null);
   const [gymProfile, setGymProfile] = useState<GymProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Effect to check for and process pending invitations when a user logs in.
+  useEffect(() => {
+    const checkForInvite = async () => {
+      if (!user?.email || userProfile?.gymId) {
+        // Don't run if there's no email, or if the user already belongs to a gym.
+        return;
+      }
+
+      const inviteRef = doc(db, 'invites', user.email.toLowerCase());
+      const inviteSnap = await getDoc(inviteRef);
+
+      if (inviteSnap.exists()) {
+        setLoading(true);
+        const inviteData = inviteSnap.data();
+        const gymRef = doc(db, 'gyms', inviteData.gymId);
+        const gymSnap = await getDoc(gymRef);
+
+        if (gymSnap.exists()) {
+          const gymData = gymSnap.data();
+          const batch = writeBatch(db);
+
+          // 1. Create a new membership document
+          const membershipId = `${user.uid}_${inviteData.gymId}`;
+          const membershipRef = doc(db, 'memberships', membershipId);
+          batch.set(membershipRef, {
+            userId: user.uid,
+            gymId: inviteData.gymId,
+            role: inviteData.role,
+            userName: userProfile?.name || inviteData.name,
+            gymName: gymData.name,
+            status: 'active',
+          });
+
+          // 2. Update the user's profile with gymId and other details from invite
+          const userRef = doc(db, 'users', user.uid);
+          const userUpdateData: Partial<UserProfile> = {
+            gymId: inviteData.gymId,
+          };
+          if (inviteData.dob) userUpdateData.dob = inviteData.dob;
+          if (inviteData.plan) userUpdateData.plan = inviteData.plan;
+          batch.update(userRef, userUpdateData);
+
+          // 3. Delete the processed invitation
+          batch.delete(inviteRef);
+
+          try {
+            await batch.commit();
+            // The onSnapshot listeners in AuthProviderClient will automatically
+            // pick up the new membership and profile data.
+          } catch (error) {
+            console.error("Error claiming invitation:", error);
+            setLoading(false);
+          }
+        }
+      }
+    };
+
+    checkForInvite();
+  }, [user, userProfile]);
+
 
   const contextValue: AuthContextType = {
     user,

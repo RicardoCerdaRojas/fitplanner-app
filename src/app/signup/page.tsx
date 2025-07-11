@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { UserPlus } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
 import { useEffect } from 'react';
@@ -63,13 +63,14 @@ export default function SignupPage() {
       const { user } = userCredential;
 
       // Step 2: Create a basic user profile in Firestore.
+      // This profile will be updated by the invitation claim logic if an invite exists.
       await setDoc(doc(db, 'users', user.uid), {
         name: values.name,
         email: lowerCaseEmail,
-        createdAt: new Date(),
+        createdAt: Timestamp.now(),
       });
       
-      // Redirect to home, where logic will take over.
+      // Redirect to home, where logic in AuthContext will handle checking for an invite.
       router.push('/');
 
     } catch (error: any) {
