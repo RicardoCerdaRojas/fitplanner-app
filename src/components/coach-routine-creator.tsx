@@ -68,6 +68,11 @@ type RoutineCreatorContextType = {
   blockFields: ReturnType<typeof useFieldArray<RoutineFormValues, 'blocks'>>['fields'];
   appendBlock: ReturnType<typeof useFieldArray<RoutineFormValues, 'blocks'>>['append'];
   removeBlock: ReturnType<typeof useFieldArray<RoutineFormValues, 'blocks'>>['remove'];
+  
+  // Exercise-specific functions for the ACTIVE block
+  exerciseFields: ReturnType<typeof useFieldArray<RoutineFormValues, `blocks.${number}.exercises`>>['fields'];
+  appendExercise: ReturnType<typeof useFieldArray<RoutineFormValues, `blocks.${number}.exercises`>>['append'];
+  removeExercise: ReturnType<typeof useFieldArray<RoutineFormValues, `blocks.${number}.exercises`>>['remove'];
 };
 
 const RoutineCreatorContext = createContext<RoutineCreatorContextType | null>(null);
@@ -89,7 +94,7 @@ type CoachRoutineCreatorProps = {
 };
 
 export const defaultExerciseValues = { 
-  name: '', 
+  name: 'Untitled Exercise', 
   repType: 'reps' as const, 
   reps: '10', 
   duration: '1', 
@@ -133,6 +138,11 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
   const { fields: blockFields, append: appendBlock, remove: removeBlock } = useFieldArray({
     control: form.control,
     name: 'blocks',
+  });
+  
+  const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
+      control: form.control,
+      name: `blocks.${activeSelection.blockIndex}.exercises`
   });
   
   useEffect(() => {
@@ -202,6 +212,9 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
     blockFields,
     appendBlock,
     removeBlock,
+    exerciseFields,
+    appendExercise,
+    removeExercise,
   };
 
   return (

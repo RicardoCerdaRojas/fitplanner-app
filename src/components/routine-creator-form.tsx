@@ -1,7 +1,5 @@
-
 'use client';
 
-import { useFieldArray } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -12,19 +10,19 @@ import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useRoutineCreator } from './coach-routine-creator';
+import { useRoutineCreator, defaultExerciseValues } from './coach-routine-creator';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StepperInput } from './ui/stepper-input';
 
 const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerciseIndex: number }) => {
-    const { form, setActiveSelection, onCloseNav } = useRoutineCreator();
+    const { form } = useRoutineCreator();
     const { control, setValue, watch } = form;
     
     const blockName = watch(`blocks.${blockIndex}.name`);
     const repType = watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`);
 
     const handleRepTypeChange = (value: 'reps' | 'duration') => {
-        setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, value);
+        setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, value, { shouldValidate: true });
         if (value === 'reps') {
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, '10');
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`, '5');
@@ -89,18 +87,30 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
 };
 
 const ExercisesForBlock = ({ blockIndex }: { blockIndex: number }) => {
-    const { form, setActiveSelection } = useRoutineCreator();
-    const { control, getValues } = form;
-    const { fields, append, remove } = useFieldArray({ control, name: `blocks.${blockIndex}.exercises` });
+    const { setActiveSelection, exerciseFields, form, appendExercise, removeExercise } = useRoutineCreator();
   
-    if (fields.length === 0) return null;
+    const handleAddExercise = () => {
+        const newExerciseIndex = exerciseFields.length;
+        appendExercise(defaultExerciseValues);
+        setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: newExerciseIndex });
+    };
+
+    if (exerciseFields.length === 0) {
+        return (
+            <div className="mt-4">
+                <Button variant="link" size="sm" className="w-full justify-start text-left h-auto py-1.5 px-0 text-sm font-normal" onClick={handleAddExercise}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Exercise
+                </Button>
+            </div>
+        );
+    }
   
     return (
       <div className="space-y-2 mt-4">
         <h3 className="text-sm font-semibold text-muted-foreground">Exercises in this block</h3>
-        {fields.map((field, index) => (
+        {exerciseFields.map((field, index) => (
           <div key={field.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50 text-sm">
-            <span>{getValues(`blocks.${blockIndex}.exercises.${index}.name`) || 'Untitled Exercise'}</span>
+            <span>{form.getValues(`blocks.${blockIndex}.exercises.${index}.name`) || 'Untitled Exercise'}</span>
             <Button
               variant="ghost"
               size="sm"
@@ -110,27 +120,20 @@ const ExercisesForBlock = ({ blockIndex }: { blockIndex: number }) => {
             </Button>
           </div>
         ))}
+         <Button variant="link" size="sm" className="w-full justify-start text-left h-auto py-1.5 px-0 text-sm font-normal" onClick={handleAddExercise}>
+            <Plus className="mr-2 h-4 w-4" /> Add another exercise
+        </Button>
       </div>
     );
-  };
-  
+};
 
 export function RoutineCreatorForm() {
-    const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel } = useRoutineCreator();
+    const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel, blockFields } = useRoutineCreator();
     const { control } = form;
 
-    const { fields: blockFields } = useFieldArray({ control, name: 'blocks' });
-    
-    // This hook call MUST happen before any early returns.
-    const { append: appendExercise } = useFieldArray({
-        control,
-        name: `blocks.${activeSelection.blockIndex}.exercises`,
-    });
-    
     const activeBlock = blockFields[activeSelection.blockIndex];
-    
     if (!activeBlock) {
-        return null;
+        return null; // Should not happen if logic is correct
     }
 
     return (
