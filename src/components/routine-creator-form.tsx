@@ -90,10 +90,11 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
 };
 
 
-const BlockForm = ({ blockIndex }: { blockIndex: number; }) => {
-    const { form, setActiveSelection } = useRoutineCreator();
+export function RoutineCreatorForm() {
+    const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel, setActiveSelection } = useRoutineCreator();
     const { control } = form;
 
+    const blockIndex = activeSelection.blockIndex;
     const { fields, append, remove } = useFieldArray({
         control,
         name: `blocks.${blockIndex}.exercises`,
@@ -101,58 +102,12 @@ const BlockForm = ({ blockIndex }: { blockIndex: number; }) => {
 
     const blockName = useWatch({ control, name: `blocks.${blockIndex}.name` });
     const watchedExercises = useWatch({ control, name: `blocks.${blockIndex}.exercises` });
-
+    
     const handleAddExercise = () => {
         const newExerciseIndex = fields.length;
         append(defaultExerciseValues);
         setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: newExerciseIndex });
     };
-
-    return (
-        <Card>
-            <CardHeader>
-                <div className='flex justify-between items-center'>
-                    <div>
-                        <CardTitle>Editing Block: <span className="text-primary">{blockName}</span></CardTitle>
-                        <CardDescription>Define the name and number of sets for this block.</CardDescription>
-                    </div>
-                     <Button type="button" variant="outline" onClick={handleAddExercise}>
-                        <Plus className="mr-2 h-4 w-4" /> Add Exercise
-                    </Button>
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (<FormItem><FormLabel>Block Name</FormLabel><FormControl><Input placeholder="e.g., Upper Body Focus" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (<FormItem><FormLabel>Sets / Rounds</FormLabel><FormControl><Input placeholder="e.g., 3" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                </div>
-
-                <div className='space-y-2'>
-                    <FormLabel>Exercises in this block</FormLabel>
-                    {fields.length === 0 ? (
-                        <p className='text-sm text-muted-foreground'>No exercises added yet. Click "Add Exercise" to begin.</p>
-                    ) : (
-                        <div className='space-y-2'>
-                            {fields.map((field, index) => (
-                                <div key={field.id} className="flex items-center justify-between p-2 rounded-md border bg-muted/50">
-                                    <span className="font-medium">{watchedExercises?.[index]?.name || 'Untitled Exercise'}</span>
-                                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => remove(index)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </CardContent>
-        </Card>
-    );
-};
-
-
-export function RoutineCreatorForm() {
-    const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel } = useRoutineCreator();
-    const { control } = form;
 
     return (
         <div className="space-y-6">
@@ -213,7 +168,43 @@ export function RoutineCreatorForm() {
             </Card>
             
             {activeSelection.type === 'block' ? (
-                <BlockForm key={`block-form-${activeSelection.blockIndex}`} blockIndex={activeSelection.blockIndex} />
+                 <Card>
+                    <CardHeader>
+                        <div className='flex justify-between items-center'>
+                            <div>
+                                <CardTitle>Editing Block: <span className="text-primary">{blockName}</span></CardTitle>
+                                <CardDescription>Define the name and number of sets for this block.</CardDescription>
+                            </div>
+                            <Button type="button" variant="outline" onClick={handleAddExercise}>
+                                <Plus className="mr-2 h-4 w-4" /> Add Exercise
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (<FormItem><FormLabel>Block Name</FormLabel><FormControl><Input placeholder="e.g., Upper Body Focus" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (<FormItem><FormLabel>Sets / Rounds</FormLabel><FormControl><Input placeholder="e.g., 3" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        </div>
+
+                        <div className='space-y-2'>
+                            <FormLabel>Exercises in this block</FormLabel>
+                            {fields.length === 0 ? (
+                                <p className='text-sm text-muted-foreground'>No exercises added yet. Click "Add Exercise" to begin.</p>
+                            ) : (
+                                <div className='space-y-2'>
+                                    {fields.map((field, index) => (
+                                        <div key={field.id} className="flex items-center justify-between p-2 rounded-md border bg-muted/50">
+                                            <span className="font-medium">{watchedExercises?.[index]?.name || 'Untitled Exercise'}</span>
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => remove(index)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
             ) : activeSelection.exerciseIndex !== undefined ? (
                  <ExerciseForm 
                     key={`exercise-form-${activeSelection.blockIndex}-${activeSelection.exerciseIndex}`}
