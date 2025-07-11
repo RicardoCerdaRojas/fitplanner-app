@@ -1,118 +1,114 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // =================================
-    //  Helper Functions
-    // =================================
-    
+    // Helper function to check if the request comes from an authenticated user.
     function isSignedIn() {
       return request.auth != null;
     }
     
-    // Checks if a user has an active membership document for a specific gym.
-    function isMemberOfGym(userId, gymId) {
-      return exists(/databases/$(database)/documents/memberships/$(userId + '_' + gymId));
-    }
-
-    // Checks if the user is an admin of a specific gym.
+    // Helper function to check if the user is an admin of a specific gym.
     function isGymAdmin(userId, gymId) {
+      // A user is a gym admin if their membership document exists and has the 'gym-admin' role.
+      // This is the most secure way, as it checks for a specific, active relationship.
       let membershipPath = /databases/$(database)/documents/memberships/$(userId + '_' + gymId);
-      return isMemberOfGym(userId, gymId) && get(membershipPath).data.role == 'gym-admin';
+      return exists(membershipPath) && get(membershipPath).data.role == 'gym-admin';
     }
     
-    // Checks if the user is a coach of a specific gym.
+    // Helper function to check if the user is a coach of a specific gym.
     function isGymCoach(userId, gymId) {
       let membershipPath = /databases/$(database)/documents/memberships/$(userId + '_' + gymId);
-      return isMemberOfGym(userId, gymId) && get(membershipPath).data.role == 'coach';
+      return exists(membershipPath) && get(membershipPath).data.role == 'coach';
     }
 
-    // Checks if the user is a staff member (admin or coach) of a specific gym.
+    // Helper function to check if the user is a staff member (admin or coach) of a specific gym.
     function isGymStaff(userId, gymId) {
+      if (gymId == null || userId == null) {
+        return false;
+      }
       return isGymAdmin(userId, gymId) || isGymCoach(userId, gymId);
     }
 
-    // =================================
-    //  Collection Rules
-    // =================================
-
+    // Rules for the 'users' collection
     match /users/{userId} {
       // A user can create and update their own document.
       allow create, update: if isSignedIn() && request.auth.uid == userId;
 
       // A user can read their own profile.
-      // A staff member can read the profile of any user in their gym.
-      // This single rule covers both individual `get` and collection `list` queries,
-      // as long as the client-side query is properly filtered by gymId.
+      // A gym staff member can read the profile of any user belonging to their gym.
+      // This rule is robust because it checks the data being requested (`resource.data`)
+      // and relies on the client to correctly filter queries by gymId.
       allow read: if isSignedIn() && (
         (request.auth.uid == userId) ||
         (resource.data.gymId != null && isGymStaff(request.auth.uid, resource.data.gymId))
       );
     }
 
+    // Rules for the 'gyms' collection
     match /gyms/{gymId} {
       // An authenticated user can create a gym.
       allow create: if isSignedIn();
       
       // Any user with a membership to this gym can read its profile.
-      allow read: if isSignedIn() && isMemberOfGym(request.auth.uid, gymId);
+      allow read: if isSignedIn() && exists(/databases/$(database)/documents/memberships/$(request.auth.uid + '_' + gymId));
       
       // The gym admin can update their gym's settings.
       allow update: if isSignedIn() && isGymAdmin(request.auth.uid, gymId);
     }
     
+    // Rules for the 'memberships' collection
     match /memberships/{membershipId} {
-      // Allow creation if the user is creating their own 'pending' membership record,
-      // or if an admin is creating a membership for their gym.
-      allow create: if isSignedIn() && 
-                    ( (request.resource.data.status == 'pending' && isGymAdmin(request.auth.uid, request.resource.data.gymId)) || 
-                      (request.auth.uid == membershipId.split('_')[0]) );
+        // A pending membership can be created by a gym admin.
+        // The membership ID for pending docs is the user's email.
+        allow create: if isSignedIn() && (
+          (request.resource.data.status == 'pending' && isGymAdmin(request.auth.uid, request.resource.data.gymId)) ||
+          // An active membership is created when a user claims a pending one.
+          (request.resource.data.status == 'active' && request.auth.uid == request.resource.data.userId)
+        );
         
-      // A user can read their own membership.
-      // A staff member can read any membership belonging to their gym.
-      allow read: if isSignedIn() && 
-                    ( (resource.data.userId != null && request.auth.uid == resource.data.userId) || 
-                      (resource.data.gymId != null && isGymStaff(request.auth.uid, resource.data.gymId)) );
-      
-      // A staff member can update any membership in their gym (e.g., to activate a pending one).
-      allow update: if isSignedIn() && isGymStaff(request.auth.uid, resource.data.gymId);
+        // A gym admin can read any membership document for their gym.
+        // A user can read their own membership document.
+        allow read: if isSignedIn() && 
+                    (request.auth.uid == resource.data.userId || 
+                     isGymAdmin(request.auth.uid, resource.data.gymId));
 
-      // A gym admin can delete memberships from their gym.
-      allow delete: if isSignedIn() && isGymAdmin(request.auth.uid, resource.data.gymId);
+        // A gym admin can delete memberships from their gym.
+        // A gym admin can update memberships in their gym (e.g., to activate a pending one).
+        allow update, delete: if isSignedIn() && isGymAdmin(request.auth.uid, resource.data.gymId);
     }
 
-    // This collection is deprecated and replaced by pending memberships.
-    // Keeping rules for safety but should not be used.
-    match /invites/{email} {
-      allow read, write: if false;
-    }
-
+    // Rules for the 'routines' collection
     match /routines/{routineId} {
-      // A staff member can create, update, or delete routines for their own gym.
-      allow create, delete: if isSignedIn() && isGymStaff(request.auth.uid, request.resource.data.gymId);
-      
-      // Staff can update routines in their gym.
-      // An athlete can update their own progress.
-      allow update: if isSignedIn() && 
-                     ( (isGymStaff(request.auth.uid, resource.data.gymId)) ||
-                       (request.auth.uid == resource.data.athleteId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['progress']))
-                     );
+      // A coach or admin can create, update, or delete routines for their own gym.
+      allow create, update, delete: if isSignedIn() && 
+                                     isGymStaff(request.auth.uid, request.resource.data.gymId);
 
       // Staff can read any routine in their gym. An athlete can read their own assigned routines.
       allow read: if isSignedIn() && 
                   ( (isGymStaff(request.auth.uid, resource.data.gymId)) ||
                     (request.auth.uid == resource.data.athleteId) );
+
+      // An athlete can update their own progress. The rule ensures ONLY the progress field can be changed by them.
+      allow update: if isSignedIn() && 
+                     request.auth.uid == resource.data.athleteId &&
+                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['progress']);
     }
 
+    // Rules for the 'routineTypes' collection
     match /routineTypes/{typeId} {
-      // An admin can create, update, or delete routine types for their gym.
-      allow write: if isSignedIn() && isGymAdmin(request.auth.uid, request.resource.data.gymId);
+      // An admin can create or update routine types for their gym.
+      allow create, update: if isSignedIn() && isGymAdmin(request.auth.uid, request.resource.data.gymId);
+      
+      // An admin can delete a routine type by checking the existing document's gymId.
+      allow delete: if isSignedIn() && isGymAdmin(request.auth.uid, resource.data.gymId);
       
       // Any staff member (coach or admin) can read routine types in their gym.
       allow read: if isSignedIn() && isGymStaff(request.auth.uid, resource.data.gymId);
     }
     
+    // Rules for the 'workoutSessions' collection
     match /workoutSessions/{sessionId} {
       // An athlete can create, update, and delete their own session document.
       allow write: if isSignedIn() && request.auth.uid == sessionId;
