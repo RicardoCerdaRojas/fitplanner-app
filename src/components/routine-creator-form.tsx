@@ -93,15 +93,30 @@ const ExercisesForBlock = ({ blockIndex }: { blockIndex: number }) => {
 
 // --- Sub-component for editing a single exercise ---
 const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerciseIndex: number }) => {
-    const { form: { control } } = useRoutineCreator();
+    const { form: { control }, setActiveSelection } = useRoutineCreator();
+    const { append, fields } = useFieldArray({ control, name: `blocks.${blockIndex}.exercises` });
+    
     const repType = useWatch({ control, name: `blocks.${blockIndex}.exercises.${exerciseIndex}.repType` });
     const blockName = useWatch({ control, name: `blocks.${blockIndex}.name` });
+
+    const handleAddAnother = () => {
+        const newExerciseIndex = fields.length;
+        append({ name: '', repType: 'reps', reps: '12', duration: '30 seconds', weight: 'Bodyweight', videoUrl: '' });
+        setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: newExerciseIndex });
+    };
 
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Editing Exercise</CardTitle>
-          <CardDescription>Define the details for this exercise within the <span className="font-semibold text-primary">{blockName}</span> block.</CardDescription>
+          <div className="flex justify-between items-center">
+              <div>
+                  <CardTitle>Editing Exercise</CardTitle>
+                  <CardDescription>Details for this exercise in the <span className="font-semibold text-primary">{blockName}</span> block.</CardDescription>
+              </div>
+              <Button type="button" variant="outline" onClick={handleAddAnother}>
+                  <Plus className="mr-2 h-4 w-4" /> Add Exercise
+              </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`} render={({ field }) => (<FormItem><FormLabel>Exercise Name</FormLabel><FormControl><Input placeholder="e.g., Bench Press" {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -212,17 +227,11 @@ export function RoutineCreatorForm() {
       )}
 
       {activeSelection.type === 'exercise' && activeSelection.exerciseIndex !== undefined && (
-        <>
-           <ExercisesForBlock
-            key={`exercise-list-${activeSelection.blockIndex}`}
-            blockIndex={activeSelection.blockIndex}
-           />
            <ExerciseForm 
             key={`exercise-form-${activeSelection.blockIndex}-${activeSelection.exerciseIndex}`}
             blockIndex={activeSelection.blockIndex}
             exerciseIndex={activeSelection.exerciseIndex}
           />
-        </>
       )}
 
       <div className="flex justify-end items-center gap-4 pt-4 border-t">
