@@ -30,7 +30,8 @@ export function RoutineCreatorNav({ form, activeSelection, setActiveSelection, o
     setActiveSelection({ type: 'block', blockIndex: newBlockIndex });
   };
   
-  const handleRemoveBlock = (index: number) => {
+  const handleRemoveBlock = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
     removeBlock(index);
     if (activeSelection.blockIndex === index) {
       setActiveSelection({ type: 'block', blockIndex: Math.max(0, index - 1) });
@@ -53,23 +54,27 @@ export function RoutineCreatorNav({ form, activeSelection, setActiveSelection, o
 
           return (
             <div key={block.id}>
-              <div className="group flex items-center">
-                 <Button
-                    variant={isBlockActive ? 'secondary' : 'ghost'}
-                    className={cn('w-full justify-start text-left h-auto py-2 px-3')}
-                    onClick={() => handleSelect({ type: 'block', blockIndex: bIndex })}
+              <div
+                className="group flex items-center rounded-md cursor-pointer"
+                onClick={() => handleSelect({ type: 'block', blockIndex: bIndex })}
+              >
+                 <div
+                    className={cn(
+                        'w-full justify-start text-left h-auto py-2 px-3 rounded-md',
+                        isBlockActive ? 'bg-secondary' : 'bg-transparent hover:bg-muted/50'
+                    )}
                 >
                     <div className="flex-1">
                         <p className="font-semibold">{watchedBlocks[bIndex]?.name || 'Untitled Block'}</p>
                         <p className="text-xs text-muted-foreground">{watchedBlocks[bIndex]?.sets} sets &bull; {exercises.length} exercises</p>
                     </div>
-                </Button>
+                </div>
                 {blockFields.length > 1 && (
                      <Button
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleRemoveBlock(bIndex)}
+                        onClick={(e) => handleRemoveBlock(e, bIndex)}
                      >
                         <Trash2 className="h-4 w-4" />
                      </Button>

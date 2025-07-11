@@ -18,17 +18,6 @@ import type { RoutineType } from '@/app/admin/routine-types/page';
 import type { RoutineFormValues } from './coach-routine-creator';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-type RoutineCreatorFormProps = {
-  form: UseFormReturn<RoutineFormValues>;
-  activeSelection: { type: 'block' | 'exercise'; blockIndex: number; exerciseIndex?: number };
-  members: Member[];
-  routineTypes: RoutineType[];
-  routineToEdit?: ManagedRoutine | null;
-  isEditing: boolean;
-  isSubmitting: boolean;
-  onCancel: () => void;
-};
-
 function ExerciseListItem({ control, blockIndex, exerciseIndex, onRemove }: { control: Control<RoutineFormValues>, blockIndex: number, exerciseIndex: number, onRemove: () => void }) {
     const exerciseName = useWatch({
         control,
@@ -37,8 +26,8 @@ function ExerciseListItem({ control, blockIndex, exerciseIndex, onRemove }: { co
 
     return (
         <div className="flex items-center justify-between p-2 rounded-md border bg-muted/50">
-            <span className="font-medium">{exerciseName || 'Untitled Exercise'}</span>
-            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={onRemove}>
+            <span className="font-medium truncate pr-2">{exerciseName || 'Untitled Exercise'}</span>
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0" onClick={onRemove}>
                 <Trash2 className="h-4 w-4" />
             </Button>
         </div>
@@ -79,17 +68,19 @@ function ExerciseForm({ control, blockIndex, exerciseIndex }: { control: Control
   )
 }
 
-function ExercisesForBlock({ control, blockIndex }: { control: Control<RoutineFormValues>, blockIndex: number }) {
+function ExercisesForBlock({ control, blockIndex, setActiveSelection }: { control: Control<RoutineFormValues>, blockIndex: number, setActiveSelection: (selection: any) => void }) {
   const { fields, append, remove } = useFieldArray({
     control,
     name: `blocks.${blockIndex}.exercises`,
-    keyName: "id", // Use a different key name to avoid conflicts if needed
+    keyName: "id",
   });
   
   const blockName = useWatch({ control, name: `blocks.${blockIndex}.name` });
 
   const handleAddExercise = () => {
+    const newExerciseIndex = fields.length;
     append({ name: '', repType: 'reps', reps: '12', duration: '30 seconds', weight: 'Bodyweight', videoUrl: '' });
+    setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: newExerciseIndex });
   };
 
   return (
@@ -108,13 +99,14 @@ function ExercisesForBlock({ control, blockIndex }: { control: Control<RoutineFo
           <p className="text-sm text-muted-foreground text-center py-4">No exercises added yet. Click "Add Exercise" to start.</p>
         ) : (
           fields.map((field, index) => (
-            <ExerciseListItem
-              key={field.id}
-              control={control}
-              blockIndex={blockIndex}
-              exerciseIndex={index}
-              onRemove={() => remove(index)}
-            />
+            <div key={field.id} onClick={() => setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: index })} className="cursor-pointer">
+              <ExerciseListItem
+                control={control}
+                blockIndex={blockIndex}
+                exerciseIndex={index}
+                onRemove={(e) => { e.stopPropagation(); remove(index); setActiveSelection({ type: 'block', blockIndex }); }}
+              />
+            </div>
           ))
         )}
       </CardContent>
@@ -126,13 +118,24 @@ function ExercisesForBlock({ control, blockIndex }: { control: Control<RoutineFo
 export function RoutineCreatorForm({
   form,
   activeSelection,
+  setActiveSelection,
   members,
   routineTypes,
   routineToEdit,
   isEditing,
   isSubmitting,
   onCancel,
-}: RoutineCreatorFormProps) {
+}: {
+  form: UseFormReturn<RoutineFormValues>;
+  activeSelection: { type: 'block' | 'exercise'; blockIndex: number; exerciseIndex?: number };
+  setActiveSelection: (selection: { type: 'block' | 'exercise'; blockIndex: number; exerciseIndex?: number }) => void;
+  members: Member[];
+  routineTypes: RoutineType[];
+  routineToEdit?: ManagedRoutine | null;
+  isEditing: boolean;
+  isSubmitting: boolean;
+  onCancel: () => void;
+}) {
   const { control } = form;
   
   const blockName = useWatch({ control, name: `blocks.${activeSelection.blockIndex}.name`});
@@ -211,6 +214,7 @@ export function RoutineCreatorForm({
             key={activeSelection.blockIndex} 
             control={control}
             blockIndex={activeSelection.blockIndex}
+            setActiveSelection={setActiveSelection}
           />
         </>
       )}
