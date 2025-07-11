@@ -14,7 +14,6 @@ import { PieChart, ResponsiveContainer, Tooltip, Legend, Pie, Cell } from 'recha
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
-import { GuestHomepage } from '@/components/guest-homepage';
 
 type GymUser = { role: 'athlete' | 'coach' | 'gym-admin' };
 
