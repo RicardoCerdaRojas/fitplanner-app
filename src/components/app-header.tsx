@@ -79,11 +79,18 @@ export function AppHeader() {
                         </Button>
                     </>
                 ) : (
-                     <Button asChild className="bg-white text-gray-800 hover:bg-gray-200">
-                        <Link href="/login">
-                            Login
-                        </Link>
-                    </Button>
+                     <div className='flex items-center gap-2'>
+                        <Button asChild variant="outline" className="border-white/50 text-white hover:bg-white/10 hover:text-white">
+                            <Link href="/login">
+                                Login
+                            </Link>
+                        </Button>
+                         <Button asChild className="bg-white text-gray-800 hover:bg-gray-200">
+                            <Link href="/signup">
+                                Sign Up
+                            </Link>
+                        </Button>
+                    </div>
                 )}
             </div>
         </header>
