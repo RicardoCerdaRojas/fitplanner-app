@@ -102,12 +102,14 @@ export default function LiveActivityPage() {
     
     return (
         <div className="flex flex-col min-h-screen pb-16 md:pb-0">
+            <AppHeader />
             <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
-                <AppHeader />
                 <div className="w-full max-w-7xl">
                     <h1 className="text-3xl font-bold font-headline mb-4">Live Gym Activity</h1>
                     <AdminNav />
-
+                </div>
+                
+                <div className="w-full max-w-7xl">
                     {isLoading ? (
                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             <Skeleton className="h-64 w-full" />

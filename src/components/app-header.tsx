@@ -13,7 +13,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 export function AppHeader() {
-    const { user, gymProfile, loading } = useAuth();
+    const { user, userProfile, activeMembership, gymProfile, loading } = useAuth();
     const router = useRouter();
     const { theme, setTheme } = useTheme();
 
@@ -27,18 +27,18 @@ export function AppHeader() {
     };
 
     return (
-        <header className="w-full max-w-5xl flex items-center justify-between mb-10 relative">
+        <header className="w-full flex items-center justify-between mb-10 relative">
             <Link href="/" className="flex items-center gap-4 group">
                 {gymProfile?.logoUrl ? (
                     <Image src={gymProfile.logoUrl} alt={gymProfile.name ? `${gymProfile.name} Logo` : 'Gym Logo'} width={100} height={50} className="object-contain h-12 w-auto" priority />
                 ) : (
                     <Dumbbell className="w-10 h-10 text-primary group-hover:animate-bounce" />
                 )}
-                <h1 className={cn(
+                 <h1 className={cn(
                     "font-headline font-bold text-card-foreground",
                     gymProfile?.logoUrl ? "text-2xl" : "text-4xl"
                 )}>
-                    {gymProfile?.logoUrl ? 'Fitness Flow' : (gymProfile?.name || 'Fitness Flow')}
+                    {gymProfile?.name || 'Fitness Flow'}
                 </h1>
             </Link>
             <div className="flex items-center gap-2">

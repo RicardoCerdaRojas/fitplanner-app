@@ -40,15 +40,17 @@ export default function AdminMembersPage() {
     
     return (
         <div className="flex flex-col min-h-screen pb-28 md:pb-0">
+            <AppHeader />
             <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
-                <AppHeader />
-                <div className="w-full max-w-6xl">
+                 <div className="w-full max-w-6xl">
                     <div className="md:flex md:items-center md:justify-between mb-4">
                         <h1 className="text-3xl font-bold font-headline">Manage Members</h1>
                     </div>
                     <div className="hidden md:block">
                         <AdminNav />
                     </div>
+                 </div>
+                <div className="w-full max-w-6xl">
                     {userProfile.gymId && <AdminUserManagement gymId={userProfile.gymId} />}
                 </div>
                 <AdminBottomNav />
