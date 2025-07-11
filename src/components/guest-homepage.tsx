@@ -109,7 +109,7 @@ export function GuestHomepage() {
                             <Card key={index} className="bg-[#1C2129] border border-gray-700 p-8 text-center hover:border-blue-400 hover:-translate-y-2 transition-transform duration-300">
                                 <CardContent className="flex flex-col items-center gap-4">
                                     {feature.icon}
-                                    <h3 className="text-2xl font-bold">{feature.title}</h3>
+                                    <h3 className="text-2xl font-bold text-blue-400">{feature.title}</h3>
                                     <p className="text-gray-400">{feature.description}</p>
                                 </CardContent>
                             </Card>
@@ -122,7 +122,7 @@ export function GuestHomepage() {
             <section id="about" className="py-20 px-4 sm:px-6 lg:px-8 bg-[#1C2129]">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                     <div className="rounded-lg overflow-hidden">
-                        <Image src="https://placehold.co/600x700.png" data-ai-hint="gym interior" alt="About us" width={600} height={700} className="w-full h-full object-cover" />
+                        <Image src="/about-us-image.jpg" data-ai-hint="gym interior" alt="About us" width={600} height={700} className="w-full h-full object-cover" />
                     </div>
                     <div>
                         <h2 className="text-4xl font-bold mb-4">About Us</h2>
