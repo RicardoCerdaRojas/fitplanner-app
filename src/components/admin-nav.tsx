@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Users, ClipboardList, Layers, Palette, LayoutDashboard, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -24,20 +24,20 @@ export function AdminNav() {
       {links.map((link) => {
         const isActive = pathname === link.href;
         return (
-          <Button
+          <Link
             key={link.href}
-            asChild
-            variant={isActive ? 'default' : 'ghost'}
+            href={link.href}
             className={cn(
+              buttonVariants({ variant: isActive ? 'default' : 'ghost' }),
               "h-auto justify-start p-3",
               isActive ? "shadow" : ""
             )}
           >
-            <Link href={link.href} className="flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <link.icon className="h-5 w-5 flex-shrink-0" />
               <span className="font-semibold">{link.label}</span>
-            </Link>
-          </Button>
+            </div>
+          </Link>
         );
       })}
     </nav>
