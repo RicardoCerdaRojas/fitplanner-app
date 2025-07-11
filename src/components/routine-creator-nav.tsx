@@ -1,20 +1,13 @@
 'use client';
 
 import { useFieldArray, useWatch } from 'react-hook-form';
-import type { UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { RoutineFormValues } from './coach-routine-creator';
+import { useRoutineCreator } from './coach-routine-creator';
 
-type RoutineCreatorNavProps = {
-  form: UseFormReturn<RoutineFormValues>;
-  activeSelection: { type: 'block' | 'exercise'; blockIndex: number; exerciseIndex?: number };
-  setActiveSelection: (selection: { type: 'block' | 'exercise'; blockIndex: number; exerciseIndex?: number }) => void;
-  onClose?: () => void;
-};
-
-export function RoutineCreatorNav({ form, activeSelection, setActiveSelection, onClose }: RoutineCreatorNavProps) {
+export function RoutineCreatorNav() {
+  const { form, activeSelection, setActiveSelection, onCloseNav } = useRoutineCreator();
   const { control } = form;
   
   const { fields: blockFields, append: appendBlock, remove: removeBlock } = useFieldArray({
@@ -42,7 +35,7 @@ export function RoutineCreatorNav({ form, activeSelection, setActiveSelection, o
 
   const handleSelect = (selection: { type: 'block' | 'exercise'; blockIndex: number; exerciseIndex?: number }) => {
     setActiveSelection(selection);
-    onClose?.();
+    onCloseNav?.();
   };
 
   return (

@@ -3,7 +3,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, createContext, useContext } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
@@ -52,6 +52,29 @@ export const routineSchema = z.object({
 export type RoutineFormValues = z.infer<typeof routineSchema>;
 export type BlockFormValues = z.infer<typeof blockSchema>;
 export type ExerciseFormValues = z.infer<typeof exerciseSchema>;
+
+type RoutineCreatorContextType = {
+  form: ReturnType<typeof useForm<RoutineFormValues>>;
+  activeSelection: { type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number };
+  setActiveSelection: React.Dispatch<React.SetStateAction<{ type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number }>>;
+  members: Member[];
+  routineTypes: RoutineType[];
+  routineToEdit?: ManagedRoutine | null;
+  isEditing: boolean;
+  isSubmitting: boolean;
+  onCancel: () => void;
+  onCloseNav?: () => void;
+};
+
+const RoutineCreatorContext = createContext<RoutineCreatorContextType | null>(null);
+
+export function useRoutineCreator() {
+  const context = useContext(RoutineCreatorContext);
+  if (!context) {
+    throw new Error('useRoutineCreator must be used within a RoutineCreatorProvider');
+  }
+  return context;
+}
 
 type CoachRoutineCreatorProps = {
   members: Member[];
@@ -147,56 +170,53 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
     }
   }
 
-  const navComponent = (
-     <RoutineCreatorNav
-        form={form}
-        activeSelection={activeSelection}
-        setActiveSelection={setActiveSelection}
-        onClose={() => isMobile && setIsNavOpen(false)}
-      />
-  );
+  const contextValue = {
+    form,
+    activeSelection,
+    setActiveSelection,
+    members,
+    routineTypes,
+    routineToEdit,
+    isEditing,
+    isSubmitting,
+    onCancel: onRoutineSaved,
+    onCloseNav: () => isMobile && setIsNavOpen(false),
+  };
 
   return (
-    <div className="mt-4">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="flex flex-col md:flex-row gap-4 md:gap-8">
-            {isMobile ? (
-              <Sheet open={isNavOpen} onOpenChange={setIsNavOpen}>
-                <SheetTrigger asChild>
-                   <Button variant="outline" className="md:hidden flex items-center gap-2 font-semibold">
-                      <PanelLeft />
-                      Routine Navigation
-                   </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-[300px] p-0">
-                  <SheetHeader className="p-4 border-b">
-                    <SheetTitle>Routine Structure</SheetTitle>
-                  </SheetHeader>
-                  {navComponent}
-                </SheetContent>
-              </Sheet>
-            ) : (
-               <div className="w-full md:w-1/3 lg:w-1/4">
-                 {navComponent}
-               </div>
-            )}
-           
-            <div className="flex-1">
-              <RoutineCreatorForm
-                form={form}
-                activeSelection={activeSelection}
-                members={members}
-                routineTypes={routineTypes}
-                routineToEdit={routineToEdit}
-                isEditing={isEditing}
-                isSubmitting={isSubmitting}
-                onCancel={onRoutineSaved}
-              />
+    <RoutineCreatorContext.Provider value={contextValue}>
+      <div className="mt-4">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="flex flex-col md:flex-row gap-4 md:gap-8">
+              {isMobile ? (
+                <Sheet open={isNavOpen} onOpenChange={setIsNavOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="md:hidden flex items-center gap-2 font-semibold">
+                        <PanelLeft />
+                        Routine Navigation
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[300px] p-0">
+                    <SheetHeader className="p-4 border-b">
+                      <SheetTitle>Routine Structure</SheetTitle>
+                    </SheetHeader>
+                    <RoutineCreatorNav />
+                  </SheetContent>
+                </Sheet>
+              ) : (
+                <div className="w-full md:w-1/3 lg:w-1/4">
+                  <RoutineCreatorNav />
+                </div>
+              )}
+            
+              <div className="flex-1">
+                <RoutineCreatorForm />
+              </div>
             </div>
-          </div>
-        </form>
-      </Form>
-    </div>
+          </form>
+        </Form>
+      </div>
+    </RoutineCreatorContext.Provider>
   );
 }

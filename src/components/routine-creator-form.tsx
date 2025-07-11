@@ -1,10 +1,9 @@
-
 'use client';
 
-import { useFieldArray, useWatch, type Control, type UseFormReturn } from 'react-hook-form';
+import { useFieldArray, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -12,23 +11,34 @@ import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import type { Member } from '@/app/coach/page';
-import type { ManagedRoutine } from './coach-routine-management';
-import type { RoutineType } from '@/app/admin/routine-types/page';
-import type { RoutineFormValues } from './coach-routine-creator';
+import { useRoutineCreator } from './coach-routine-creator';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 // --- Sub-component for an exercise item in the list ---
-const ExerciseListItem = ({ control, blockIndex, exerciseIndex, onRemove }: { control: Control<RoutineFormValues>, blockIndex: number, exerciseIndex: number, onRemove: (e: React.MouseEvent) => void }) => {
+const ExerciseListItem = ({ blockIndex, exerciseIndex }: { blockIndex: number, exerciseIndex: number }) => {
+    const { form: { control }, setActiveSelection, onCloseNav } = useRoutineCreator();
+    const { remove } = useFieldArray({ control, name: `blocks.${blockIndex}.exercises` });
+    
     const exerciseName = useWatch({
         control,
         name: `blocks.${blockIndex}.exercises.${exerciseIndex}.name`
     });
+    
+    const handleRemove = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        remove(exerciseIndex);
+        setActiveSelection({ type: 'block', blockIndex });
+    };
+
+    const handleSelect = () => {
+        setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex });
+        onCloseNav?.();
+    }
 
     return (
-        <div className="flex items-center justify-between p-2 rounded-md border bg-muted/50">
+        <div onClick={handleSelect} className="group flex items-center justify-between p-2 rounded-md border bg-muted/50 cursor-pointer">
             <span className="font-medium truncate pr-2">{exerciseName || 'Untitled Exercise'}</span>
-            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0" onClick={onRemove}>
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0 opacity-0 group-hover:opacity-100" onClick={handleRemove}>
                 <Trash2 className="h-4 w-4" />
             </Button>
         </div>
@@ -36,8 +46,10 @@ const ExerciseListItem = ({ control, blockIndex, exerciseIndex, onRemove }: { co
 };
 
 // --- Sub-component for the list of exercises in a block ---
-const ExercisesForBlock = ({ control, blockIndex, setActiveSelection }: { control: Control<RoutineFormValues>, blockIndex: number, setActiveSelection: (selection: { type: 'block' | 'exercise'; blockIndex: number; exerciseIndex?: number }) => void }) => {
-    const { fields, append, remove } = useFieldArray({
+const ExercisesForBlock = ({ blockIndex }: { blockIndex: number }) => {
+    const { form: { control }, setActiveSelection } = useRoutineCreator();
+    
+    const { fields, append } = useFieldArray({
       control,
       name: `blocks.${blockIndex}.exercises`,
       keyName: "id",
@@ -67,14 +79,11 @@ const ExercisesForBlock = ({ control, blockIndex, setActiveSelection }: { contro
             <p className="text-sm text-muted-foreground text-center py-4">No exercises added yet. Click "Add Exercise" to start.</p>
           ) : (
             fields.map((field, index) => (
-              <div key={field.id} onClick={() => setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: index })} className="cursor-pointer">
                 <ExerciseListItem
-                  control={control}
+                  key={field.id}
                   blockIndex={blockIndex}
                   exerciseIndex={index}
-                  onRemove={(e) => { e.stopPropagation(); remove(index); setActiveSelection({ type: 'block', blockIndex }); }}
                 />
-              </div>
             ))
           )}
         </CardContent>
@@ -83,7 +92,8 @@ const ExercisesForBlock = ({ control, blockIndex, setActiveSelection }: { contro
 };
 
 // --- Sub-component for editing a single exercise ---
-const ExerciseForm = ({ control, blockIndex, exerciseIndex }: { control: Control<RoutineFormValues>; blockIndex: number; exerciseIndex: number }) => {
+const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerciseIndex: number }) => {
+    const { form: { control } } = useRoutineCreator();
     const repType = useWatch({ control, name: `blocks.${blockIndex}.exercises.${exerciseIndex}.repType` });
     const blockName = useWatch({ control, name: `blocks.${blockIndex}.name` });
 
@@ -118,27 +128,8 @@ const ExerciseForm = ({ control, blockIndex, exerciseIndex }: { control: Control
 };
 
 
-export function RoutineCreatorForm({
-  form,
-  activeSelection,
-  setActiveSelection,
-  members,
-  routineTypes,
-  routineToEdit,
-  isEditing,
-  isSubmitting,
-  onCancel,
-}: {
-  form: UseFormReturn<RoutineFormValues>;
-  activeSelection: { type: 'block' | 'exercise'; blockIndex: number; exerciseIndex?: number };
-  setActiveSelection: (selection: { type: 'block' | 'exercise'; blockIndex: number; exerciseIndex?: number }) => void;
-  members: Member[];
-  routineTypes: RoutineType[];
-  routineToEdit?: ManagedRoutine | null;
-  isEditing: boolean;
-  isSubmitting: boolean;
-  onCancel: () => void;
-}) {
+export function RoutineCreatorForm() {
+  const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel } = useRoutineCreator();
   const { control } = form;
   
   const blockName = useWatch({ control, name: `blocks.${activeSelection.blockIndex}.name`});
@@ -215,16 +206,13 @@ export function RoutineCreatorForm({
           </Card>
           <ExercisesForBlock
             key={activeSelection.blockIndex} 
-            control={control}
             blockIndex={activeSelection.blockIndex}
-            setActiveSelection={setActiveSelection}
           />
         </>
       )}
 
       {activeSelection.type === 'exercise' && activeSelection.exerciseIndex !== undefined && (
         <ExerciseForm 
-          control={control}
           blockIndex={activeSelection.blockIndex}
           exerciseIndex={activeSelection.exerciseIndex}
         />
