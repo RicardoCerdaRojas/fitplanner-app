@@ -12,13 +12,9 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, Calendar as CalendarIcon, Trash2, Search, MoreVertical, Send, UserX, Edit, ShieldCheck, Dumbbell, ClipboardList, Clock } from 'lucide-react';
+import { UserPlus, Trash2, Search, MoreVertical, UserX, Edit, ShieldCheck, Dumbbell, ClipboardList, Clock } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, Timestamp, deleteDoc, updateDoc } from 'firebase/firestore';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { Calendar } from './ui/calendar';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
 import Link from 'next/link';
 import {
   DropdownMenu,
@@ -42,16 +38,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 
 
 const formSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email({ message: 'Please enter a valid email.' }),
-  role: z.enum(['coach', 'athlete'], { required_error: 'Please select a role.' }),
-  dob: z.date().optional(),
-}).superRefine((data, ctx) => {
-    if (data.role === 'athlete') {
-        if (!data.dob) {
-            ctx.addIssue({ code: 'custom', message: 'Date of birth is required.', path: ['dob'] });
-        }
-    }
+  role: z.enum(['coach', 'member'], { required_error: 'Please select a role.' }),
 });
 
 
@@ -62,7 +50,7 @@ type Member = {
     type: 'member';
     email: string;
     name?: string;
-    role: 'athlete' | 'coach' | 'gym-admin';
+    role: 'member' | 'coach' | 'gym-admin';
     dob?: Timestamp;
     gymName: string;
 };
@@ -71,9 +59,7 @@ type PendingMembership = {
     id: string; // email as id
     type: 'pending';
     email: string;
-    name?: string;
-    role: 'athlete' | 'coach';
-    dob?: Timestamp;
+    role: 'member' | 'coach';
     gymName: string;
 }
 
@@ -86,19 +72,17 @@ function MemberForm({ gymId, gymName, onFormSubmitted, userToEdit }: { gymId: st
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
-        defaultValues: { name: '', email: '', role: undefined, dob: undefined },
+        defaultValues: { email: '', role: undefined },
     });
 
     useEffect(() => {
         if (userToEdit) {
             form.reset({
-                name: userToEdit.name || '',
                 email: userToEdit.email,
-                role: userToEdit.role === 'athlete' || userToEdit.role === 'coach' ? userToEdit.role : undefined,
-                dob: userToEdit.dob ? userToEdit.dob.toDate() : undefined,
+                role: userToEdit.role === 'member' || userToEdit.role === 'coach' ? userToEdit.role : undefined,
             });
         } else {
-            form.reset({ name: '', email: '', role: undefined, dob: undefined});
+            form.reset({ email: '', role: undefined });
         }
     }, [userToEdit, form]);
 
@@ -107,13 +91,11 @@ function MemberForm({ gymId, gymName, onFormSubmitted, userToEdit }: { gymId: st
             // Logic to update an existing user (member)
             const docRef = doc(db, "users", userToEdit.id);
             const dataToUpdate: any = {
-                name: values.name,
                 role: values.role,
-                dob: values.role === 'athlete' && values.dob ? Timestamp.fromDate(values.dob) : null,
             };
             try {
                 await updateDoc(docRef, dataToUpdate);
-                toast({ title: 'Success!', description: `${values.name}'s details have been updated.` });
+                toast({ title: 'Success!', description: `${userToEdit.name}'s role has been updated.` });
             } catch(error: any) {
                  toast({ variant: 'destructive', title: 'Error', description: `Could not update the member.` });
             }
@@ -126,13 +108,9 @@ function MemberForm({ gymId, gymName, onFormSubmitted, userToEdit }: { gymId: st
                 gymName,
                 status: 'pending',
                 email: values.email.toLowerCase(),
-                name: values.name,
                 role: values.role,
                 createdAt: Timestamp.now(),
             };
-            if (values.role === 'athlete') {
-                dataToSave.dob = values.dob ? Timestamp.fromDate(values.dob) : null;
-            }
 
             try {
                 await setDoc(docRef, dataToSave);
@@ -148,6 +126,7 @@ function MemberForm({ gymId, gymName, onFormSubmitted, userToEdit }: { gymId: st
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="member@example.com" {...field} disabled={isEditing} /></FormControl><FormMessage /></FormItem>)}/>
                 <FormField control={form.control} name="role" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Role</FormLabel>
@@ -155,46 +134,12 @@ function MemberForm({ gymId, gymName, onFormSubmitted, userToEdit }: { gymId: st
                             <FormControl><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger></FormControl>
                             <SelectContent>
                                 <SelectItem value="coach">Coach</SelectItem>
-                                <SelectItem value="athlete">Athlete</SelectItem>
+                                <SelectItem value="member">Member</SelectItem>
                             </SelectContent>
                         </Select>
                         <FormMessage />
                     </FormItem>
                 )}/>
-                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="member@example.com" {...field} disabled={isEditing} /></FormControl><FormMessage /></FormItem>)}/>
-                
-                { form.watch('role') === 'athlete' && (
-                    <FormField control={form.control} name="dob" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <FormControl>
-                                        <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
-                                    </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        mode="single"
-                                        selected={field.value}
-                                        onSelect={field.onChange}
-                                        captionLayout="dropdown"
-                                        fromYear={1940}
-                                        toYear={new Date().getFullYear()}
-                                        disabled={(date) =>
-                                            date > new Date() || date < new Date("1940-01-01")
-                                        }
-                                        initialFocus
-                                    />
-                                </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                        </FormItem>
-                    )}/>
-                )}
                 <DialogFooter className='pt-4'>
                     <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
                     <Button type="submit" disabled={form.formState.isSubmitting}>
@@ -313,8 +258,8 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                     icon = <ClipboardList className="h-4 w-4" />;
                     className = 'text-amber-500';
                     break;
-                case 'athlete':
-                    roleName = 'Athlete';
+                case 'member':
+                    roleName = 'Member';
                     icon = <Dumbbell className="h-4 w-4" />;
                     className = 'text-green-500';
                     break;
@@ -365,7 +310,7 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Roles</SelectItem>
-                                <SelectItem value="athlete">Athletes</SelectItem>
+                                <SelectItem value="member">Members</SelectItem>
                                 <SelectItem value="coach">Coaches</SelectItem>
                                 <SelectItem value="pending">Pending</SelectItem>
                             </SelectContent>
@@ -400,10 +345,6 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                                             </div>
                                             <p className="text-sm text-muted-foreground truncate">{user.email}</p>
                                         </div>
-                                        <div className="hidden sm:block">
-                                            <p className="text-sm font-semibold">{user.dob ? format(user.dob.toDate(), 'PPP') : 'N/A'}</p>
-                                            <p className="text-xs text-muted-foreground">DOB</p>
-                                        </div>
                                     </div>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
@@ -412,12 +353,12 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => openEditDialog(user)} disabled={user.type === 'pending'}>
-                                                <Edit className="mr-2 h-4 w-4" /> Edit
+                                            <DropdownMenuItem onClick={() => openEditDialog(user)} disabled={user.type === 'pending' || user.role === 'gym-admin'}>
+                                                <Edit className="mr-2 h-4 w-4" /> Edit Role
                                             </DropdownMenuItem>
                                             {user.type === 'member' && user.role !== 'gym-admin' && (
                                                 <DropdownMenuItem asChild>
-                                                    <Link href={`/coach?athleteId=${user.id}`}>
+                                                    <Link href={`/coach?memberId=${user.id}`}>
                                                         <ClipboardList className="mr-2" /> View Routines
                                                     </Link>
                                                 </DropdownMenuItem>
@@ -436,9 +377,9 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
 
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{userToEdit ? 'Edit Member' : 'Add New Member'}</DialogTitle>
+                    <DialogTitle>{userToEdit ? 'Edit Member Role' : 'Add New Member'}</DialogTitle>
                     <DialogDescription>
-                        {userToEdit ? `Update the details for ${userToEdit.name}.` : 'Create a new membership. The user can then sign up with this email to get access.'}
+                        {userToEdit ? `Update the role for ${userToEdit.name}.` : 'Create a new membership. The user can then sign up with this email to get access.'}
                     </DialogDescription>
                 </DialogHeader>
                 <MemberForm gymId={gymId} gymName={gymName} onFormSubmitted={() => setFormModalOpen(false)} userToEdit={userToEdit} />

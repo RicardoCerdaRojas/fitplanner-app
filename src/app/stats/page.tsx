@@ -63,7 +63,7 @@ export default function StatsPage() {
     }
 
     setLoading(true);
-    const routinesQuery = query(collection(db, 'routines'), where('athleteId', '==', user.uid));
+    const routinesQuery = query(collection(db, 'routines'), where('memberId', '==', user.uid));
     const unsubscribe = onSnapshot(routinesQuery, (snapshot) => {
       const fetchedRoutines = snapshot.docs
         .map((doc) => {

@@ -20,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import type { Athlete } from '@/app/coach/page';
+import type { Member } from '@/app/coach/page';
 import { addDoc, collection, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { ManagedRoutine } from './coach-routine-management';
@@ -59,7 +59,7 @@ const blockSchema = z.object({
 
 const routineSchema = z.object({
   routineTypeId: z.string({ required_error: "Please select a routine type." }),
-  athleteId: z.string({ required_error: "Please select a client." }).min(1, 'Please select a client.'),
+  memberId: z.string({ required_error: "Please select a client." }).min(1, 'Please select a client.'),
   routineDate: z.date({
     required_error: "A date for the routine is required.",
   }),
@@ -69,14 +69,14 @@ const routineSchema = z.object({
 type FormValues = z.infer<typeof routineSchema>;
 
 type CoachRoutineCreatorProps = {
-  athletes: Athlete[];
+  members: Member[];
   routineTypes: RoutineType[];
   gymId: string;
   routineToEdit?: ManagedRoutine | null;
   onRoutineSaved: () => void;
 };
 
-export function CoachRoutineCreator({ athletes, routineTypes, gymId, routineToEdit, onRoutineSaved }: CoachRoutineCreatorProps) {
+export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdit, onRoutineSaved }: CoachRoutineCreatorProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -88,13 +88,13 @@ export function CoachRoutineCreator({ athletes, routineTypes, gymId, routineToEd
     return routineToEdit 
       ? {
           routineTypeId: routineToEdit.routineTypeId || '',
-          athleteId: routineToEdit.athleteId,
+          memberId: routineToEdit.memberId,
           routineDate: routineToEdit.routineDate,
           blocks: routineToEdit.blocks,
         }
       : {
           routineTypeId: '',
-          athleteId: '',
+          memberId: '',
           routineDate: new Date(),
           blocks: [{ name: 'Warm-up', sets: '3 Sets', exercises: [{ name: '', repType: 'reps', reps: '12', duration: '10', weight: '', videoUrl: '' }] }],
         };
@@ -115,11 +115,9 @@ export function CoachRoutineCreator({ athletes, routineTypes, gymId, routineToEd
   
   // Effect to manage the active block tab
   useEffect(() => {
-    // A block was added, make it active
     if (blockFields.length > lastBlockCount) {
         setActiveBlockId(blockFields[blockFields.length - 1].id);
     } 
-    // The active block was removed or there is no active block, select the first one
     else if (!activeBlockId || !blockFields.some(field => field.id === activeBlockId)) {
       setActiveBlockId(blockFields[0]?.id);
     }
@@ -137,8 +135,8 @@ export function CoachRoutineCreator({ athletes, routineTypes, gymId, routineToEd
       return;
     }
 
-    const selectedAthlete = athletes.find((a) => a.uid === values.athleteId);
-    if (!selectedAthlete && !isEditing) {
+    const selectedMember = members.find((a) => a.uid === values.memberId);
+    if (!selectedMember && !isEditing) {
       toast({ variant: 'destructive', title: 'Invalid Client', description: 'The selected client could not be found.' });
       return;
     }
@@ -152,7 +150,7 @@ export function CoachRoutineCreator({ athletes, routineTypes, gymId, routineToEd
     const routineData = {
         ...values,
         routineTypeName: selectedRoutineType.name,
-        userName: isEditing && routineToEdit ? routineToEdit.userName : selectedAthlete!.name,
+        userName: isEditing && routineToEdit ? routineToEdit.userName : selectedMember!.name,
         coachId: user.uid,
         gymId: gymId,
     };
@@ -202,7 +200,7 @@ export function CoachRoutineCreator({ athletes, routineTypes, gymId, routineToEd
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                 <FormField
                   control={form.control}
-                  name="athleteId"
+                  name="memberId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Client's Name</FormLabel>
@@ -222,11 +220,11 @@ export function CoachRoutineCreator({ athletes, routineTypes, gymId, routineToEd
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {athletes.length === 0 ? (
-                              <SelectItem value="none" disabled>No athletes found</SelectItem>
+                            {members.length === 0 ? (
+                              <SelectItem value="none" disabled>No members found</SelectItem>
                             ) : (
-                              athletes.map(athlete => (
-                                <SelectItem key={athlete.uid} value={athlete.uid}>{athlete.name}</SelectItem>
+                              members.map(member => (
+                                <SelectItem key={member.uid} value={member.uid}>{member.name}</SelectItem>
                               ))
                             )}
                           </SelectContent>

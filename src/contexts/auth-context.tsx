@@ -30,7 +30,7 @@ export type Membership = {
     id: string;
     userId: string;
     gymId: string;
-    role: 'athlete' | 'coach' | 'gym-admin';
+    role: 'member' | 'coach' | 'gym-admin';
     userName:string;
     gymName: string;
     status: 'active' | 'pending';
@@ -72,7 +72,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const claimPendingMembership = async () => {
       if (!user?.email || (userProfile && userProfile.gymId)) {
-        // Don't run if there's no email, or if the user already belongs to a gym.
         return;
       }
 
@@ -91,18 +90,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           userId: user.uid,
           gymId: pendingData.gymId,
           role: pendingData.role,
-          userName: pendingData.name,
+          userName: userProfile?.name, // Use name from user's profile
           gymName: pendingData.gymName,
           status: 'active',
         });
 
-        // 2. Update the user's profile with gymId and other details from the pending membership
+        // 2. Update the user's profile with gymId
         const userRef = doc(db, 'users', user.uid);
         const userUpdateData: any = {
           gymId: pendingData.gymId,
-          name: pendingData.name,
+          role: pendingData.role, // Also add role to user profile for easier access
         };
-        if (pendingData.dob) userUpdateData.dob = pendingData.dob;
         batch.update(userRef, userUpdateData);
 
         // 3. Delete the processed pending membership document
@@ -110,8 +108,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         try {
           await batch.commit();
-          // The onSnapshot listeners in AuthProviderClient will automatically
-          // pick up the new active membership and updated profile data.
         } catch (error) {
           console.error("Error claiming pending membership:", error);
           setLoading(false);

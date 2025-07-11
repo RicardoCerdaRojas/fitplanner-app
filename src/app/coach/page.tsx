@@ -17,7 +17,7 @@ import type { RoutineType } from '@/app/admin/routine-types/page';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
 
 
-export type Athlete = {
+export type Member = {
   uid: string;
   name: string;
 };
@@ -28,17 +28,17 @@ function CoachDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [routineTypes, setRoutineTypes] = useState<RoutineType[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [routines, setRoutines] = useState<ManagedRoutine[]>([]);
   const [isLoadingRoutines, setIsLoadingRoutines] = useState(true);
   const [editingRoutine, setEditingRoutine] = useState<ManagedRoutine | null>(null);
   
-  const initialAthleteId = searchParams.get('athleteId');
-  const [activeTab, setActiveTab] = useState(initialAthleteId ? 'manage' : 'create');
+  const initialMemberId = searchParams.get('memberId');
+  const [activeTab, setActiveTab] = useState(initialMemberId ? 'manage' : 'create');
 
-  // Fetch athletes and routine types
+  // Fetch members and routine types
   useEffect(() => {
     if (loading || !activeMembership?.gymId) {
       setIsLoadingData(false);
@@ -47,24 +47,24 @@ function CoachDashboard() {
 
     setIsLoadingData(true);
     
-    // Fetch Athletes
-    const athletesQuery = query(
+    // Fetch Members
+    const membersQuery = query(
       collection(db, 'users'),
       where('gymId', '==', activeMembership.gymId),
-      where('role', '==', 'athlete')
+      where('role', '==', 'member')
     );
-    const unsubscribeAthletes = onSnapshot(athletesQuery, (snapshot) => {
-      const fetchedAthletes = snapshot.docs.map(doc => {
+    const unsubscribeMembers = onSnapshot(membersQuery, (snapshot) => {
+      const fetchedMembers = snapshot.docs.map(doc => {
         const data = doc.data();
         return { uid: doc.id, name: data.name || data.email };
-      }).filter(athlete => athlete.name) as Athlete[];
-      setAthletes(fetchedAthletes);
+      }).filter(member => member.name) as Member[];
+      setMembers(fetchedMembers);
     }, (error) => {
-      console.error("Error fetching athletes: ", error);
+      console.error("Error fetching members: ", error);
       toast({
           variant: 'destructive',
           title: 'Database Error',
-          description: 'Could not fetch the athletes list.',
+          description: 'Could not fetch the members list.',
       });
     });
 
@@ -78,12 +78,12 @@ function CoachDashboard() {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch routine types.' });
     });
 
-    Promise.all([new Promise(res => onSnapshot(athletesQuery, res)), new Promise(res => onSnapshot(typesQuery, res))])
+    Promise.all([new Promise(res => onSnapshot(membersQuery, res)), new Promise(res => onSnapshot(typesQuery, res))])
       .finally(() => setIsLoadingData(false));
 
 
     return () => {
-      unsubscribeAthletes();
+      unsubscribeMembers();
       unsubscribeTypes();
     };
   }, [loading, activeMembership, toast]);
@@ -104,7 +104,7 @@ function CoachDashboard() {
     const unsubscribe = onSnapshot(routinesQuery, (snapshot) => {
         const fetchedRoutines = snapshot.docs.map(doc => {
             const data = doc.data();
-            if (data.athleteId && data.userName && data.routineDate) {
+            if (data.memberId && data.userName && data.routineDate) {
                 return {
                     id: doc.id,
                     ...data,
@@ -179,14 +179,14 @@ function CoachDashboard() {
             </TabsList>
             <TabsContent value="create">
               {isLoadingData ? <Skeleton className="h-96 w-full mt-4"/> : (
-                activeMembership.gymId && <CoachRoutineCreator key={editingRoutine ? editingRoutine.id : 'create'} athletes={athletes} routineTypes={routineTypes} gymId={activeMembership.gymId} routineToEdit={editingRoutine} onRoutineSaved={handleRoutineSaved} />
+                activeMembership.gymId && <CoachRoutineCreator key={editingRoutine ? editingRoutine.id : 'create'} members={members} routineTypes={routineTypes} gymId={activeMembership.gymId} routineToEdit={editingRoutine} onRoutineSaved={handleRoutineSaved} />
               )}
             </TabsContent>
             <TabsContent value="manage">
               {isLoadingRoutines ? (
                   <Skeleton className="h-96 w-full mt-4" />
               ) : (
-                  <CoachRoutineManagement routines={routines} onEdit={handleEditRoutine} initialAthleteId={initialAthleteId} />
+                  <CoachRoutineManagement routines={routines} onEdit={handleEditRoutine} initialMemberId={initialMemberId} />
               )}
             </TabsContent>
           </Tabs>

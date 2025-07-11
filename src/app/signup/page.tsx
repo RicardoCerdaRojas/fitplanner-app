@@ -18,18 +18,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Calendar as CalendarIcon } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, Timestamp, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AppHeader } from '@/components/app-header';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   email: z.string().email({ message: 'Please enter a valid email.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  dob: z.date({ required_error: 'Date of birth is required.' }),
 });
 
 export default function SignupPage() {
@@ -38,7 +43,6 @@ export default function SignupPage() {
   const { user, loading } = useAuth();
 
   useEffect(() => {
-    // If user is already logged in, redirect them away from the signup page
     if (!loading && user) {
       router.push('/');
     }
@@ -51,6 +55,7 @@ export default function SignupPage() {
       name: '',
       email: '',
       password: '',
+      dob: undefined,
     },
   });
 
@@ -58,20 +63,33 @@ export default function SignupPage() {
     const lowerCaseEmail = values.email.toLowerCase();
 
     try {
+      // Step 0: Check if a pending membership exists for this email.
+      const pendingMembershipRef = doc(db, 'memberships', lowerCaseEmail);
+      const pendingSnap = await getDoc(pendingMembershipRef);
+
+      if (!pendingSnap.exists() || pendingSnap.data().status !== 'pending') {
+          toast({
+              variant: 'destructive',
+              title: 'Registration Not Allowed',
+              description: 'This email does not have a pending membership. Please contact your gym administrator.',
+          });
+          return;
+      }
+
       // Step 1: Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, lowerCaseEmail, values.password);
       const { user } = userCredential;
 
-      // Step 2: Create a basic user profile in Firestore.
-      // This profile will be updated by the membership claim logic if a pending membership exists.
+      // Step 2: Create a user profile in Firestore with all details.
       await setDoc(doc(db, 'users', user.uid), {
         name: values.name,
         email: lowerCaseEmail,
+        dob: Timestamp.fromDate(values.dob),
         createdAt: Timestamp.now(),
-        gymId: null, // Explicitly set gymId to null initially
+        gymId: null, // gymId will be set by the auth context trigger
       });
       
-      // Redirect to home, where logic in AuthContext will handle checking for a pending membership.
+      // Redirect to home, where logic in AuthContext will handle claiming the membership.
       router.push('/');
 
     } catch (error: any) {
@@ -136,6 +154,36 @@ export default function SignupPage() {
                   </FormItem>
                 )}
               />
+               <FormField control={form.control} name="dob" render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                      <FormLabel>Date of Birth</FormLabel>
+                      <Popover>
+                          <PopoverTrigger asChild>
+                              <FormControl>
+                                  <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                      {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
+                              </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={field.onChange}
+                                  captionLayout="dropdown"
+                                  fromYear={1940}
+                                  toYear={new Date().getFullYear()}
+                                  disabled={(date) =>
+                                      date > new Date() || date < new Date("1940-01-01")
+                                  }
+                                  initialFocus
+                              />
+                          </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                  </FormItem>
+              )}/>
               <FormField
                 control={form.control}
                 name="password"

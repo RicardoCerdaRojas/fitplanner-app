@@ -146,7 +146,7 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
 
                 if (routine.progress) {
                     block.exercises.forEach((_, eIndex) => {
-                        for (let sIndex = 0; sIndex < setsInBlock; sIndex++) {
+                        for (let sIndex = 0; sIndex < totalSetsInBlock; sIndex++) {
                             const key = `${bIndex}-${eIndex}-${sIndex}`;
                             if (routine.progress[key]?.completed) {
                                 completedSets++;

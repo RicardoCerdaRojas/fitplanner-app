@@ -17,7 +17,7 @@ import type { Timestamp } from 'firebase/firestore';
 // A more robust, combined type for routines being managed.
 export type ManagedRoutine = {
     id: string;
-    athleteId: string;
+    memberId: string;
     userName: string;
     routineDate: Date;
     blocks: Block[];
@@ -35,10 +35,10 @@ export type ManagedRoutine = {
 type Props = {
     routines: ManagedRoutine[];
     onEdit: (routine: ManagedRoutine) => void;
-    initialAthleteId?: string | null;
+    initialMemberId?: string | null;
 };
 
-export function CoachRoutineManagement({ routines, onEdit, initialAthleteId }: Props) {
+export function CoachRoutineManagement({ routines, onEdit, initialMemberId }: Props) {
     const { toast } = useToast();
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
@@ -65,17 +65,17 @@ export function CoachRoutineManagement({ routines, onEdit, initialAthleteId }: P
         }
     };
 
-    const routinesByAthlete = routines.reduce((acc, routine) => {
-        const { athleteId, userName } = routine;
-        if (!acc[athleteId]) {
-            acc[athleteId] = { name: userName, routines: [] };
+    const routinesByMember = routines.reduce((acc, routine) => {
+        const { memberId, userName } = routine;
+        if (!acc[memberId]) {
+            acc[memberId] = { name: userName, routines: [] };
         }
-        acc[athleteId].routines.push(routine);
+        acc[memberId].routines.push(routine);
         return acc;
     }, {} as Record<string, { name: string; routines: ManagedRoutine[] }>);
 
-    const athleteIds = Object.keys(routinesByAthlete);
-    const defaultTab = initialAthleteId && athleteIds.includes(initialAthleteId) ? initialAthleteId : athleteIds[0];
+    const memberIds = Object.keys(routinesByMember);
+    const defaultTab = initialMemberId && memberIds.includes(initialMemberId) ? initialMemberId : memberIds[0];
 
     if (routines.length === 0) {
         return (
@@ -92,19 +92,19 @@ export function CoachRoutineManagement({ routines, onEdit, initialAthleteId }: P
         <div className="mt-4">
             <Tabs defaultValue={defaultTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                    {athleteIds.map((athleteId) => (
-                        <TabsTrigger key={athleteId} value={athleteId}>
-                            {routinesByAthlete[athleteId].name}
+                    {memberIds.map((memberId) => (
+                        <TabsTrigger key={memberId} value={memberId}>
+                            {routinesByMember[memberId].name}
                         </TabsTrigger>
                     ))}
                 </TabsList>
-                {athleteIds.map((athleteId) => (
-                    <TabsContent key={athleteId} value={athleteId}>
-                        {routinesByAthlete[athleteId].routines.length === 0 ? (
-                            <p className="text-muted-foreground text-center mt-4">No routines for this athlete.</p>
+                {memberIds.map((memberId) => (
+                    <TabsContent key={memberId} value={memberId}>
+                        {routinesByMember[memberId].routines.length === 0 ? (
+                            <p className="text-muted-foreground text-center mt-4">No routines for this member.</p>
                         ) : (
                             <Accordion type="single" collapsible className="w-full space-y-2 mt-4">
-                                {routinesByAthlete[athleteId].routines.map((routine) => (
+                                {routinesByMember[memberId].routines.map((routine) => (
                                     <AccordionItem value={routine.id} key={routine.id} className="border rounded-lg px-2">
                                         <div className="flex items-center justify-between w-full">
                                             <AccordionTrigger className="flex-1 py-3 px-2 text-left hover:no-underline">

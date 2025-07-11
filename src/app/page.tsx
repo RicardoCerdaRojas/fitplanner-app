@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 
-function AthleteDashboard() {
+function MemberDashboard() {
   const { user } = useAuth();
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +28,7 @@ function AthleteDashboard() {
 
     const routinesQuery = query(
       collection(db, 'routines'),
-      where('athleteId', '==', user.uid),
+      where('memberId', '==', user.uid),
       where('routineDate', '>=', Timestamp.fromDate(threeMonthsAgo))
     );
 
@@ -109,7 +109,7 @@ export default function Home() {
                 } else if (activeMembership.role === 'coach') {
                     router.replace('/coach');
                 }
-                // Athletes will stay on this page to see their dashboard
+                // Members will stay on this page to see their dashboard
             } else {
                 // User is logged in but has no membership
                 router.replace('/create-gym');
@@ -126,8 +126,8 @@ export default function Home() {
         return <GuestHomepage />;
     }
     
-    if (activeMembership?.role === 'athlete') {
-        return <AthleteDashboard />;
+    if (activeMembership?.role === 'member') {
+        return <MemberDashboard />;
     }
 
     // Fallback for when redirection is happening or for roles without a specific dashboard on '/'

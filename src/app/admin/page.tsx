@@ -14,21 +14,21 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
 
-type GymUser = { role: 'athlete' | 'coach' | 'gym-admin' };
+type GymUser = { role: 'member' | 'coach' | 'gym-admin' };
 
 const chartConfig: ChartConfig = {
-  athletes: { label: "Athletes", color: "hsl(var(--chart-1))" },
+  members: { label: "Members", color: "hsl(var(--chart-1))" },
   coaches: { label: "Coaches", color: "hsl(var(--chart-2))" },
 };
 
-const COLORS = [chartConfig.athletes.color, chartConfig.coaches.color];
+const COLORS = [chartConfig.members.color, chartConfig.coaches.color];
 
 export default function AdminDashboardPage() {
     const { user, activeMembership, loading } = useAuth();
     const router = useRouter();
 
     const [memberCount, setMemberCount] = useState(0);
-    const [inviteCount, setInviteCount] = useState(0);
+    const [pendingCount, setPendingCount] = useState(0);
     const [routinesThisMonth, setRoutinesThisMonth] = useState(0);
     const [roleDistribution, setRoleDistribution] = useState<{ name: string; value: number; }[]>([]);
 
@@ -41,20 +41,20 @@ export default function AdminDashboardPage() {
             setMemberCount(users.length);
 
             const roles = users.reduce((acc, user) => {
-                if (user.role === 'athlete') acc.athletes++;
+                if (user.role === 'member') acc.members++;
                 if (user.role === 'coach') acc.coaches++;
                 return acc;
-            }, { athletes: 0, coaches: 0 });
+            }, { members: 0, coaches: 0 });
             
             setRoleDistribution([
-                { name: 'Athletes', value: roles.athletes },
+                { name: 'Members', value: roles.members },
                 { name: 'Coaches', value: roles.coaches }
             ].filter(r => r.value > 0));
         });
 
-        const invitesQuery = query(collection(db, 'invites'), where('gymId', '==', activeMembership.gymId));
-        const unsubscribeInvites = onSnapshot(invitesQuery, (snapshot) => {
-            setInviteCount(snapshot.docs.length);
+        const pendingQuery = query(collection(db, 'memberships'), where('gymId', '==', activeMembership.gymId), where('status', '==', 'pending'));
+        const unsubscribePending = onSnapshot(pendingQuery, (snapshot) => {
+            setPendingCount(snapshot.docs.length);
         });
 
         const routinesQuery = query(
@@ -74,7 +74,7 @@ export default function AdminDashboardPage() {
 
         return () => {
             unsubscribeUsers();
-            unsubscribeInvites();
+            unsubscribePending();
             unsubscribeRoutines();
         };
 
@@ -109,16 +109,16 @@ export default function AdminDashboardPage() {
                             </CardHeader>
                             <CardContent className="p-0">
                                 <div className="text-2xl font-bold">{memberCount}</div>
-                                <p className="text-xs text-muted-foreground">Athletes & Coaches</p>
+                                <p className="text-xs text-muted-foreground">Members & Coaches</p>
                             </CardContent>
                         </Card>
                         <Card className="p-3">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Pending Invites</CardTitle>
+                                <CardTitle className="text-sm font-medium">Pending Memberships</CardTitle>
                                 <UserPlus className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent className="p-0">
-                                <div className="text-2xl font-bold">+{inviteCount}</div>
+                                <div className="text-2xl font-bold">+{pendingCount}</div>
                                 <p className="text-xs text-muted-foreground">Waiting to sign up</p>
                             </CardContent>
                         </Card>
