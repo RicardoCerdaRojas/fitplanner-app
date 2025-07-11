@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -31,11 +32,9 @@ service cloud.firestore {
       allow create, update: if isSignedIn() && request.auth.uid == userId;
 
       // A user can read their own profile.
-      // A gym staff member can read the profile of any user in their gym.
-      allow read: if isSignedIn() && (
-        (request.auth.uid == userId) || 
-        (resource.data.gymId != null && isGymStaff(request.auth.uid, resource.data.gymId))
-      );
+      // Gym staff can read the profiles of users within their gym.
+      allow read: if isSignedIn() && 
+                   (request.auth.uid == userId || isGymStaff(request.auth.uid, resource.data.gymId));
     }
 
     // Rules for the 'gyms' collection
@@ -51,32 +50,31 @@ service cloud.firestore {
     }
     
     // Rules for the 'memberships' collection
-    match /memberships/{docId} {
-      // A user can create their own pending membership document, using their email as the docId.
-      // A gym admin can create a pending membership for a user.
-      allow create: if isSignedIn() && 
-                    ( (request.resource.data.status == 'pending') || 
-                      (request.auth.uid == request.resource.data.userId) );
+    match /memberships/{membershipId} {
+        // A user can create their own membership document.
+        // The ID must be in the format {userId}_{gymId}.
+        allow create: if isSignedIn() && request.auth.uid == membershipId.split('_')[0];
+        
+        // A user can read their own membership document.
+        // A gym admin can read any membership document for their gym.
+        allow read: if isSignedIn() && 
+                    (request.auth.uid == resource.data.userId || 
+                     isGymAdmin(request.auth.uid, resource.data.gymId));
 
-      // A user can read their own membership document.
-      // A gym admin can read any membership document for their gym.
-      // A gym staff can read pending memberships.
-      allow read: if isSignedIn() && 
-                  ( (resource.data.status == 'pending' && isGymStaff(request.auth.uid, resource.data.gymId)) ||
-                    (request.auth.uid == resource.data.userId) || 
-                    (isGymAdmin(request.auth.uid, resource.data.gymId)) );
-      
-      // A gym admin can update a membership document (e.g. to activate it).
-      allow update: if isSignedIn() && isGymAdmin(request.auth.uid, resource.data.gymId);
+        // A gym admin can delete memberships from their gym. A user cannot delete their own.
+        allow delete: if isSignedIn() && isGymAdmin(request.auth.uid, resource.data.gymId);
+    }
 
-      // A gym admin can delete memberships from their gym.
-      allow delete: if isSignedIn() && isGymAdmin(request.auth.uid, resource.data.gymId);
+    // Rules for the 'invites' collection (deprecated but kept for reference)
+    match /invites/{email} {
+      allow read, write: if false; // This collection is no longer used
     }
 
     // Rules for the 'routines' collection
     match /routines/{routineId} {
       // A coach or admin can create, update, or delete routines for their own gym.
-      allow create, update, delete: if isSignedIn() && isGymStaff(request.auth.uid, get(/databases/$(database)/documents/routines/$(routineId)).data.gymId);
+      allow create, update, delete: if isSignedIn() && 
+                                     isGymStaff(request.auth.uid, request.resource.data.gymId);
 
       // Staff can read any routine in their gym. An athlete can read their own assigned routines.
       allow read: if isSignedIn() && 
@@ -86,7 +84,7 @@ service cloud.firestore {
       // An athlete can update their own progress. The rule ensures ONLY the progress field can be changed by them.
       allow update: if isSignedIn() && 
                      request.auth.uid == resource.data.athleteId &&
-                     request.resource.data.keys().hasOnly(['progress']);
+                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['progress']);
     }
 
     // Rules for the 'routineTypes' collection
