@@ -1,8 +1,7 @@
 
 'use client';
 
-import { useForm, useFieldArray, useWatch } from 'react-hook-form';
-import type { Control, UseFormReturn } from 'react-hook-form';
+import { useFieldArray, useWatch, type Control, type UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -19,52 +18,25 @@ import type { RoutineType } from '@/app/admin/routine-types/page';
 import type { RoutineFormValues } from './coach-routine-creator';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-// --- Sub-components are now moved inside RoutineCreatorForm ---
+// --- Sub-component for an exercise item in the list ---
+const ExerciseListItem = ({ control, blockIndex, exerciseIndex, onRemove }: { control: Control<RoutineFormValues>, blockIndex: number, exerciseIndex: number, onRemove: (e: React.MouseEvent) => void }) => {
+    const exerciseName = useWatch({
+        control,
+        name: `blocks.${blockIndex}.exercises.${exerciseIndex}.name`
+    });
 
-export function RoutineCreatorForm({
-  form,
-  activeSelection,
-  setActiveSelection,
-  members,
-  routineTypes,
-  routineToEdit,
-  isEditing,
-  isSubmitting,
-  onCancel,
-}: {
-  form: UseFormReturn<RoutineFormValues>;
-  activeSelection: { type: 'block' | 'exercise'; blockIndex: number; exerciseIndex?: number };
-  setActiveSelection: (selection: { type: 'block' | 'exercise'; blockIndex: number; exerciseIndex?: number }) => void;
-  members: Member[];
-  routineTypes: RoutineType[];
-  routineToEdit?: ManagedRoutine | null;
-  isEditing: boolean;
-  isSubmitting: boolean;
-  onCancel: () => void;
-}) {
-  const { control } = form;
-  
-  const blockName = useWatch({ control, name: `blocks.${activeSelection.blockIndex}.name`});
+    return (
+        <div className="flex items-center justify-between p-2 rounded-md border bg-muted/50">
+            <span className="font-medium truncate pr-2">{exerciseName || 'Untitled Exercise'}</span>
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0" onClick={onRemove}>
+                <Trash2 className="h-4 w-4" />
+            </Button>
+        </div>
+    );
+};
 
-  // --- ExerciseListItem Component Logic ---
-  const ExerciseListItem = ({ control, blockIndex, exerciseIndex, onRemove }: { control: Control<RoutineFormValues>, blockIndex: number, exerciseIndex: number, onRemove: (e: React.MouseEvent) => void }) => {
-      const exerciseName = useWatch({
-          control,
-          name: `blocks.${blockIndex}.exercises.${exerciseIndex}.name`
-      });
-
-      return (
-          <div className="flex items-center justify-between p-2 rounded-md border bg-muted/50">
-              <span className="font-medium truncate pr-2">{exerciseName || 'Untitled Exercise'}</span>
-              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0" onClick={onRemove}>
-                  <Trash2 className="h-4 w-4" />
-              </Button>
-          </div>
-      );
-  }
-
-  // --- ExercisesForBlock Component Logic ---
-  const ExercisesForBlock = ({ control, blockIndex }: { control: Control<RoutineFormValues>, blockIndex: number }) => {
+// --- Sub-component for the list of exercises in a block ---
+const ExercisesForBlock = ({ control, blockIndex, setActiveSelection }: { control: Control<RoutineFormValues>, blockIndex: number, setActiveSelection: (selection: { type: 'block' | 'exercise'; blockIndex: number; exerciseIndex?: number }) => void }) => {
     const { fields, append, remove } = useFieldArray({
       control,
       name: `blocks.${blockIndex}.exercises`,
@@ -108,10 +80,10 @@ export function RoutineCreatorForm({
         </CardContent>
       </Card>
     );
-  }
+};
 
-  // --- ExerciseForm Component Logic ---
-  const ExerciseForm = ({ control, blockIndex, exerciseIndex }: { control: Control<RoutineFormValues>; blockIndex: number; exerciseIndex: number }) => {
+// --- Sub-component for editing a single exercise ---
+const ExerciseForm = ({ control, blockIndex, exerciseIndex }: { control: Control<RoutineFormValues>; blockIndex: number; exerciseIndex: number }) => {
     const repType = useWatch({ control, name: `blocks.${blockIndex}.exercises.${exerciseIndex}.repType` });
     const blockName = useWatch({ control, name: `blocks.${blockIndex}.name` });
 
@@ -142,8 +114,34 @@ export function RoutineCreatorForm({
           <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.videoUrl`} render={({ field }) => (<FormItem><FormLabel>Example Video URL</FormLabel><FormControl><Input placeholder="https://example.com/video.mp4" {...field} /></FormControl><FormMessage /></FormItem>)} />
         </CardContent>
       </Card>
-    )
-  }
+    );
+};
+
+
+export function RoutineCreatorForm({
+  form,
+  activeSelection,
+  setActiveSelection,
+  members,
+  routineTypes,
+  routineToEdit,
+  isEditing,
+  isSubmitting,
+  onCancel,
+}: {
+  form: UseFormReturn<RoutineFormValues>;
+  activeSelection: { type: 'block' | 'exercise'; blockIndex: number; exerciseIndex?: number };
+  setActiveSelection: (selection: { type: 'block' | 'exercise'; blockIndex: number; exerciseIndex?: number }) => void;
+  members: Member[];
+  routineTypes: RoutineType[];
+  routineToEdit?: ManagedRoutine | null;
+  isEditing: boolean;
+  isSubmitting: boolean;
+  onCancel: () => void;
+}) {
+  const { control } = form;
+  
+  const blockName = useWatch({ control, name: `blocks.${activeSelection.blockIndex}.name`});
 
   return (
     <div className="space-y-6">
@@ -219,6 +217,7 @@ export function RoutineCreatorForm({
             key={activeSelection.blockIndex} 
             control={control}
             blockIndex={activeSelection.blockIndex}
+            setActiveSelection={setActiveSelection}
           />
         </>
       )}
