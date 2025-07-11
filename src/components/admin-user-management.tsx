@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, Trash2, Search, MoreVertical, UserX, Edit, ShieldCheck, Dumbbell, ClipboardList, Clock } from 'lucide-react';
 import { db } from '@/lib/firebase';
@@ -35,6 +34,7 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import { User } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { cn } from '@/lib/utils';
 
 
 const formSchema = z.object({
@@ -61,6 +61,7 @@ type PendingMembership = {
     email: string;
     role: 'member' | 'coach';
     gymName: string;
+    name?: string; // name is not captured at this stage anymore
 }
 
 type CombinedUser = Member | PendingMembership;
