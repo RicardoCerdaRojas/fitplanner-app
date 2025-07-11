@@ -6,7 +6,6 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AdminNav } from '@/components/admin-nav';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
 
 export default function AdminMembersPage() {
@@ -42,11 +41,10 @@ export default function AdminMembersPage() {
             <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-28 md:pb-8">
                  <div className="w-full max-w-6xl">
                     <h1 className="text-3xl font-bold font-headline mb-4">Manage Members</h1>
-                    <AdminNav />
+                    <AdminBottomNav />
                     {userProfile.gymId && <AdminUserManagement gymId={userProfile.gymId} />}
                  </div>
             </main>
-            <AdminBottomNav />
              <footer className="w-full text-center p-4 text-muted-foreground text-sm">
                 <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
             </footer>

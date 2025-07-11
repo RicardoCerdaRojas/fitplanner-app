@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -7,7 +8,6 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 import { AppHeader } from '@/components/app-header';
-import { AdminNav } from '@/components/admin-nav';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LiveActivityCard, type WorkoutSessionData } from '@/components/live-activity-card';
@@ -106,7 +106,7 @@ export default function LiveActivityPage() {
             <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
                 <div className="w-full max-w-7xl">
                     <h1 className="text-3xl font-bold font-headline mb-4">Live Gym Activity</h1>
-                    <AdminNav />
+                    <AdminBottomNav />
                 </div>
                 
                 <div className="w-full max-w-7xl">
@@ -130,7 +130,6 @@ export default function LiveActivityPage() {
                         </div>
                     )}
                 </div>
-                <AdminBottomNav />
             </main>
              <footer className="w-full text-center p-4 text-muted-foreground text-sm">
                 <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>

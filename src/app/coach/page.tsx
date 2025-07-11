@@ -7,7 +7,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { CoachRoutineCreator } from '@/components/coach-routine-creator';
 import { AppHeader } from '@/components/app-header';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AdminNav } from '@/components/admin-nav';
 import { collection, query, where, onSnapshot, Timestamp, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +14,8 @@ import { CoachRoutineManagement, type ManagedRoutine } from '@/components/coach-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ClipboardPlus, ClipboardList } from 'lucide-react';
 import type { RoutineType } from '@/app/admin/routine-types/page';
+import { AdminBottomNav } from '@/components/admin-bottom-nav';
+
 
 export type Athlete = {
   uid: string;
@@ -172,7 +173,7 @@ function CoachDashboard() {
           {userProfile?.role === 'gym-admin' ? (
               <>
                   <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
-                  <AdminNav />
+                  <AdminBottomNav />
               </>
             ) : (
                 <h1 className="text-3xl font-bold font-headline mb-8">Coach Dashboard</h1>

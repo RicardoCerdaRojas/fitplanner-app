@@ -16,7 +16,6 @@ import { useToast } from '@/hooks/use-toast';
 import { themes } from '@/lib/themes';
 import { cn } from '@/lib/utils';
 import { AppHeader } from '@/components/app-header';
-import { AdminNav } from '@/components/admin-nav';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -150,7 +149,7 @@ export default function GymSettingsPage() {
             <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-16 md:pb-8">
                 <div className="w-full max-w-4xl">
                     <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
-                    <AdminNav />
+                    <AdminBottomNav />
                     
                     <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -227,7 +226,6 @@ export default function GymSettingsPage() {
                     </Form>
                 </div>
             </main>
-            <AdminBottomNav />
             <footer className="w-full text-center p-4 text-muted-foreground text-sm">
                 <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
             </footer>

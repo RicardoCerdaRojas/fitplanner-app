@@ -17,7 +17,6 @@ import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, orderBy, updateDoc } from 'firebase/firestore';
 import { AppHeader } from '@/components/app-header';
-import { AdminNav } from '@/components/admin-nav';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertDialog,
@@ -177,7 +176,7 @@ export default function RoutineTypesPage() {
                 <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-16 md:pb-8">
                     <div className="w-full max-w-4xl">
                         <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
-                        <AdminNav />
+                        <AdminBottomNav />
                     
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             <div className="lg:col-span-2">
@@ -255,7 +254,6 @@ export default function RoutineTypesPage() {
                         </div>
                     </div>
                 </main>
-                <AdminBottomNav />
                 <footer className="w-full text-center p-4 text-muted-foreground text-sm">
                     <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
                 </footer>

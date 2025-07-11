@@ -1,7 +1,6 @@
 
 'use client';
 import { AppHeader } from '@/components/app-header';
-import { AdminNav } from '@/components/admin-nav';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -106,7 +105,7 @@ export default function AdminDashboardPage() {
             <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-16 md:pb-8">
                 <div className="w-full max-w-6xl">
                     <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
-                    <AdminNav />
+                    <AdminBottomNav />
                 
                     <div className="grid gap-4 grid-cols-2 md:grid-cols-3 mb-8">
                         <Card className="p-3">
@@ -188,7 +187,6 @@ export default function AdminDashboardPage() {
                     </div>
                 </div>
             </main>
-            <AdminBottomNav />
              <footer className="w-full text-center p-4 text-muted-foreground text-sm">
                 <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
             </footer>
