@@ -33,7 +33,7 @@ type FormValues = z.infer<typeof formSchema>;
 export default function GymSettingsPage() {
     const { toast } = useToast();
     const router = useRouter();
-    const { user, userProfile, gymProfile, loading } = useAuth();
+    const { activeMembership, gymProfile, loading } = useAuth();
     
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -43,16 +43,6 @@ export default function GymSettingsPage() {
         resolver: zodResolver(formSchema),
         defaultValues: { theme: 'slate-mint' },
     });
-
-    useEffect(() => {
-        if (!loading) {
-            if (!user) {
-                router.push('/login');
-            } else if (userProfile?.role !== 'gym-admin') {
-                router.push('/');
-            }
-        }
-    }, [user, userProfile, loading, router]);
     
     useEffect(() => {
         if (gymProfile?.theme) {
@@ -85,10 +75,10 @@ export default function GymSettingsPage() {
     };
 
     async function onSubmit(values: FormValues) {
-        if (!user || !userProfile?.gymId) return;
+        if (!activeMembership?.gymId) return;
         
         setIsSubmitting(true);
-        const { gymId } = userProfile;
+        const { gymId } = activeMembership;
         
         const selectedTheme = themes.find(t => t.id === values.theme);
         if (!selectedTheme) {
@@ -130,7 +120,7 @@ export default function GymSettingsPage() {
         }
     }
 
-    if (loading || !user || userProfile?.role !== 'gym-admin') {
+    if (loading || !activeMembership || activeMembership.role !== 'gym-admin') {
         return (
             <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
                 <AppHeader />

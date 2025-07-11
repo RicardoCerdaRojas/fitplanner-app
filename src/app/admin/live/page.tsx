@@ -14,7 +14,7 @@ import { LiveActivityCard, type WorkoutSessionData } from '@/components/live-act
 import { Activity } from 'lucide-react';
 
 export default function LiveActivityPage() {
-    const { user, userProfile, loading } = useAuth();
+    const { activeMembership, loading } = useAuth();
     const router = useRouter();
     const [activeSessions, setActiveSessions] = useState<WorkoutSessionData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -22,21 +22,11 @@ export default function LiveActivityPage() {
     const intervalRef = useRef<NodeJS.Timeout>();
 
     useEffect(() => {
-        if (!loading) {
-            if (!user) {
-                router.push('/login');
-            } else if (userProfile?.role !== 'gym-admin') {
-                router.push('/');
-            }
-        }
-    }, [user, userProfile, loading, router]);
-
-    useEffect(() => {
-        if (!userProfile?.gymId) return;
+        if (loading || !activeMembership?.gymId) return;
 
         const sessionsQuery = query(
             collection(db, 'workoutSessions'),
-            where('gymId', '==', userProfile.gymId),
+            where('gymId', '==', activeMembership.gymId),
             where('status', '==', 'active')
         );
 
@@ -60,7 +50,7 @@ export default function LiveActivityPage() {
         });
 
         return () => unsubscribe();
-    }, [userProfile?.gymId, isLoading]);
+    }, [loading, activeMembership, isLoading]);
 
 
     useEffect(() => {
@@ -83,7 +73,7 @@ export default function LiveActivityPage() {
     }, []);
 
 
-    if (loading || !user || userProfile?.role !== 'gym-admin') {
+    if (loading || !activeMembership || activeMembership.role !== 'gym-admin') {
         return (
             <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
                 <AppHeader />

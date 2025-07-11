@@ -24,13 +24,13 @@ export type Athlete = {
 
 
 function CoachDashboard() {
-  const { user, userProfile, loading } = useAuth();
+  const { user, activeMembership, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [routineTypes, setRoutineTypes] = useState<RoutineType[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [routines, setRoutines] = useState<ManagedRoutine[]>([]);
   const [isLoadingRoutines, setIsLoadingRoutines] = useState(true);
   const [editingRoutine, setEditingRoutine] = useState<ManagedRoutine | null>(null);
@@ -38,29 +38,19 @@ function CoachDashboard() {
   const initialAthleteId = searchParams.get('athleteId');
   const [activeTab, setActiveTab] = useState(initialAthleteId ? 'manage' : 'create');
 
-  useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.push('/login');
-      } else if (userProfile?.role !== 'coach' && userProfile?.role !== 'gym-admin') {
-        router.push('/');
-      }
-    }
-  }, [user, userProfile, loading, router]);
-
   // Fetch athletes and routine types
   useEffect(() => {
-    if (loading || !userProfile?.gymId) {
-      setIsLoading(false);
+    if (loading || !activeMembership?.gymId) {
+      setIsLoadingData(false);
       return;
     }
 
-    setIsLoading(true);
+    setIsLoadingData(true);
     
     // Fetch Athletes
     const athletesQuery = query(
       collection(db, 'users'),
-      where('gymId', '==', userProfile.gymId),
+      where('gymId', '==', activeMembership.gymId),
       where('role', '==', 'athlete')
     );
     const unsubscribeAthletes = onSnapshot(athletesQuery, (snapshot) => {
@@ -79,7 +69,7 @@ function CoachDashboard() {
     });
 
     // Fetch Routine Types
-    const typesQuery = query(collection(db, 'routineTypes'), where('gymId', '==', userProfile.gymId), orderBy('name'));
+    const typesQuery = query(collection(db, 'routineTypes'), where('gymId', '==', activeMembership.gymId), orderBy('name'));
     const unsubscribeTypes = onSnapshot(typesQuery, (snapshot) => {
         const fetchedTypes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RoutineType));
         setRoutineTypes(fetchedTypes);
@@ -89,18 +79,18 @@ function CoachDashboard() {
     });
 
     Promise.all([new Promise(res => onSnapshot(athletesQuery, res)), new Promise(res => onSnapshot(typesQuery, res))])
-      .finally(() => setIsLoading(false));
+      .finally(() => setIsLoadingData(false));
 
 
     return () => {
       unsubscribeAthletes();
       unsubscribeTypes();
     };
-  }, [userProfile?.gymId, loading, toast]);
+  }, [loading, activeMembership, toast]);
 
   // Fetch routines for management
   useEffect(() => {
-    if (loading || !userProfile?.gymId) {
+    if (loading || !activeMembership?.gymId) {
       setIsLoadingRoutines(false);
       return;
     }
@@ -108,7 +98,7 @@ function CoachDashboard() {
     setIsLoadingRoutines(true);
     const routinesQuery = query(
       collection(db, 'routines'),
-      where('gymId', '==', userProfile.gymId)
+      where('gymId', '==', activeMembership.gymId)
     );
 
     const unsubscribe = onSnapshot(routinesQuery, (snapshot) => {
@@ -137,7 +127,7 @@ function CoachDashboard() {
     });
 
     return () => unsubscribe();
-  }, [userProfile?.gymId, loading, toast]);
+  }, [loading, activeMembership, toast]);
   
   const handleEditRoutine = (routine: ManagedRoutine) => {
     setEditingRoutine(routine);
@@ -151,7 +141,7 @@ function CoachDashboard() {
   };
 
 
-  if (loading || !user || (userProfile?.role !== 'coach' && userProfile?.role !== 'gym-admin')) {
+  if (loading || !activeMembership || (activeMembership.role !== 'coach' && activeMembership.role !== 'gym-admin')) {
     return (
         <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
             <AppHeader />
@@ -169,7 +159,7 @@ function CoachDashboard() {
       <AppHeader />
       <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
         <div className="w-full max-w-4xl">
-          {userProfile?.role === 'gym-admin' ? (
+          {activeMembership.role === 'gym-admin' ? (
               <>
                   <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
                   <AdminBottomNav />
@@ -188,8 +178,8 @@ function CoachDashboard() {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="create">
-              {isLoading ? <Skeleton className="h-96 w-full mt-4"/> : (
-                userProfile?.gymId && <CoachRoutineCreator key={editingRoutine ? editingRoutine.id : 'create'} athletes={athletes} routineTypes={routineTypes} gymId={userProfile.gymId} routineToEdit={editingRoutine} onRoutineSaved={handleRoutineSaved} />
+              {isLoadingData ? <Skeleton className="h-96 w-full mt-4"/> : (
+                activeMembership.gymId && <CoachRoutineCreator key={editingRoutine ? editingRoutine.id : 'create'} athletes={athletes} routineTypes={routineTypes} gymId={activeMembership.gymId} routineToEdit={editingRoutine} onRoutineSaved={handleRoutineSaved} />
               )}
             </TabsContent>
             <TabsContent value="manage">

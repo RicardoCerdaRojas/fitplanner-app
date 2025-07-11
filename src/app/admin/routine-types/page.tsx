@@ -45,7 +45,7 @@ export type RoutineType = {
 export default function RoutineTypesPage() {
     const { toast } = useToast();
     const router = useRouter();
-    const { user, userProfile, loading } = useAuth();
+    const { activeMembership, loading } = useAuth();
     const [routineTypes, setRoutineTypes] = useState<RoutineType[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -56,21 +56,11 @@ export default function RoutineTypesPage() {
         resolver: zodResolver(formSchema),
         defaultValues: { name: '' },
     });
-
-    useEffect(() => {
-        if (!loading) {
-            if (!user) {
-                router.push('/login');
-            } else if (userProfile?.role !== 'gym-admin') {
-                router.push('/');
-            }
-        }
-    }, [user, userProfile, loading, router]);
     
     useEffect(() => {
-        if (!userProfile?.gymId) return;
+        if (loading || !activeMembership?.gymId) return;
 
-        const typesQuery = query(collection(db, 'routineTypes'), where('gymId', '==', userProfile.gymId), orderBy('name'));
+        const typesQuery = query(collection(db, 'routineTypes'), where('gymId', '==', activeMembership.gymId), orderBy('name'));
         const unsubscribe = onSnapshot(typesQuery, (snapshot) => {
             const fetchedTypes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RoutineType));
             setRoutineTypes(fetchedTypes);
@@ -80,7 +70,7 @@ export default function RoutineTypesPage() {
         });
 
         return () => unsubscribe();
-    }, [userProfile?.gymId, toast]);
+    }, [loading, activeMembership, toast]);
 
     useEffect(() => {
         if (editingType) {
@@ -92,7 +82,7 @@ export default function RoutineTypesPage() {
 
 
     async function onSubmit(values: FormValues) {
-        if (!userProfile?.gymId) return;
+        if (!activeMembership?.gymId) return;
         setIsSubmitting(true);
         try {
             if (editingType) {
@@ -103,7 +93,7 @@ export default function RoutineTypesPage() {
             } else {
                 await addDoc(collection(db, 'routineTypes'), {
                     name: values.name,
-                    gymId: userProfile.gymId,
+                    gymId: activeMembership.gymId,
                 });
                 toast({ title: 'Success!', description: `Routine type "${values.name}" has been created.` });
             }
@@ -136,7 +126,7 @@ export default function RoutineTypesPage() {
         setEditingType(null);
     };
 
-    if (loading || !user || userProfile?.role !== 'gym-admin') {
+    if (loading || !activeMembership || activeMembership.role !== 'gym-admin') {
         return (
             <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
                 <AppHeader />
