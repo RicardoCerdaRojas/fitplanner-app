@@ -44,9 +44,7 @@ export default function AdminMembersPage() {
                     <div className="md:flex md:items-center md:justify-between mb-4">
                         <h1 className="text-3xl font-bold font-headline">Manage Members</h1>
                     </div>
-                    <div className="hidden md:block">
-                        <AdminNav />
-                    </div>
+                    <AdminNav />
                     {userProfile.gymId && <AdminUserManagement gymId={userProfile.gymId} />}
                  </div>
             </main>
