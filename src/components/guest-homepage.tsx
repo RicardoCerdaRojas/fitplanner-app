@@ -31,21 +31,21 @@ const features = [
 const testimonials = [
     {
         quote: "The personalized AI routines are a game-changer. I've seen more progress in 3 months than I did in the last year. The platform is intuitive and keeps me motivated.",
-        avatar: "https://placehold.co/100x100.png",
+        avatar: "/testimonial-jessica-miller.png",
         name: "Jessica Miller",
         role: "Fitness Enthusiast",
         aiHint: "woman smiling",
     },
     {
         quote: "As a coach, Fitness Flow has streamlined how I manage my clients. Assigning routines and tracking progress has never been easier. My clients love the live feedback.",
-        avatar: "https://placehold.co/100x100.png",
+        avatar: "/testimonial-david-chen.png",
         name: "David Chen",
         role: "Personal Trainer",
         aiHint: "man personal trainer",
     },
     {
         quote: "I was new to the gym and completely lost. The AI generator gave me a plan I could actually follow, and the video examples were super helpful. Highly recommend!",
-        avatar: "https://placehold.co/100x100.png",
+        avatar: "/testimonial-sarah-johnson.png",
         name: "Sarah Johnson",
         role: "New Member",
         aiHint: "woman portrait",
