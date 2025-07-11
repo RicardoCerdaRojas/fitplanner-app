@@ -17,29 +17,20 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StepperInput } from './ui/stepper-input';
 
 const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerciseIndex: number }) => {
-    const { form, setActiveSelection } = useRoutineCreator();
+    const { form, setActiveSelection, onCloseNav } = useRoutineCreator();
     const { control, setValue } = form;
     
     const repType = useWatch({ control, name: `blocks.${blockIndex}.exercises.${exerciseIndex}.repType` });
     const blockName = useWatch({ control, name: `blocks.${blockIndex}.name` });
 
-    const { fields: exerciseFields, append } = useFieldArray({
-        control,
-        name: `blocks.${blockIndex}.exercises`,
-    });
-
-    const handleAddExercise = () => {
-        const newExerciseIndex = exerciseFields.length;
-        append(defaultExerciseValues);
-        setActiveSelection({ type: 'exercise', blockIndex: blockIndex, exerciseIndex: newExerciseIndex });
-    };
-
     const handleRepTypeChange = (value: 'reps' | 'duration') => {
         setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, value);
         if (value === 'reps') {
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, '10');
+            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, undefined);
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`, '5');
         } else {
+            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, undefined);
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, '1');
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`, '0');
         }
@@ -53,9 +44,6 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
                         <CardTitle>Editing Exercise</CardTitle>
                         <CardDescription>Details for this exercise in the <span className="font-semibold text-primary">{blockName}</span> block.</CardDescription>
                     </div>
-                     <Button type="button" variant="outline" onClick={handleAddExercise}>
-                        <Plus className="mr-2 h-4 w-4" /> Add Exercise
-                    </Button>
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -104,15 +92,21 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
 export function RoutineCreatorForm() {
     const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel, setActiveSelection } = useRoutineCreator();
     const { control } = form;
+
     const { fields: blockFields } = useFieldArray({ control, name: 'blocks' });
-
-    const activeBlock = blockFields[activeSelection.blockIndex];
-    if (!activeBlock) return null; // Or some fallback UI
-
-    const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
+    
+    // This hook call MUST happen before any early returns.
+    const { fields: exerciseFields, append: appendExercise } = useFieldArray({
         control,
         name: `blocks.${activeSelection.blockIndex}.exercises`,
     });
+    
+    const activeBlock = blockFields[activeSelection.blockIndex];
+    
+    // Now we can safely return if the active block doesn't exist.
+    if (!activeBlock) {
+        return null;
+    }
 
     const handleAddExercise = () => {
         const newExerciseIndex = exerciseFields.length;
