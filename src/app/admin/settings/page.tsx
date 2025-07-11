@@ -33,7 +33,7 @@ type FormValues = z.infer<typeof formSchema>;
 export default function GymSettingsPage() {
     const { toast } = useToast();
     const router = useRouter();
-    const { activeMembership, gymProfile, loading } = useAuth();
+    const { user, activeMembership, gymProfile, loading } = useAuth();
     
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -75,7 +75,7 @@ export default function GymSettingsPage() {
     };
 
     async function onSubmit(values: FormValues) {
-        if (!activeMembership?.gymId) return;
+        if (!activeMembership?.gymId || !user) return;
         
         setIsSubmitting(true);
         const { gymId } = activeMembership;
@@ -95,7 +95,7 @@ export default function GymSettingsPage() {
             if (logoFile) {
                 const fileExtension = logoFile.name.split('.').pop();
                 const fileName = `${uuidv4()}.${fileExtension}`;
-                const filePath = `logos/${gymId}/${fileName}`;
+                const filePath = `logos/${user.uid}/${fileName}`;
                 const storageRef = ref(storage, filePath);
     
                 await uploadBytes(storageRef, logoFile);
