@@ -2,39 +2,34 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Default deny all reads and writes
-    match /{document=**} {
-      allow read, write: if false;
+    
+    // Helper function to check if the request comes from an authenticated user.
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // Allow anyone to check for a pending membership invitation
-    match /memberships/{email} {
-      allow get: if true;
-      allow list, write: if request.auth != null; // Only authenticated users can list or write
-    }
-
-    // Allow authenticated users to manage their own user document
+    // Rules for the 'users' collection
     match /users/{userId} {
-      allow read, update, create: if request.auth != null && request.auth.uid == userId;
+      // Any authenticated user can read user profiles.
+      allow read: if isSignedIn();
+      // A user can only create or update their own profile.
+      allow create, update: if isSignedIn() && request.auth.uid == userId;
     }
     
-    // Allow authenticated users of a gym to read/write routines, types, and gym info
-    // A more specific rule should be added later to check for gym membership
-    match /gyms/{gymId} {
-      allow read, write: if request.auth != null;
-    }
-    
-    match /routines/{routineId} {
-       allow read, write: if request.auth != null;
+    // Rules for the 'memberships' collection
+    match /memberships/{membershipId} {
+        // Allow anyone to check for a pending membership. This is needed for sign-up.
+        allow get: if true;
+        // Only signed-in users (like admins) can create, update, or delete memberships.
+        allow write: if isSignedIn();
+        // Signed-in users can read memberships (e.g., to find their own).
+        allow read: if isSignedIn();
     }
 
-    match /routineTypes/{typeId} {
-       allow read, write: if request.auth != null;
-    }
-    
-    match /workoutSessions/{sessionId} {
-      allow read, write: if request.auth != null;
+    // Open rules for all other collections for any authenticated user.
+    // This is a temporary measure to facilitate development.
+    match /{path=**}/documents/{docId} {
+        allow read, write: if isSignedIn();
     }
   }
 }
