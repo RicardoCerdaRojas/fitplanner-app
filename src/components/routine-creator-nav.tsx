@@ -37,12 +37,58 @@ export function RoutineCreatorNav() {
     setActiveSelection(selection);
     onCloseNav?.();
   };
+  
+  const ExercisesNavList = ({ blockIndex }: { blockIndex: number }) => {
+    const { fields: exerciseFields, remove: removeExercise } = useFieldArray({
+      control,
+      name: `blocks.${blockIndex}.exercises`,
+    });
+    const exercises = useWatch({ control, name: `blocks.${blockIndex}.exercises` });
+    
+    const handleRemoveExercise = (e: React.MouseEvent, exerciseIndex: number) => {
+        e.stopPropagation();
+        removeExercise(exerciseIndex);
+        // If the deleted exercise was the active one, fallback to block view
+        if (activeSelection.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === exerciseIndex) {
+            setActiveSelection({ type: 'block', blockIndex });
+        }
+    };
+    
+    if (exerciseFields.length === 0) return null;
+
+    return (
+        <ul className="pl-6 pr-2 py-1 space-y-1 mt-1 border-l-2 ml-4">
+        {exerciseFields.map((exercise, eIndex) => {
+             const isExerciseActive = activeSelection.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === eIndex;
+             return (
+                <li key={exercise.id} className="group/menu-item flex items-center">
+                    <Button
+                        variant={isExerciseActive ? 'secondary' : 'ghost'}
+                        className="w-full justify-start text-left h-auto py-1.5 px-2 text-sm font-normal"
+                        onClick={() => handleSelect({ type: 'exercise', blockIndex: bIndex, exerciseIndex: eIndex })}
+                    >
+                        {exercises?.[eIndex]?.name || 'Untitled Exercise'}
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 opacity-0 group-hover/menu-item:opacity-100 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => handleRemoveExercise(e, eIndex)}
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                </li>
+             )
+        })}
+     </ul>
+    )
+  }
+
 
   return (
     <div className="h-full flex flex-col p-2 bg-card rounded-lg border">
       <div className="flex-grow overflow-y-auto pr-1 space-y-1">
         {blockFields.map((block, bIndex) => {
-          const exercises = watchedBlocks[bIndex]?.exercises || [];
           const isBlockActive = activeSelection.type === 'block' && activeSelection.blockIndex === bIndex;
 
           return (
@@ -59,7 +105,7 @@ export function RoutineCreatorNav() {
                 >
                     <div className="flex-1">
                         <p className="font-semibold">{watchedBlocks[bIndex]?.name || 'Untitled Block'}</p>
-                        <p className="text-xs text-muted-foreground">{watchedBlocks[bIndex]?.sets} sets &bull; {exercises.length} exercises</p>
+                        <p className="text-xs text-muted-foreground">{watchedBlocks[bIndex]?.sets} sets &bull; {watchedBlocks[bIndex]?.exercises?.length || 0} exercises</p>
                     </div>
                 </div>
                 {blockFields.length > 1 && (
@@ -73,25 +119,7 @@ export function RoutineCreatorNav() {
                      </Button>
                 )}
               </div>
-              
-              {exercises.length > 0 && (
-                 <ul className="pl-6 pr-2 py-1 space-y-1 mt-1 border-l-2 ml-4">
-                    {exercises.map((exercise, eIndex) => {
-                         const isExerciseActive = activeSelection.type === 'exercise' && activeSelection.blockIndex === bIndex && activeSelection.exerciseIndex === eIndex;
-                         return (
-                            <li key={`${block.id}-${eIndex}`}>
-                                 <Button
-                                    variant={isExerciseActive ? 'secondary' : 'ghost'}
-                                    className="w-full justify-start text-left h-auto py-1.5 px-2 text-sm font-normal"
-                                    onClick={() => handleSelect({ type: 'exercise', blockIndex: bIndex, exerciseIndex: eIndex })}
-                                >
-                                    {exercise.name || 'Untitled Exercise'}
-                                </Button>
-                            </li>
-                         )
-                    })}
-                 </ul>
-              )}
+              <ExercisesNavList blockIndex={bIndex} />
             </div>
           );
         })}
