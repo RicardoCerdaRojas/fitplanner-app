@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from '@/components/ui/select';
 import { MemberCombobox } from './ui/member-combobox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Trash2, Edit, ClipboardList, Repeat, Clock, Dumbbell, Search, FilterX } from 'lucide-react';
@@ -116,15 +116,26 @@ export function CoachRoutineManagement({ routines, members, routineTypes, onEdit
                         value={searchFilter} 
                         onChange={(e) => setSearchFilter(e.target.value)} 
                     />
-                    <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <Select value={typeFilter} onValueChange={(value) => {
+                        if (value === "clear") {
+                            setTypeFilter("");
+                        } else {
+                            setTypeFilter(value);
+                        }
+                    }}>
                         <SelectTrigger>
                             <SelectValue placeholder="Filter by type" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">All Types</SelectItem>
                             {routineTypes.map(rt => (
                                 <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
                             ))}
+                            {typeFilter && (
+                                <>
+                                    <SelectSeparator />
+                                    <SelectItem value="clear">All Types</SelectItem>
+                                </>
+                            )}
                         </SelectContent>
                     </Select>
                 </div>
