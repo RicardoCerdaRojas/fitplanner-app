@@ -29,6 +29,10 @@ type MemberComboboxProps = {
 export function MemberCombobox({ members, value, onChange }: MemberComboboxProps) {
   const [open, setOpen] = React.useState(false);
 
+  const selectedMemberName = React.useMemo(() => {
+    return members.find((member) => member.uid === value)?.name || '';
+  }, [value, members]);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -38,9 +42,7 @@ export function MemberCombobox({ members, value, onChange }: MemberComboboxProps
           aria-expanded={open}
           className="w-full justify-between"
         >
-          {value
-            ? members.find((member) => member.uid === value)?.name
-            : 'Select member...'}
+          {selectedMemberName || 'Select member...'}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -54,11 +56,8 @@ export function MemberCombobox({ members, value, onChange }: MemberComboboxProps
                 <CommandItem
                   key={member.uid}
                   value={member.name}
-                  onSelect={(currentValue) => {
-                    const selectedMember = members.find(m => m.name.toLowerCase() === currentValue.toLowerCase());
-                    if (selectedMember) {
-                      onChange(selectedMember.uid === value ? '' : selectedMember.uid);
-                    }
+                  onSelect={() => {
+                    onChange(member.uid);
                     setOpen(false);
                   }}
                 >
