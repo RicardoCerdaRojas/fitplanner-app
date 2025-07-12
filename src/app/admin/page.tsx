@@ -5,77 +5,125 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
+import { db, rtdb } from '@/lib/firebase';
+import { collection, query, where, onSnapshot, Timestamp, getCountFromServer } from 'firebase/firestore';
+import { ref, onValue } from "firebase/database";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, UserPlus, ClipboardList } from 'lucide-react';
-import { PieChart, ResponsiveContainer, Tooltip, Legend, Pie, Cell } from 'recharts';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Users, UserPlus, ClipboardList, Activity } from 'lucide-react';
+import { BarChart, ResponsiveContainer, Tooltip, Legend, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
 
-type GymUser = { role: 'member' | 'coach' | 'gym-admin' };
-
-const chartConfig: ChartConfig = {
-  members: { label: "Members", color: "hsl(var(--chart-1))" },
-  coaches: { label: "Coaches", color: "hsl(var(--chart-2))" },
+type UserProfile = {
+  dob?: Timestamp;
+  role: 'member' | 'coach' | 'gym-admin';
 };
 
-const COLORS = [chartConfig.members.color, chartConfig.coaches.color];
+type Routine = {
+    routineTypeName?: string;
+};
+
+const ageChartConfig: ChartConfig = {
+  count: { label: "Members", color: "hsl(var(--chart-1))" },
+};
+const routineChartConfig: ChartConfig = {
+  count: { label: "Assignments", color: "hsl(var(--chart-2))" },
+}
+
+const calculateAge = (dob: Date): number => {
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+        age--;
+    }
+    return age;
+};
 
 export default function AdminDashboardPage() {
-    const { user, activeMembership, loading } = useAuth();
+    const { activeMembership, loading } = useAuth();
     const router = useRouter();
 
     const [memberCount, setMemberCount] = useState(0);
+    const [coachCount, setCoachCount] = useState(0);
     const [pendingCount, setPendingCount] = useState(0);
     const [routinesThisMonth, setRoutinesThisMonth] = useState(0);
-    const [roleDistribution, setRoleDistribution] = useState<{ name: string; value: number; }[]>([]);
+    const [ageDistribution, setAgeDistribution] = useState<{ name: string; count: number; }[]>([]);
+    const [topRoutines, setTopRoutines] = useState<{ name: string; count: number; }[]>([]);
+    const [activeNow, setActiveNow] = useState(0);
 
     useEffect(() => {
         if (loading || !activeMembership?.gymId) return;
 
-        const usersQuery = query(collection(db, 'users'), where('gymId', '==', activeMembership.gymId));
-        const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
-            const users = snapshot.docs.map(doc => doc.data() as GymUser);
-            setMemberCount(users.length);
+        const gymId = activeMembership.gymId;
 
-            const roles = users.reduce((acc, user) => {
-                if (user.role === 'member') acc.members++;
-                if (user.role === 'coach') acc.coaches++;
-                return acc;
-            }, { members: 0, coaches: 0 });
-            
-            setRoleDistribution([
-                { name: 'Members', value: roles.members },
-                { name: 'Coaches', value: roles.coaches }
-            ].filter(r => r.value > 0));
+        // Active Users (Realtime)
+        const activeUsersRef = ref(rtdb, `gyms/${gymId}/activeSessions`);
+        const unsubscribeActive = onValue(activeUsersRef, (snapshot) => {
+            setActiveNow(snapshot.exists() ? snapshot.val() : 0);
+        });
+        
+        // Users collection for members, coaches, and age distribution
+        const usersQuery = query(collection(db, 'users'), where('gymId', '==', gymId));
+        const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
+            const users = snapshot.docs.map(doc => doc.data() as UserProfile);
+            const members = users.filter(u => u.role === 'member');
+            const coaches = users.filter(u => u.role === 'coach');
+            setMemberCount(members.length);
+            setCoachCount(coaches.length);
+
+            // Age distribution
+            const ageGroups = { '<30': 0, '30-39': 0, '40-49': 0, '50+': 0 };
+            members.forEach(user => {
+                if(user.dob) {
+                    const age = calculateAge(user.dob.toDate());
+                    if (age < 30) ageGroups['<30']++;
+                    else if (age >= 30 && age < 40) ageGroups['30-39']++;
+                    else if (age >= 40 && age < 50) ageGroups['40-49']++;
+                    else ageGroups['50+']++;
+                }
+            });
+            setAgeDistribution(Object.entries(ageGroups).map(([name, count]) => ({ name, count })));
         });
 
-        const pendingQuery = query(collection(db, 'memberships'), where('gymId', '==', activeMembership.gymId), where('status', '==', 'pending'));
+        // Pending memberships
+        const pendingQuery = query(collection(db, 'memberships'), where('gymId', '==', gymId), where('status', '==', 'pending'));
         const unsubscribePending = onSnapshot(pendingQuery, (snapshot) => {
             setPendingCount(snapshot.docs.length);
         });
 
-        const routinesQuery = query(
-            collection(db, 'routines'),
-            where('gymId', '==', activeMembership.gymId)
-        );
+        // Routines this month and top routines
+        const routinesQuery = query(collection(db, 'routines'), where('gymId', '==', gymId));
         const unsubscribeRoutines = onSnapshot(routinesQuery, (snapshot) => {
             const oneMonthAgo = new Date();
             oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
             
+            const routines = snapshot.docs.map(doc => doc.data() as Routine);
             const routinesInLastMonth = snapshot.docs.filter(doc => {
-                const createdAt = doc.data().createdAt as Timestamp;
+                const createdAt = (doc.data().createdAt as Timestamp);
                 return createdAt && createdAt.toDate() >= oneMonthAgo;
-            });
-            setRoutinesThisMonth(routinesInLastMonth.length);
+            }).length;
+            setRoutinesThisMonth(routinesInLastMonth);
+
+            const routineTypeCounts = routines.reduce((acc, routine) => {
+                const typeName = routine.routineTypeName || 'Uncategorized';
+                acc[typeName] = (acc[typeName] || 0) + 1;
+                return acc;
+            }, {} as Record<string, number>);
+
+            const sortedRoutines = Object.entries(routineTypeCounts)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 5)
+                .map(([name, count]) => ({ name, count }));
+            setTopRoutines(sortedRoutines);
         });
 
         return () => {
             unsubscribeUsers();
             unsubscribePending();
             unsubscribeRoutines();
+            unsubscribeActive();
         };
 
     }, [loading, activeMembership]);
@@ -101,35 +149,45 @@ export default function AdminDashboardPage() {
                     <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
                     <AdminBottomNav />
                 
-                    <div className="grid gap-4 grid-cols-2 md:grid-cols-3 mb-8">
-                        <Card className="p-3">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-2">
+                    <div className="grid gap-4 grid-cols-2 md:grid-cols-4 mb-8">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">Total Members</CardTitle>
                                 <Users className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
-                            <CardContent className="p-0">
-                                <div className="text-2xl font-bold">{memberCount}</div>
-                                <p className="text-xs text-muted-foreground">Members & Coaches</p>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{memberCount + coachCount}</div>
+                                <p className="text-xs text-muted-foreground">{memberCount} Members, {coachCount} Coaches</p>
                             </CardContent>
                         </Card>
-                        <Card className="p-3">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Pending Memberships</CardTitle>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Pending Signups</CardTitle>
                                 <UserPlus className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
-                            <CardContent className="p-0">
+                            <CardContent>
                                 <div className="text-2xl font-bold">+{pendingCount}</div>
-                                <p className="text-xs text-muted-foreground">Waiting to sign up</p>
+                                <p className="text-xs text-muted-foreground">Waiting to join</p>
                             </CardContent>
                         </Card>
-                        <Card className="p-3 col-span-2 md:col-span-1">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-2">
+                         <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Active Now</CardTitle>
+                                <Activity className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{activeNow}</div>
+                                <p className="text-xs text-muted-foreground">Members in a session</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">Routines This Month</CardTitle>
                                 <ClipboardList className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
-                            <CardContent className="p-0">
+                            <CardContent>
                                 <div className="text-2xl font-bold">{routinesThisMonth}</div>
-                                <p className="text-xs text-muted-foreground">Assigned in the last 30 days</p>
+                                <p className="text-xs text-muted-foreground">Assigned in last 30 days</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -137,45 +195,48 @@ export default function AdminDashboardPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Member Distribution</CardTitle>
-                                <CardDescription>A breakdown of roles within your gym.</CardDescription>
+                                <CardTitle>Member Age Distribution</CardTitle>
+                                <CardDescription>A demographic breakdown of your members.</CardDescription>
                             </CardHeader>
-                            <CardContent className="flex items-center justify-center">
-                                {roleDistribution.length > 0 ? (
-                                    <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                                        <PieChart>
-                                            <Tooltip content={<ChartTooltipContent nameKey="name" />} />
-                                            <Pie
-                                                data={roleDistribution}
-                                                dataKey="value"
-                                                nameKey="name"
-                                                cx="50%"
-                                                cy="50%"
-                                                outerRadius={80}
-                                                innerRadius={50}
-                                                paddingAngle={2}
-                                            >
-                                                {roleDistribution.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                ))}
-                                            </Pie>
-                                            <Legend iconType="circle" />
-                                        </PieChart>
+                            <CardContent>
+                                {ageDistribution.some(d => d.count > 0) ? (
+                                    <ChartContainer config={ageChartConfig} className="h-[250px] w-full">
+                                        <BarChart data={ageDistribution} accessibilityLayer>
+                                            <CartesianGrid vertical={false} />
+                                            <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
+                                            <YAxis />
+                                            <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                                            <Bar dataKey="count" fill="var(--color-count)" radius={4} />
+                                        </BarChart>
                                     </ChartContainer>
                                 ) : (
                                     <div className="h-[250px] flex items-center justify-center">
-                                        <p className="text-muted-foreground">No member data available.</p>
+                                        <p className="text-muted-foreground">No member age data available.</p>
                                     </div>
                                 )}
                             </CardContent>
                         </Card>
-                        <Card>
+                         <Card>
                             <CardHeader>
-                                <CardTitle>Activity Overview</CardTitle>
-                                <CardDescription>Track workout completions and member engagement.</CardDescription>
+                                <CardTitle>Top Routine Types</CardTitle>
+                                <CardDescription>The most frequently assigned routine types.</CardDescription>
                             </CardHeader>
-                            <CardContent className="flex items-center justify-center h-[250px]">
-                                <p className="text-muted-foreground">Chart coming soon.</p>
+                            <CardContent>
+                                {topRoutines.length > 0 ? (
+                                    <ChartContainer config={routineChartConfig} className="h-[250px] w-full">
+                                         <BarChart data={topRoutines} layout="vertical" accessibilityLayer>
+                                            <XAxis type="number" hide />
+                                            <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} width={80} />
+                                            <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                                            <Legend />
+                                            <Bar dataKey="count" fill="var(--color-count)" radius={4} layout="vertical" />
+                                        </BarChart>
+                                    </ChartContainer>
+                                ) : (
+                                    <div className="h-[250px] flex items-center justify-center">
+                                        <p className="text-muted-foreground">No routine data available.</p>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     </div>

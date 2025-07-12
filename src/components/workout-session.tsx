@@ -8,8 +8,9 @@ import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video, CheckCircle2, Circle } from 'lucide-react';
 import ReactPlayer from 'react-player/lazy';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
+import { db, rtdb } from '@/lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, Timestamp, getDoc } from 'firebase/firestore';
+import { ref, onDisconnect, set, runTransaction } from 'firebase/database';
 
 
 // A type for the items in our session "playlist"
@@ -188,9 +189,19 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         return doc(db, "workoutSessions", sessionId);
     }, [sessionId]);
 
+    const activeCountRef = useMemo(() => {
+        if (!userProfile?.gymId) return null;
+        return ref(rtdb, `gyms/${userProfile.gymId}/activeSessions`);
+    }, [userProfile?.gymId]);
+
 
     useEffect(() => {
-        if (!sessionDocRef || !user || !userProfile?.gymId) return;
+        if (!sessionDocRef || !user || !userProfile?.gymId || !activeCountRef) return;
+        
+        // Go online
+        runTransaction(activeCountRef, (currentValue) => (currentValue || 0) + 1);
+        const onDisconnectRef = onDisconnect(activeCountRef);
+        onDisconnectRef.set({'.sv': {'increment': -1}});
 
         const updateSessionDocument = async () => {
              if (!sessionDocRef || !user || !userProfile?.gymId) return;
@@ -223,34 +234,35 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
             }
         };
 
-        // Create/update the session doc immediately
         updateSessionDocument();
 
-        // Set up the heartbeat
-        const heartbeatInterval = setInterval(updateSessionDocument, 15000); // 15 seconds
+        const heartbeatInterval = setInterval(updateSessionDocument, 15000);
 
-        const handleBeforeUnload = async (e: BeforeUnloadEvent) => {
-             if (sessionDocRef) {
-                e.preventDefault();
-                deleteDoc(sessionDocRef);
-            }
-        };
-        window.addEventListener('beforeunload', handleBeforeUnload);
-
-        // Cleanup function
         return () => {
             clearInterval(heartbeatInterval);
-            window.removeEventListener('beforeunload', handleBeforeUnload);
+            onDisconnectRef.cancel();
             if (sessionDocRef) {
                 deleteDoc(sessionDocRef);
             }
+             if (activeCountRef) {
+                runTransaction(activeCountRef, (currentValue) => {
+                    const newValue = (currentValue || 0) - 1;
+                    return newValue < 0 ? 0 : newValue;
+                });
+            }
         };
-    }, [sessionDocRef, user, userProfile, routine, sessionPlaylist, currentIndex, progress]);
+    }, [sessionDocRef, user, userProfile, routine, sessionPlaylist, currentIndex, progress, activeCountRef]);
 
 
     const handleSessionEnd = async () => {
         if (sessionDocRef) {
             await deleteDoc(sessionDocRef);
+        }
+        if (activeCountRef) {
+            runTransaction(activeCountRef, (currentValue) => {
+                const newValue = (currentValue || 0) - 1;
+                return newValue < 0 ? 0 : newValue;
+            });
         }
         onSessionEnd();
     };
