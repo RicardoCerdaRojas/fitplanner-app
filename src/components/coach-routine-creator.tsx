@@ -227,7 +227,7 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
 
   return (
     <RoutineCreatorContext.Provider value={contextValue}>
-      <div className="mt-4">
+      <div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="flex flex-col md:flex-row gap-4 md:gap-8">
