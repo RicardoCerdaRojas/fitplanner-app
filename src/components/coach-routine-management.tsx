@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { Trash2, Edit, ClipboardList, Search, FilterX, Plus, Copy, Calendar as CalendarIcon, Dumbbell, Repeat, Clock } from 'lucide-react';
+import { Trash2, Edit, ClipboardList, Search, FilterX, Plus, Copy, Calendar as CalendarIcon, Dumbbell, Repeat, Clock, Copy as CopyIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Block, ExerciseProgress } from './athlete-routine-list'; 
 import type { Timestamp as FirestoreTimestamp } from 'firebase/firestore';
@@ -42,7 +42,7 @@ import { Calendar } from './ui/calendar';
 import type { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from './ui/scroll-area';
-
+import { startOfDay, endOfDay } from 'date-fns';
 
 // A more robust, combined type for routines being managed.
 export type ManagedRoutine = {
@@ -138,6 +138,32 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
     }
     const areFiltersActive = searchFilter || memberFilter || typeFilter || dateFilter;
 
+    const copyForWhatsapp = () => {
+        if (!routineToView) return;
+
+        let text = `*${routineToView.routineTypeName || 'Workout Routine'}*\n`;
+        text += `_For ${routineToView.userName} on ${format(routineToView.routineDate, 'PPP')}_\n\n`;
+
+        routineToView.blocks.forEach(block => {
+            text += `*${block.name}* (${block.sets})\n`;
+            block.exercises.forEach(ex => {
+                text += `  - ${ex.name}`;
+                const details = [];
+                if (ex.repType === 'reps' && ex.reps) details.push(`${ex.reps} reps`);
+                if (ex.repType === 'duration' && ex.duration) details.push(`${ex.duration} min`);
+                if (ex.weight) details.push(`${ex.weight} kg`);
+                if (details.length > 0) {
+                    text += `: ${details.join(', ')}`;
+                }
+                text += '\n';
+            });
+            text += '\n';
+        });
+
+        navigator.clipboard.writeText(text);
+        toast({ title: 'Copied to Clipboard!', description: 'The routine is ready to be pasted in WhatsApp.' });
+    };
+
     const filteredRoutines = useMemo(() => {
         return routines.filter(routine => {
             const searchLower = searchFilter.toLowerCase();
@@ -149,9 +175,8 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
             
             const matchesType = !typeFilter || routine.routineTypeId === typeFilter;
             
-            const matchesDate = !dateFilter || 
-                (dateFilter.from && dateFilter.to &&
-                 routine.routineDate >= startOfDay(dateFilter.from) &&
+            const matchesDate = !dateFilter || !dateFilter.from || !dateFilter.to ||
+                 (routine.routineDate >= startOfDay(dateFilter.from) &&
                  routine.routineDate <= endOfDay(dateFilter.to));
 
             return matchesSearch && matchesMember && matchesType && matchesDate;
@@ -182,7 +207,7 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                                                 <p className="font-semibold text-md text-card-foreground">{exercise.name}</p>
                                                 <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground mt-2">
                                                     {exercise.repType === 'reps' && exercise.reps && (
-                                                        <div className="flex items-center gap-1.5" title="Reps"><Repeat className="w-4 h-4 text-primary" /><span>{exercise.reps}</span></div>
+                                                        <div className="flex items-center gap-1.5" title="Reps"><Repeat className="w-4 h-4 text-primary" /><span>{exercise.reps} reps</span></div>
                                                     )}
                                                     {exercise.repType === 'duration' && exercise.duration && (
                                                         <div className="flex items-center gap-1.5" title="Duration"><Clock className="w-4 h-4 text-primary" /><span>{exercise.duration}</span></div>
@@ -198,6 +223,10 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                             ))}
                         </div>
                     </ScrollArea>
+                    <DialogFooter>
+                        <Button onClick={copyForWhatsapp}><CopyIcon className="mr-2 h-4 w-4" /> Copy for WhatsApp</Button>
+                        <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
+                    </DialogFooter>
                  </DialogContent>
             </Dialog>
 
@@ -269,7 +298,7 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                             </Button>
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_200px] gap-4 pt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 pt-4">
                         <div className="relative">
                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                              <Input 
