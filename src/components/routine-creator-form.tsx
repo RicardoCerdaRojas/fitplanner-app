@@ -126,11 +126,11 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
         if (newType === 'reps') {
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, '10');
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`, '5');
-            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, undefined);
-        } else {
+            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, '');
+        } else { // newType === 'duration'
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, '1');
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`, '0');
-            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, undefined);
+            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, '');
         }
         trigger(`blocks.${blockIndex}.exercises.${exerciseIndex}`);
     }
