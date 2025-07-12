@@ -45,7 +45,7 @@ const blockSchema = z.object({
 
 export const routineSchema = z.object({
   routineTypeId: z.string({ required_error: "Please select a routine type." }),
-  memberId: z.string({ required_error: "Please select a client." }).min(1, 'Please select a client.'),
+  memberId: z.string({ required_error: "Please select a member." }).min(1, 'Please select a member.'),
   routineDate: z.date({ required_error: "A date for the routine is required." }),
   blocks: z.array(blockSchema).min(1, 'Please add at least one block.'),
 });
@@ -65,6 +65,7 @@ type RoutineCreatorContextType = {
   isSubmitting: boolean;
   onCancel: () => void;
   onCloseNav?: () => void;
+  onAddExercise: () => void;
 };
 
 const RoutineCreatorContext = createContext<RoutineCreatorContextType | null>(null);
@@ -126,11 +127,26 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
     defaultValues,
     mode: 'onBlur'
   });
-  
+
+  const { control } = form;
+
+   const { append } = useFieldArray({
+      control,
+      name: `blocks.${activeSelection.blockIndex}.exercises`
+    });
+
   useEffect(() => {
       form.reset(defaultValues);
       setActiveSelection({ type: 'block', blockIndex: 0 });
   }, [routineToEdit, form, defaultValues]);
+  
+  const handleAddExercise = () => {
+    const exercises = form.getValues(`blocks.${activeSelection.blockIndex}.exercises`);
+    const newExerciseIndex = exercises.length;
+    append(defaultExerciseValues);
+    setActiveSelection({ type: 'exercise', blockIndex: activeSelection.blockIndex, exerciseIndex: newExerciseIndex });
+  };
+
 
   async function onSubmit(values: RoutineFormValues) {
     if (!user) {
@@ -140,7 +156,7 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
 
     const selectedMember = members.find((a) => a.uid === values.memberId);
     if (!selectedMember && !isEditing) {
-      toast({ variant: 'destructive', title: 'Invalid Client', description: 'The selected client could not be found.' });
+      toast({ variant: 'destructive', title: 'Invalid Member', description: 'The selected member could not be found.' });
       return;
     }
     
@@ -206,6 +222,7 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
     isSubmitting,
     onCancel: onRoutineSaved,
     onCloseNav: () => isMobile && setIsNavOpen(false),
+    onAddExercise: handleAddExercise,
   };
 
   return (

@@ -1,10 +1,10 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon, Plus } from 'lucide-react';
@@ -15,12 +15,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StepperInput } from './ui/stepper-input';
 import { useFieldArray } from 'react-hook-form';
 import { useEffect } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { MemberCombobox } from './ui/member-combobox';
 
-const ExerciseForm = ({ blockIndex, exerciseIndex, onAddExercise }: { blockIndex: number; exerciseIndex: number, onAddExercise: () => void; }) => {
-    const { form } = useRoutineCreator();
+const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerciseIndex: number }) => {
+    const { form, onAddExercise } = useRoutineCreator();
     const { control, setValue, watch } = form;
     
-    const blockName = watch(`blocks.${blockIndex}.name`);
     const repType = watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`);
 
     const handleRepTypeChange = (value: 'reps' | 'duration') => {
@@ -90,24 +91,18 @@ const ExerciseForm = ({ blockIndex, exerciseIndex, onAddExercise }: { blockIndex
 };
 
 export function RoutineCreatorForm() {
-    const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel, setActiveSelection } = useRoutineCreator();
+    const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel, setActiveSelection, onAddExercise } = useRoutineCreator();
     const { control, getValues } = form;
     
-    const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
+     const { fields: exerciseFields } = useFieldArray({
       control,
       name: `blocks.${activeSelection.blockIndex}.exercises`,
     });
     
     useEffect(() => {
-        // When block changes, reset exercise selection
+        // When block changes, reset exercise selection to avoid showing exercise form
         setActiveSelection(prev => ({ ...prev, exerciseIndex: undefined }));
     }, [activeSelection.blockIndex, setActiveSelection]);
-
-    const handleAddExercise = () => {
-        const newExerciseIndex = exerciseFields.length;
-        appendExercise(defaultExerciseValues);
-        setActiveSelection({ type: 'exercise', blockIndex: activeSelection.blockIndex, exerciseIndex: newExerciseIndex });
-    };
 
     const blockFields = getValues('blocks');
     const activeBlock = blockFields?.[activeSelection.blockIndex];
@@ -128,17 +123,18 @@ export function RoutineCreatorForm() {
                 <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField control={control} name="memberId" render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Client</FormLabel>
-                        {isEditing && routineToEdit ? ( <FormControl><Input value={routineToEdit.userName} disabled className="font-semibold" /></FormControl>) : (
-                            <Select onValueChange={field.onChange} value={field.value || ''}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger></FormControl>
-                            <SelectContent>
-                                {members.map(m => (<SelectItem key={m.uid} value={m.uid}>{m.name}</SelectItem>))}
-                            </SelectContent>
-                            </Select>
-                        )}
-                        <FormMessage />
+                        <FormItem className="flex flex-col">
+                            <FormLabel>Member</FormLabel>
+                            {isEditing && routineToEdit ? (
+                                <FormControl><Input value={routineToEdit.userName} disabled className="font-semibold" /></FormControl>
+                            ) : (
+                                <MemberCombobox
+                                    members={members}
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                />
+                            )}
+                            <FormMessage />
                         </FormItem>
                     )} />
                     <FormField control={control} name="routineTypeId" render={({ field }) => (
@@ -207,7 +203,7 @@ export function RoutineCreatorForm() {
                              ) : (
                                 <p className="text-sm text-muted-foreground p-2 text-center">No exercises in this block yet.</p>
                              )}
-                             <Button variant="outline" size="sm" className="w-full justify-center" onClick={handleAddExercise}>
+                             <Button variant="outline" size="sm" className="w-full justify-center" onClick={onAddExercise}>
                                 <Plus className="mr-2 h-4 w-4" /> Add another exercise
                             </Button>
                           </div>
@@ -220,7 +216,6 @@ export function RoutineCreatorForm() {
                     key={`exercise-form-${activeSelection.blockIndex}-${activeSelection.exerciseIndex}`}
                     blockIndex={activeSelection.blockIndex}
                     exerciseIndex={activeSelection.exerciseIndex}
-                    onAddExercise={handleAddExercise}
                 />
             ) : null}
 
