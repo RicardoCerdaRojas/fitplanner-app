@@ -87,7 +87,7 @@ export const defaultExerciseValues: Omit<ExerciseFormValues, 'name'> = {
   repType: 'reps' as const, 
   reps: '10', 
   duration: '',
-  weight: 'Bodyweight', 
+  weight: '5', 
   videoUrl: '' 
 };
 

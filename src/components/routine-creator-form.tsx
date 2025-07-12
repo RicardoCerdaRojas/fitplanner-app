@@ -76,10 +76,11 @@ function BlockForm({ blockIndex }: { blockIndex: number }) {
     const { control } = form;
 
     return (
-        <Card>
+        <Card className="bg-muted/30">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
                  <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (
                     <FormItem className='flex-1'>
+                        <FormLabel className="sr-only">Block Name</FormLabel>
                         <FormControl>
                             <Input placeholder="Block Name" className="text-xl font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent" {...field} />
                         </FormControl>
@@ -90,7 +91,8 @@ function BlockForm({ blockIndex }: { blockIndex: number }) {
                     <Trash2 className="w-5 h-5"/>
                 </Button>
             </CardHeader>
-             <CardContent className="space-y-6">
+            <Separator />
+             <CardContent className="pt-6 space-y-6">
                 <FormField control={control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (
                     <FormItem>
                         <FormLabel className="font-semibold text-card-foreground">Sets</FormLabel>
@@ -100,11 +102,9 @@ function BlockForm({ blockIndex }: { blockIndex: number }) {
                         <FormMessage />
                     </FormItem>
                 )} />
-
-                <Separator className="my-6" />
-
-                <p className="text-sm text-muted-foreground text-center">
-                    Select an exercise from the left panel to edit its details.
+                <Separator />
+                <p className="text-sm text-muted-foreground text-center pt-4">
+                    Select an exercise from the left panel to edit its details, or add a new one.
                 </p>
             </CardContent>
         </Card>
@@ -114,6 +114,17 @@ function BlockForm({ blockIndex }: { blockIndex: number }) {
 function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerciseIndex: number }) {
     const { form, removeExercise } = useRoutineCreator();
     const { control, watch } = form;
+
+    const handleRepTypeChange = (newType: 'reps' | 'duration') => {
+        form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, newType);
+        if (newType === 'reps') {
+            form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, '10');
+            form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, '');
+        } else {
+            form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, '1');
+            form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, '');
+        }
+    }
     
     return (
         <Card>
@@ -135,8 +146,8 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
                         <FormLabel>Reps or Duration?</FormLabel>
                         <FormControl>
                             <div className="flex gap-2 p-1 bg-muted rounded-md">
-                                <Button type="button" variant={field.value === 'reps' ? 'default' : 'outline'} onClick={() => { form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, 'reps');}} className="flex-1 shadow-sm h-9">Reps</Button>
-                                <Button type="button" variant={field.value === 'duration' ? 'default' : 'outline'} onClick={() => { form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, 'duration');}} className="flex-1 shadow-sm h-9">Duration</Button>
+                                <Button type="button" variant={field.value === 'reps' ? 'default' : 'outline'} onClick={() => handleRepTypeChange('reps')} className="flex-1 shadow-sm h-9">Reps</Button>
+                                <Button type="button" variant={field.value === 'duration' ? 'default' : 'outline'} onClick={() => handleRepTypeChange('duration')} className="flex-1 shadow-sm h-9">Duration</Button>
                             </div>
                         </FormControl>
                         <FormMessage />
@@ -148,7 +159,7 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
                             <FormItem>
                                 <FormLabel>Reps</FormLabel>
                                 <FormControl>
-                                    <Input placeholder='e.g., 8-12' {...field} />
+                                    <StepperInput field={field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -156,9 +167,9 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
                     ) : (
                         <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`} render={({ field }) => (
                              <FormItem>
-                                <FormLabel>Duration</FormLabel>
+                                <FormLabel>Duration (min)</FormLabel>
                                 <FormControl>
-                                    <Input placeholder='e.g., 30s' {...field} />
+                                    <StepperInput field={field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -166,9 +177,9 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
                     )}
                     <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`} render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Weight</FormLabel>
+                            <FormLabel>Weight (kg)</FormLabel>
                             <FormControl>
-                                <StepperInput field={field} allowText={true} />
+                                <StepperInput field={field} allowText={true} step={5} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
