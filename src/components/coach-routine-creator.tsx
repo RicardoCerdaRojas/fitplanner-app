@@ -1,15 +1,17 @@
+
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState, useMemo, useEffect, createContext, useContext } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { addDoc, collection, Timestamp, doc, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, Timestamp, doc, updateDoc, onSnapshot, getDoc, query, where, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Member } from '@/app/coach/page';
 import type { ManagedRoutine } from './coach-routine-management';
@@ -18,8 +20,8 @@ import { RoutineCreatorNav } from './routine-creator-nav';
 import { RoutineCreatorForm } from './routine-creator-form';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
-import { PanelLeft } from 'lucide-react';
-import { useFieldArray } from 'react-hook-form';
+import { PanelLeft, ArrowLeft } from 'lucide-react';
+import { Skeleton } from './ui/skeleton';
 
 const exerciseSchema = z.object({
   name: z.string().min(2, 'Exercise name is required.'),
@@ -60,12 +62,13 @@ type RoutineCreatorContextType = {
   setActiveSelection: React.Dispatch<React.SetStateAction<{ type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number }>>;
   members: Member[];
   routineTypes: RoutineType[];
-  routineToEdit?: ManagedRoutine | null;
   isEditing: boolean;
   isSubmitting: boolean;
-  onCancel: () => void;
   onCloseNav?: () => void;
   onAddExercise: () => void;
+  step: number;
+  setStep: (step: number) => void;
+  canProceed: boolean;
 };
 
 const RoutineCreatorContext = createContext<RoutineCreatorContextType | null>(null);
@@ -78,14 +81,6 @@ export function useRoutineCreator() {
   return context;
 }
 
-type CoachRoutineCreatorProps = {
-  members: Member[];
-  routineTypes: RoutineType[];
-  gymId: string;
-  routineToEdit?: ManagedRoutine | null;
-  onRoutineSaved: () => void;
-};
-
 export const defaultExerciseValues = { 
   name: 'Untitled Exercise', 
   repType: 'reps' as const, 
@@ -95,16 +90,26 @@ export const defaultExerciseValues = {
   videoUrl: '' 
 };
 
-export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdit, onRoutineSaved }: CoachRoutineCreatorProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth();
+export function CoachRoutineCreator() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { user, activeMembership, loading: authLoading } = useAuth();
+
+  const [members, setMembers] = useState<Member[]>([]);
+  const [routineTypes, setRoutineTypes] = useState<RoutineType[]>([]);
+  const [routineToEdit, setRoutineToEdit] = useState<ManagedRoutine | null>(null);
+  const [isDataLoading, setIsDataLoading] = useState(true);
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const isMobile = useIsMobile();
   const [isNavOpen, setIsNavOpen] = useState(false);
   
   const [activeSelection, setActiveSelection] = useState<{ type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number }>({ type: 'block', blockIndex: 0 });
-  
-  const isEditing = !!routineToEdit;
+  const [step, setStep] = useState(1);
+
+  const editRoutineId = searchParams.get('edit');
+  const isEditing = !!editRoutineId;
 
   const defaultValues = useMemo(() => {
     return routineToEdit 
@@ -118,7 +123,7 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
           routineTypeId: '',
           memberId: '',
           routineDate: new Date(),
-          blocks: [{ name: 'Warm-up', sets: '4', exercises: [] }],
+          blocks: [{ name: 'Warm-up', sets: '1', exercises: [] }],
         };
   }, [routineToEdit]);
 
@@ -128,7 +133,69 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
     mode: 'onBlur'
   });
 
-  const { control } = form;
+  const { control, watch, trigger } = form;
+  const formValues = watch();
+
+  const canProceed = useMemo(() => {
+      if (step === 1) {
+          return !!formValues.routineTypeId && !!formValues.routineDate;
+      }
+      return true;
+  }, [step, formValues]);
+
+
+  useEffect(() => {
+    if(authLoading || !activeMembership?.gymId) return;
+
+    const gymId = activeMembership.gymId;
+    
+    // Fetch Members
+    const membersQuery = query(collection(db, 'users'), where('gymId', '==', gymId));
+    const unsubscribeMembers = onSnapshot(membersQuery, (snapshot) => {
+      const fetchedMembers = snapshot.docs.map(doc => ({ 
+          uid: doc.id, 
+          name: doc.data().name || doc.data().email,
+          email: doc.data().email,
+        })).filter(m => m.name) as Member[];
+      setMembers(fetchedMembers);
+    });
+
+    // Fetch Routine Types
+    const typesQuery = query(collection(db, 'routineTypes'), where('gymId', '==', gymId), orderBy('name'));
+    const unsubscribeTypes = onSnapshot(typesQuery, (snapshot) => {
+      const fetchedTypes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RoutineType));
+      setRoutineTypes(fetchedTypes);
+    });
+
+    // Fetch routine to edit if ID exists
+    const fetchEditData = async () => {
+      if (editRoutineId) {
+        const routineDoc = await getDoc(doc(db, 'routines', editRoutineId));
+        if (routineDoc.exists()) {
+          const data = routineDoc.data();
+          const managedRoutine: ManagedRoutine = {
+              id: routineDoc.id,
+              ...data,
+              routineDate: (data.routineDate as Timestamp).toDate(),
+          } as ManagedRoutine;
+          setRoutineToEdit(managedRoutine);
+          setStep(2); // Go directly to step 2 if editing
+        } else {
+          toast({ variant: 'destructive', title: 'Error', description: 'Routine to edit not found.' });
+          router.push('/coach');
+        }
+      }
+    };
+
+    Promise.all([fetchEditData()]).finally(() => setIsDataLoading(false));
+
+    return () => {
+      unsubscribeMembers();
+      unsubscribeTypes();
+    };
+
+  }, [authLoading, activeMembership, editRoutineId, router, toast]);
+
 
    const { append } = useFieldArray({
       control,
@@ -155,8 +222,8 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
     }
 
     const selectedMember = members.find((a) => a.uid === values.memberId);
-    if (!selectedMember && !isEditing) {
-      toast({ variant: 'destructive', title: 'Invalid Member', description: 'The selected member could not be found.' });
+    if (!selectedMember) {
+      toast({ variant: 'destructive', title: 'Invalid Member', description: 'Please select a member for this routine.' });
       return;
     }
     
@@ -168,7 +235,6 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
     
     setIsSubmitting(true);
     try {
-        // Clean up undefined values before submitting to Firestore
         const cleanedBlocks = values.blocks.map(block => ({
             ...block,
             exercises: block.exercises.map(exercise => {
@@ -186,9 +252,9 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
             ...values,
             blocks: cleanedBlocks,
             routineTypeName: selectedRoutineType.name,
-            userName: isEditing && routineToEdit ? routineToEdit.userName : selectedMember!.name,
+            userName: selectedMember.name,
             coachId: user.uid,
-            gymId: gymId,
+            gymId: activeMembership!.gymId,
             routineDate: Timestamp.fromDate(values.routineDate),
             createdAt: isEditing && routineToEdit ? routineToEdit.createdAt : Timestamp.now(),
             updatedAt: Timestamp.now(),
@@ -202,7 +268,7 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
             await addDoc(collection(db, 'routines'), routineData);
             toast({ title: 'Routine Saved!', description: `The routine for ${routineData.userName} has been saved successfully.` });
         }
-      onRoutineSaved();
+      router.push('/coach');
     } catch (error: any) {
       console.error('Error saving routine:', error);
       toast({ variant: 'destructive', title: 'Save Failed', description: error.message || 'An unexpected error occurred.' });
@@ -211,51 +277,64 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
     }
   }
 
-  const contextValue = {
+  const contextValue: RoutineCreatorContextType = {
     form,
     activeSelection,
     setActiveSelection,
     members,
     routineTypes,
-    routineToEdit,
     isEditing,
     isSubmitting,
-    onCancel: onRoutineSaved,
     onCloseNav: () => isMobile && setIsNavOpen(false),
     onAddExercise: handleAddExercise,
+    step,
+    setStep,
+    canProceed
   };
+  
+  if (isDataLoading) {
+      return <Skeleton className="h-[500px] w-full" />
+  }
 
   return (
     <RoutineCreatorContext.Provider value={contextValue}>
       <div>
+        <Button variant="ghost" onClick={() => router.push('/coach')} className="mb-4">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to All Routines
+        </Button>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="flex flex-col md:flex-row gap-4 md:gap-8">
-              {isMobile ? (
-                <Sheet open={isNavOpen} onOpenChange={setIsNavOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" className="md:hidden flex items-center gap-2 font-semibold">
-                        <PanelLeft />
-                        Routine Navigation
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-[300px] p-0">
-                    <SheetHeader className="p-4 border-b">
-                      <SheetTitle>Routine Structure</SheetTitle>
-                    </SheetHeader>
+            {step === 2 ? (
+                <div className="flex flex-col md:flex-row gap-4 md:gap-8">
+                {isMobile ? (
+                    <Sheet open={isNavOpen} onOpenChange={setIsNavOpen}>
+                    <SheetTrigger asChild>
+                        <Button variant="outline" className="md:hidden flex items-center gap-2 font-semibold">
+                            <PanelLeft />
+                            Routine Navigation
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="w-[300px] p-0">
+                        <SheetHeader className="p-4 border-b">
+                        <SheetTitle>Routine Structure</SheetTitle>
+                        </SheetHeader>
+                        <RoutineCreatorNav />
+                    </SheetContent>
+                    </Sheet>
+                ) : (
+                    <div className="w-full md:w-1/3 lg:w-1/4">
                     <RoutineCreatorNav />
-                  </SheetContent>
-                </Sheet>
-              ) : (
-                <div className="w-full md:w-1/3 lg:w-1/4">
-                  <RoutineCreatorNav />
+                    </div>
+                )}
+                
+                <div className="flex-1">
+                    <RoutineCreatorForm />
                 </div>
-              )}
-            
-              <div className="flex-1">
+                </div>
+            ) : (
                 <RoutineCreatorForm />
-              </div>
-            </div>
+            )}
           </form>
         </Form>
       </div>

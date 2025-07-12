@@ -2,9 +2,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, User } from "lucide-react"
-
-import { cn } from "@/lib/utils"
+import { Check, User, ChevronsUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -17,6 +15,7 @@ import type { Member } from "@/app/coach/page"
 import { ScrollArea } from "./scroll-area"
 import { Input } from "./input"
 import { Avatar, AvatarFallback } from "./avatar"
+import { FormMessage } from "./form"
 
 type MemberComboboxProps = {
     members: Member[];
@@ -38,41 +37,48 @@ export function MemberCombobox({ members, value, onChange }: MemberComboboxProps
   const filteredMembers = React.useMemo(() => {
     if (!search) return members;
     return members.filter(member => 
-        member.name.toLowerCase().includes(search.toLowerCase())
+        member.name.toLowerCase().includes(search.toLowerCase()) ||
+        member.email.toLowerCase().includes(search.toLowerCase())
     );
   }, [search, members]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-        <div className="flex items-center gap-2">
-            <div className="flex-1 min-w-0 h-10 px-3 py-2 border rounded-md text-sm flex items-center bg-muted/50">
-                 {selectedMember ? (
-                    <div className="flex items-center gap-2 truncate">
-                        <Avatar className="h-6 w-6"><AvatarFallback>{selectedMember.name.charAt(0)}</AvatarFallback></Avatar>
-                        <span className="font-semibold truncate">{selectedMember.name}</span>
-                    </div>
-                ) : (
-                    <span className="text-muted-foreground">Select Member</span>
-                )}
+        <div className="flex items-center gap-4">
+            <div className="flex-1 flex flex-col gap-1.5">
+                <label className="text-sm font-medium">Member</label>
+                <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-muted">
+                    {selectedMember ? (
+                        <div className="flex items-center gap-2 truncate">
+                            <Avatar className="h-6 w-6"><AvatarFallback>{selectedMember.name.charAt(0)}</AvatarFallback></Avatar>
+                            <span className="font-semibold truncate">{selectedMember.name}</span>
+                        </div>
+                    ) : (
+                        <span className="text-muted-foreground">Select member...</span>
+                    )}
+                </div>
+                 {!value && <FormMessage>Please select a member.</FormMessage>}
             </div>
-            <DialogTrigger asChild>
-                <Button variant="outline">Change</Button>
-            </DialogTrigger>
+            <div className="self-end">
+                <DialogTrigger asChild>
+                    <Button variant="outline">Select</Button>
+                </DialogTrigger>
+            </div>
         </div>
 
         <DialogContent className="p-0 gap-0">
-            <DialogHeader className="p-4 pb-2">
+            <DialogHeader className="p-4 pb-2 border-b">
                 <DialogTitle>Select a Member</DialogTitle>
             </DialogHeader>
-            <div className="p-4 pt-0">
+            <div className="p-4">
                 <Input 
-                    placeholder="Search member..." 
+                    placeholder="Search member name or email..." 
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                 />
             </div>
             <div className="border-t">
-                <ScrollArea className="h-64">
+                <ScrollArea className="h-72">
                     <div className="p-2 space-y-1">
                         {filteredMembers.length > 0 ? filteredMembers.map((member) => (
                             <Button

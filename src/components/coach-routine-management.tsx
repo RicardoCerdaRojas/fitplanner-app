@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { Trash2, Edit, ClipboardList, Repeat, Clock, Dumbbell, Search, FilterX } from 'lucide-react';
+import { Trash2, Edit, ClipboardList, Repeat, Clock, Dumbbell, Search, FilterX, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Block, ExerciseProgress } from './athlete-routine-list'; 
 import type { Timestamp } from 'firebase/firestore';
@@ -23,6 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useRouter } from 'next/navigation';
 
 
 // A more robust, combined type for routines being managed.
@@ -48,6 +49,7 @@ type Props = {
 };
 
 export function CoachRoutineManagement({ routines, onEdit }: Props) {
+    const router = useRouter();
     const { toast } = useToast();
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [searchFilter, setSearchFilter] = useState('');
@@ -94,17 +96,6 @@ export function CoachRoutineManagement({ routines, onEdit }: Props) {
     const resetFilters = () => {
         setSearchFilter('');
     };
-
-    if (routines.length === 0 && searchFilter === '') {
-        return (
-             <div className="flex flex-col items-center justify-center text-center p-8 mt-8 border-2 border-dashed rounded-lg">
-                <ClipboardList className="w-12 h-12 text-muted-foreground mb-4" />
-                <h3 className="text-xl font-semibold">No Routines Found</h3>
-                <p className="text-muted-foreground">You haven't created any routines yet.</p>
-                <p className="text-muted-foreground text-sm mt-1">Switch to the 'Create / Edit' tab to get started.</p>
-            </div>
-        );
-    }
     
     return (
         <>
@@ -130,8 +121,15 @@ export function CoachRoutineManagement({ routines, onEdit }: Props) {
 
             <Card className="mt-4">
                 <CardHeader>
-                    <CardTitle>Manage Routines</CardTitle>
-                    <CardDescription>Search for routines by routine name or member name.</CardDescription>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle>Manage Routines</CardTitle>
+                            <CardDescription>Search for routines by routine name or member name.</CardDescription>
+                        </div>
+                        <Button onClick={() => router.push('/coach/create-routine')}>
+                            <Plus className="mr-2 h-4 w-4" /> Nueva Rutina
+                        </Button>
+                    </div>
                     <div className="relative pt-4">
                          <Search className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground" />
                          <Input 
@@ -218,11 +216,13 @@ export function CoachRoutineManagement({ routines, onEdit }: Props) {
                             ))}
                         </Accordion>
                     ) : (
-                        <div className="text-center py-12 text-muted-foreground">
-                            <FilterX className="mx-auto h-12 w-12" />
+                         <div className="flex flex-col items-center justify-center text-center p-8 mt-8 border-2 border-dashed rounded-lg">
+                            <FilterX className="mx-auto h-12 w-12 text-muted-foreground" />
                             <h3 className="mt-4 text-lg font-semibold">No Routines Found</h3>
-                            <p className="mt-1 text-sm">Try adjusting your search terms.</p>
-                            <Button variant="outline" className="mt-4" onClick={resetFilters}>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                {searchFilter ? "Try adjusting your search terms." : "You haven't created any routines yet."}
+                            </p>
+                             <Button variant="outline" className="mt-4" onClick={resetFilters}>
                                 Clear Search
                             </Button>
                         </div>

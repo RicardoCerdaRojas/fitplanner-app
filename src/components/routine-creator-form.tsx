@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -5,19 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Plus, User, ChevronsUpDown, CheckCircle, ArrowRight } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Calendar as CalendarIcon, Plus, ArrowRight, Library, FilePlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useRoutineCreator } from './coach-routine-creator';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StepperInput } from './ui/stepper-input';
 import { useFieldArray } from 'react-hook-form';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Avatar, AvatarFallback } from './ui/avatar';
 import { MemberCombobox } from '@/components/ui/member-combobox';
-import { Input } from './ui/input';
 
 
 const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerciseIndex: number }) => {
@@ -54,10 +52,10 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
             <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`} render={({ field }) => (<FormItem><FormLabel>Exercise Name</FormLabel><FormControl><Input placeholder="e.g., Bench Press" {...field} onFocus={e => e.target.select()} /></FormControl><FormMessage /></FormItem>)} />
             <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`} render={({ field }) => (
                 <FormItem className="space-y-2"><FormLabel>Repetitions or Duration?</FormLabel>
-                <FormControl><RadioGroup onValueChange={(value) => handleRepTypeChange(value as 'reps' | 'duration')} value={field.value} className="flex gap-4">
-                    <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="reps" /></FormControl><FormLabel className="font-normal">Reps</FormLabel></FormItem>
-                    <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="duration" /></FormControl><FormLabel className="font-normal">Duration</FormLabel></FormItem>
-                </RadioGroup></FormControl><FormMessage />
+                <FormControl><div className="flex gap-4">
+                    <Button type="button" variant={repType === 'reps' ? 'default' : 'outline'} onClick={() => handleRepTypeChange('reps')} className="flex-1">Reps</Button>
+                    <Button type="button" variant={repType === 'duration' ? 'default' : 'outline'} onClick={() => handleRepTypeChange('duration')} className="flex-1">Duration</Button>
+                </div></FormControl><FormMessage />
                 </FormItem>
             )} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -92,81 +90,76 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
     );
 };
 
-const CreationToolbar = () => {
-    const { form, members, routineTypes, routineToEdit, isEditing } = useRoutineCreator();
-    const { control, watch } = form;
 
-    const selectedMemberId = watch('memberId');
-    const selectedMember = members.find(m => m.uid === selectedMemberId);
+const Step1RoutineDetails = () => {
+    const { form, routineTypes, setStep, canProceed } = useRoutineCreator();
+    const { control } = form;
 
     return (
         <Card>
-            <CardContent className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
-                    {/* Member Selection */}
-                    <div className="flex flex-col gap-1.5">
-                         <FormLabel className={cn(!selectedMember && "text-destructive")}>Member</FormLabel>
-                         <FormField control={control} name="memberId" render={({ field }) => (
-                            <FormItem>
-                                {isEditing && routineToEdit ? (
-                                    <div className='flex items-center gap-2 h-10 px-3 border rounded-md bg-muted'>
-                                        <Avatar className="h-6 w-6"><AvatarFallback>{routineToEdit.userName.charAt(0)}</AvatarFallback></Avatar>
-                                        <span className='font-semibold text-muted-foreground'>{routineToEdit.userName}</span>
-                                    </div>
-                                ) : (
-                                    <MemberCombobox members={members} value={field.value} onChange={field.onChange} />
-                                )}
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                    </div>
+            <CardHeader>
+                <CardTitle>Step 1: Routine Details</CardTitle>
+                <CardDescription>Select the type of routine and the date it should be performed.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Placeholder for routine library selection */}
+                    <Card className="flex flex-col items-center justify-center p-6 text-center border-dashed border-2 hover:border-primary transition-colors cursor-not-allowed opacity-50">
+                        <Library className="h-8 w-8 text-muted-foreground mb-2" />
+                        <h3 className="font-semibold">From Library</h3>
+                        <p className="text-sm text-muted-foreground">Coming Soon</p>
+                    </Card>
+                    <Card className="flex flex-col items-center justify-center p-6 text-center border-dashed border-2 hover:border-primary transition-colors cursor-pointer border-primary">
+                        <FilePlus className="h-8 w-8 text-primary mb-2" />
+                        <h3 className="font-semibold">Create New</h3>
+                        <p className="text-sm text-muted-foreground">Build a custom routine</p>
+                    </Card>
+                </div>
 
-                    {/* Routine Type Selection */}
-                    <div className="flex flex-col gap-1.5">
-                        <FormLabel>Routine Type</FormLabel>
-                        <FormField control={control} name="routineTypeId" render={({ field }) => (
-                            <FormItem>
-                                <Select onValueChange={field.onChange} value={field.value || ''}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
-                                    <SelectContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <FormField control={control} name="routineTypeId" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Routine Type</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
+                                <SelectContent>
                                     {routineTypes.map(rt => (<SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                    </div>
-                    
-                    {/* Date Selection */}
-                    <div className="flex flex-col gap-1.5">
-                        <FormLabel>Date</FormLabel>
-                        <FormField control={control} name="routineDate" render={({ field }) => (
-                            <FormItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                     <FormField control={control} name="routineDate" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Routine Date</FormLabel>
                             <Popover>
                                 <PopoverTrigger asChild>
-                                <FormControl>
-                                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                    </Button>
-                                </FormControl>
+                                    <FormControl>
+                                        <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                        </Button>
+                                    </FormControl>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
                             </Popover>
                             <FormMessage />
-                            </FormItem>
-                        )} />
-                    </div>
+                        </FormItem>
+                    )} />
                 </div>
             </CardContent>
+             <Card.Footer className="flex justify-end">
+                <Button onClick={() => setStep(2)} disabled={!canProceed}>
+                    Next: Build Routine <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+            </Card.Footer>
         </Card>
-    );
-};
-
+    )
+}
 
 export function RoutineCreatorForm() {
-    const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel, setActiveSelection, onAddExercise } = useRoutineCreator();
-    const { control, getValues, watch } = form;
+    const { form, activeSelection, members, isSubmitting, step } = useRoutineCreator();
+    const { control, getValues } = form;
     
     const { fields: exerciseFields } = useFieldArray({
       control,
@@ -175,19 +168,32 @@ export function RoutineCreatorForm() {
     
     useEffect(() => {
         // When block changes, reset exercise selection to avoid showing exercise form
-        setActiveSelection(prev => ({ ...prev, exerciseIndex: undefined }));
-    }, [activeSelection.blockIndex, setActiveSelection]);
+        activeSelection.exerciseIndex = undefined;
+    }, [activeSelection.blockIndex]);
 
     const blockFields = getValues('blocks');
     const activeBlock = blockFields?.[activeSelection.blockIndex];
+
+    if (step === 1) {
+        return <Step1RoutineDetails />;
+    }
     
     if (!activeBlock) {
-        return null;
+        // This can happen if a block is removed.
+        // TODO: Handle this case more gracefully, e.g., select the previous block.
+        return <div>Loading block...</div>;
     }
 
     return (
         <div className="space-y-6">
-            <CreationToolbar />
+            <Card>
+                <CardContent className="p-4">
+                     <FormField control={control} name="memberId" render={({ field }) => (
+                         <MemberCombobox members={members} value={field.value} onChange={field.onChange} />
+                    )} />
+                </CardContent>
+            </Card>
+
             
             {activeSelection.type === 'block' && activeSelection.exerciseIndex === undefined && (
                 <Card>
@@ -213,7 +219,7 @@ export function RoutineCreatorForm() {
                                         <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => setActiveSelection({ type: 'exercise', blockIndex: activeSelection.blockIndex, exerciseIndex: index })}
+                                        onClick={() => activeSelection.exerciseIndex = index}
                                         >
                                         Edit
                                         </Button>
@@ -222,7 +228,11 @@ export function RoutineCreatorForm() {
                              ) : (
                                 <p className="text-sm text-muted-foreground p-2 text-center">No exercises in this block yet.</p>
                              )}
-                             <Button variant="outline" size="sm" className="w-full justify-center" onClick={() => onAddExercise()}>
+                             <Button variant="outline" size="sm" className="w-full justify-center" onClick={() => {
+                                 const newIndex = exerciseFields.length;
+                                 getValues('blocks')[activeSelection.blockIndex].exercises.push({ name: 'New Exercise', repType: 'reps' });
+                                 activeSelection.exerciseIndex = newIndex;
+                                }}>
                                 <Plus className="mr-2 h-4 w-4" /> Add another exercise
                             </Button>
                           </div>
@@ -239,9 +249,8 @@ export function RoutineCreatorForm() {
             ) : null}
 
             <div className="flex justify-end items-center gap-4 pt-4 border-t">
-                {isEditing && (<Button type="button" variant="outline" onClick={onCancel}>Cancel Edit</Button>)}
                 <Button type="submit" size="lg" className="w-auto" disabled={isSubmitting}>
-                    {isSubmitting ? 'Saving...' : (isEditing ? 'Update Routine' : 'Create Routine')}
+                    {isSubmitting ? 'Saving...' : (useRoutineCreator().isEditing ? 'Update Routine' : 'Create Routine')}
                 </Button>
             </div>
         </div>

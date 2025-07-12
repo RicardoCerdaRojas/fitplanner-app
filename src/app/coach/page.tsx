@@ -1,92 +1,32 @@
 
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { CoachRoutineCreator } from '@/components/coach-routine-creator';
-import { AppHeader } from '@/components/app-header';
+import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collection, query, where, onSnapshot, Timestamp, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { CoachRoutineManagement } from '@/components/coach-routine-management';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ClipboardPlus, ClipboardList } from 'lucide-react';
-import type { RoutineType } from '@/app/admin/routine-types/page';
+import { AppHeader } from '@/components/app-header';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
 
 
 export type Member = {
   uid: string;
   name: string;
+  email: string;
 };
 
 
-function CoachDashboard() {
-  const { user, activeMembership, loading } = useAuth();
+export default function CoachPage() {
+  const { activeMembership, loading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [members, setMembers] = useState<Member[]>([]);
-  const [routineTypes, setRoutineTypes] = useState<RoutineType[]>([]);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-  const [routines, setRoutines] = useState<any[]>([]);
   const [isLoadingRoutines, setIsLoadingRoutines] = useState(true);
-  const [editingRoutine, setEditingRoutine] = useState<any | null>(null);
+  const [routines, setRoutines] = useState<any[]>([]);
   
-  const initialMemberId = searchParams.get('memberId');
-  const [activeTab, setActiveTab] = useState(initialMemberId ? 'manage' : 'create');
-
-  // Fetch members and routine types
-  useEffect(() => {
-    if (loading || !activeMembership?.gymId) {
-      setIsLoadingData(false);
-      return;
-    }
-
-    setIsLoadingData(true);
-    
-    // Fetch Members
-    const membersQuery = query(
-      collection(db, 'users'),
-      where('gymId', '==', activeMembership.gymId),
-    );
-    const unsubscribeMembers = onSnapshot(membersQuery, (snapshot) => {
-      const fetchedMembers = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return { uid: doc.id, name: data.name || data.email };
-      }).filter(member => member.name) as Member[];
-      setMembers(fetchedMembers);
-    }, (error) => {
-      console.error("Error fetching members: ", error);
-      toast({
-          variant: 'destructive',
-          title: 'Database Error',
-          description: 'Could not fetch the members list.',
-      });
-    });
-
-    // Fetch Routine Types
-    const typesQuery = query(collection(db, 'routineTypes'), where('gymId', '==', activeMembership.gymId), orderBy('name'));
-    const unsubscribeTypes = onSnapshot(typesQuery, (snapshot) => {
-        const fetchedTypes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RoutineType));
-        setRoutineTypes(fetchedTypes);
-    }, (error) => {
-        console.error("Error fetching routine types:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch routine types.' });
-    });
-
-    Promise.all([new Promise(res => onSnapshot(membersQuery, res)), new Promise(res => onSnapshot(typesQuery, res))])
-      .finally(() => setIsLoadingData(false));
-
-
-    return () => {
-      unsubscribeMembers();
-      unsubscribeTypes();
-    };
-  }, [loading, activeMembership, toast]);
-
   // Fetch routines for management
   useEffect(() => {
     if (loading || !activeMembership?.gymId) {
@@ -128,15 +68,9 @@ function CoachDashboard() {
     return () => unsubscribe();
   }, [loading, activeMembership, toast]);
   
+
   const handleEditRoutine = (routine: any) => {
-    setEditingRoutine(routine);
-    setActiveTab('create');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-  
-  const handleRoutineSaved = () => {
-    setEditingRoutine(null);
-    setActiveTab('manage');
+    router.push(`/coach/create-routine?edit=${routine.id}`);
   };
 
 
@@ -145,7 +79,7 @@ function CoachDashboard() {
         <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
             <AppHeader />
             <div className="w-full max-w-4xl space-y-8 mt-4">
-                <Skeleton className="h-72 w-full" />
+                <Skeleton className="h-16 w-full" />
                 <Skeleton className="h-96 w-full" />
             </div>
             <p className='mt-8 text-lg text-muted-foreground'>Verifying access...</p>
@@ -157,7 +91,7 @@ function CoachDashboard() {
     <div className="flex flex-col min-h-screen">
       <AppHeader />
       <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
-        <div className="w-full max-w-4xl">
+        <div className="w-full max-w-5xl">
           {activeMembership.role === 'gym-admin' ? (
               <>
                   <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
@@ -166,32 +100,18 @@ function CoachDashboard() {
             ) : (
                 <h1 className="text-3xl font-bold font-headline mb-8">Coach Dashboard</h1>
             )}
-
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="create">
-                <ClipboardPlus className="mr-2" /> {editingRoutine ? 'Edit Routine' : 'Create Routine'}
-              </TabsTrigger>
-              <TabsTrigger value="manage">
-                <ClipboardList className="mr-2" /> Manage Routines
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="create">
-              {isLoadingData ? <Skeleton className="h-96 w-full"/> : (
-                activeMembership.gymId && <CoachRoutineCreator key={editingRoutine ? editingRoutine.id : 'create'} members={members} routineTypes={routineTypes} gymId={activeMembership.gymId} routineToEdit={editingRoutine} onRoutineSaved={handleRoutineSaved} />
-              )}
-            </TabsContent>
-            <TabsContent value="manage">
-              {isLoadingData || isLoadingRoutines ? (
-                  <Skeleton className="h-96 w-full" />
-              ) : (
-                  <CoachRoutineManagement 
-                    routines={routines} 
-                    onEdit={handleEditRoutine} 
-                  />
-              )}
-            </TabsContent>
-          </Tabs>
+            
+            {isLoadingRoutines ? (
+                <div className="w-full max-w-4xl space-y-8 mt-4">
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-48 w-full" />
+                </div>
+            ) : (
+                <CoachRoutineManagement 
+                  routines={routines} 
+                  onEdit={handleEditRoutine} 
+                />
+            )}
         </div>
       </main>
 
@@ -205,24 +125,3 @@ function CoachDashboard() {
   );
 }
 
-
-function CoachPageSkeleton() {
-    return (
-        <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
-            <AppHeader />
-            <div className="w-full max-w-4xl space-y-8 mt-4">
-                <Skeleton className="h-72 w-full" />
-                <Skeleton className="h-96 w-full" />
-            </div>
-            <p className='mt-8 text-lg text-muted-foreground'>Loading dashboard...</p>
-        </div>
-    )
-}
-
-export default function CoachPage() {
-    return (
-        <Suspense fallback={<CoachPageSkeleton />}>
-            <CoachDashboard />
-        </Suspense>
-    )
-}
