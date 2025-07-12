@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -120,22 +121,18 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
 
     const handleRepTypeChange = (isDuration: boolean) => {
         const newType = isDuration ? 'duration' : 'reps';
-        
         setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, newType);
         
         if (newType === 'reps') {
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, '10');
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`, '5');
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, '');
-        } else { // newType === 'duration'
+        } else { 
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, '1');
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`, '0');
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, '');
         }
-        
-        trigger(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`);
-        trigger(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`);
-        trigger(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`);
+        trigger();
     }
     
     return (
