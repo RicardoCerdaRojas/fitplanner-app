@@ -145,13 +145,20 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
         text += `_For ${routineToView.userName} on 📅 ${format(routineToView.routineDate, 'PPP')}_\n\n`;
 
         routineToView.blocks.forEach(block => {
-            text += `*${block.name}* (🔁 ${block.sets})\n`;
+            text += `*${block.name}* (${block.sets})\n`;
             block.exercises.forEach(ex => {
                 text += `  - ${ex.name}`;
                 const details = [];
-                if (ex.repType === 'reps' && ex.reps) details.push(`${ex.reps} reps`);
-                if (ex.repType === 'duration' && ex.duration) details.push(`⏱️ ${ex.duration}`);
-                if (ex.weight) details.push(`${ex.weight} kg`);
+                if (ex.repType === 'reps' && ex.reps) {
+                    details.push(`${ex.reps} reps`);
+                } else if (ex.repType === 'duration' && ex.duration) {
+                    details.push(`⏱️ ${ex.duration}`);
+                }
+                
+                if (ex.weight) {
+                    details.push(`${ex.weight} kg`);
+                }
+
                 if (details.length > 0) {
                     text += `: ${details.join(' / ')}`;
                 }
