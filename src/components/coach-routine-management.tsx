@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { Trash2, Edit, ClipboardList, Repeat, Clock, Dumbbell, Search, FilterX, Plus, Save } from 'lucide-react';
+import { Trash2, Edit, ClipboardList, Repeat, Clock, Dumbbell, Search, FilterX, Plus, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Block, ExerciseProgress } from './athlete-routine-list'; 
 import type { Timestamp as FirestoreTimestamp } from 'firebase/firestore';
@@ -55,22 +55,17 @@ export function CoachRoutineManagement({ routines }: Props) {
     const [searchFilter, setSearchFilter] = useState('');
     const [routineToDelete, setRoutineToDelete] = useState<ManagedRoutine | null>(null);
 
-    const handleDeleteClick = (routine: ManagedRoutine) => {
-        setRoutineToDelete(routine);
-    };
-
     const handleSaveAsTemplate = async (routine: ManagedRoutine) => {
         const templateName = prompt("Enter a name for this new template:", routine.routineTypeName || "New Template");
         if (!templateName) return;
 
         try {
-            // Correctly destructure to exclude properties not needed in a template.
             const { memberId, userName, routineDate, progress, id, createdAt, updatedAt, ...templateData } = routine;
             
             const dataToSave = {
                 ...templateData,
                 templateName,
-                createdAt: Timestamp.now(), // Give the template its own creation timestamp
+                createdAt: Timestamp.now(),
             };
 
             await addDoc(collection(db, 'routineTemplates'), dataToSave);
@@ -191,7 +186,7 @@ export function CoachRoutineManagement({ routines }: Props) {
                                         </AccordionTrigger>
                                         <div className="flex items-center gap-2 pl-4">
                                             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleSaveAsTemplate(routine)}>
-                                               <Save className="h-4 w-4" />
+                                               <Copy className="h-4 w-4" />
                                             </Button>
                                             <Button variant="outline" size="icon" className="h-8 w-8" asChild>
                                                 <Link href={`/coach/create-routine?edit=${routine.id}`}>
@@ -202,7 +197,7 @@ export function CoachRoutineManagement({ routines }: Props) {
                                                 variant="destructive"
                                                 size="icon"
                                                 className="h-8 w-8"
-                                                onClick={() => handleDeleteClick(routine)}
+                                                onClick={() => setRoutineToDelete(routine)}
                                                 disabled={isDeleting === routine.id}
                                             >
                                                 {isDeleting === routine.id ? (
