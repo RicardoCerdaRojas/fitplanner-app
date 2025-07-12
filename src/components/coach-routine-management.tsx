@@ -65,12 +65,14 @@ export function CoachRoutineManagement({ routines }: Props) {
 
         try {
             const { memberId, userName, routineDate, progress, id, createdAt, updatedAt, ...templateData } = routine;
-
-            await addDoc(collection(db, 'routineTemplates'), {
+            
+            const dataToSave = {
                 ...templateData,
                 templateName,
                 createdAt: Timestamp.now(),
-            });
+            };
+
+            await addDoc(collection(db, 'routineTemplates'), dataToSave);
 
             toast({
                 title: 'Template Saved!',
