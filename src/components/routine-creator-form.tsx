@@ -30,9 +30,9 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`, '5');
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, undefined);
         } else {
-            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, undefined);
-            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`, '0');
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, '1');
+            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`, '0');
+            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, undefined);
         }
     };
     
@@ -91,11 +91,19 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
 export function RoutineCreatorForm() {
     const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel, setActiveSelection } = useRoutineCreator();
     const { control, getValues } = form;
+    const { blockIndex } = activeSelection;
 
     const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
-        control,
-        name: `blocks.${activeSelection.blockIndex}.exercises`,
+      control,
+      name: `blocks.${blockIndex}.exercises`,
     });
+    
+    useEffect(() => {
+        // When block changes, reset exercise selection
+        if (activeSelection.type === 'block') {
+            setActiveSelection(prev => ({ ...prev, exerciseIndex: undefined }));
+        }
+    }, [blockIndex, activeSelection.type, setActiveSelection]);
 
     const handleAddExercise = () => {
         const newExerciseIndex = exerciseFields.length;
@@ -185,19 +193,23 @@ export function RoutineCreatorForm() {
                         </div>
                          <div className="space-y-2 mt-4">
                             <h3 className="text-sm font-semibold text-muted-foreground">Exercises in this block</h3>
-                            {exerciseFields.map((field, index) => (
-                              <div key={field.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50 text-sm">
-                                <span>{getValues(`blocks.${activeSelection.blockIndex}.exercises.${index}.name`) || 'Untitled Exercise'}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setActiveSelection({ type: 'exercise', blockIndex: activeSelection.blockIndex, exerciseIndex: index })}
-                                >
-                                  Edit
-                                </Button>
-                              </div>
-                            ))}
-                             <Button variant="link" size="sm" className="w-full justify-start text-left h-auto py-1.5 px-0 text-sm font-normal" onClick={handleAddExercise}>
+                            {exerciseFields.length > 0 ? (
+                                exerciseFields.map((field, index) => (
+                                    <div key={field.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50 text-sm">
+                                        <span>{getValues(`blocks.${activeSelection.blockIndex}.exercises.${index}.name`) || 'Untitled Exercise'}</span>
+                                        <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setActiveSelection({ type: 'exercise', blockIndex: activeSelection.blockIndex, exerciseIndex: index })}
+                                        >
+                                        Edit
+                                        </Button>
+                                    </div>
+                                ))
+                             ) : (
+                                <p className="text-sm text-muted-foreground p-2 text-center">No exercises in this block yet.</p>
+                             )}
+                             <Button variant="outline" size="sm" className="w-full justify-center" onClick={handleAddExercise}>
                                 <Plus className="mr-2 h-4 w-4" /> Add another exercise
                             </Button>
                           </div>
