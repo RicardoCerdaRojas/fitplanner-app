@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRoutineCreator, defaultExerciseValues } from './coach-routine-creator';
+import { useFieldArray } from 'react-hook-form';
 
 export function RoutineCreatorNav() {
   const { 
@@ -11,13 +12,13 @@ export function RoutineCreatorNav() {
     activeSelection, 
     setActiveSelection, 
     onCloseNav, 
-    blockFields, 
-    appendBlock, 
-    removeBlock,
-    appendExercise,
-    removeExercise: removeExerciseFromContext, // We get this from context now
   } = useRoutineCreator();
   
+  const { fields: blockFields, append: appendBlock, remove: removeBlock } = useFieldArray({
+    control,
+    name: 'blocks',
+  });
+
   const handleAddBlock = () => {
     const newBlockIndex = blockFields.length;
     appendBlock({ name: `Block ${newBlockIndex + 1}`, sets: '3', exercises: [] });
@@ -40,47 +41,37 @@ export function RoutineCreatorNav() {
   };
 
   const ExercisesNavList = ({ blockIndex }: { blockIndex: number }) => {
-    const exercisesForBlock = getValues(`blocks.${blockIndex}.exercises`) || [];
+    const { fields, append, remove } = useFieldArray({
+        control,
+        name: `blocks.${blockIndex}.exercises`
+    });
     
     const handleAddExercise = (e: React.MouseEvent) => {
         e.stopPropagation();
-        // Set selection to the block first to ensure the context is right
-        setActiveSelection({ type: 'block', blockIndex });
-        
-        // Use a timeout to allow the context to update before appending
-        setTimeout(() => {
-            const newExerciseIndex = getValues(`blocks.${blockIndex}.exercises`)?.length || 0;
-            appendExercise(defaultExerciseValues);
-            setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: newExerciseIndex });
-            onCloseNav?.();
-        }, 0);
+        const newExerciseIndex = fields.length;
+        append(defaultExerciseValues);
+        setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: newExerciseIndex });
+        onCloseNav?.();
     };
 
     const handleRemoveExercise = (e: React.MouseEvent, exerciseIndex: number) => {
         e.stopPropagation();
-        // Set selection to the block first to ensure the context is right
+        remove(exerciseIndex);
         setActiveSelection({ type: 'block', blockIndex });
-
-        // Use timeout to allow context to update before removing
-        setTimeout(() => {
-            removeExerciseFromContext(exerciseIndex);
-            // Fallback to block view after deletion
-            setActiveSelection({ type: 'block', blockIndex });
-        }, 0);
     };
     
     return (
         <ul className="pl-6 pr-2 py-1 space-y-1 mt-1 border-l-2 ml-4">
-            {exercisesForBlock.map((exercise, eIndex) => {
+            {fields.map((exercise, eIndex) => {
                  const isExerciseActive = activeSelection.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === eIndex;
                  return (
-                    <li key={`block-${blockIndex}-ex-${eIndex}`} className="flex items-center group/item">
+                    <li key={exercise.id} className="flex items-center group/item">
                         <Button
                             variant={isExerciseActive ? 'secondary' : 'ghost'}
                             className="w-full justify-start text-left h-auto py-1.5 px-2 text-sm font-normal flex-1"
                             onClick={() => handleSelect({ type: 'exercise', blockIndex, exerciseIndex: eIndex })}
                         >
-                            {exercise.name || 'Untitled Exercise'}
+                            {getValues(`blocks.${blockIndex}.exercises.${eIndex}.name`) || 'Untitled Exercise'}
                         </Button>
                         <Button
                             variant="ghost"

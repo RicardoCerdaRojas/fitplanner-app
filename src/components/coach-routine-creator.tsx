@@ -65,14 +65,6 @@ type RoutineCreatorContextType = {
   isSubmitting: boolean;
   onCancel: () => void;
   onCloseNav?: () => void;
-  blockFields: ReturnType<typeof useFieldArray<RoutineFormValues, 'blocks'>>['fields'];
-  appendBlock: ReturnType<typeof useFieldArray<RoutineFormValues, 'blocks'>>['append'];
-  removeBlock: ReturnType<typeof useFieldArray<RoutineFormValues, 'blocks'>>['remove'];
-  
-  // Exercise-specific functions for the ACTIVE block
-  exerciseFields: ReturnType<typeof useFieldArray<RoutineFormValues, `blocks.${number}.exercises`>>['fields'];
-  appendExercise: ReturnType<typeof useFieldArray<RoutineFormValues, `blocks.${number}.exercises`>>['append'];
-  removeExercise: ReturnType<typeof useFieldArray<RoutineFormValues, `blocks.${number}.exercises`>>['remove'];
 };
 
 const RoutineCreatorContext = createContext<RoutineCreatorContextType | null>(null);
@@ -133,16 +125,6 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
     resolver: zodResolver(routineSchema),
     defaultValues,
     mode: 'onBlur'
-  });
-  
-  const { fields: blockFields, append: appendBlock, remove: removeBlock } = useFieldArray({
-    control: form.control,
-    name: 'blocks',
-  });
-  
-  const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
-      control: form.control,
-      name: `blocks.${activeSelection.blockIndex}.exercises`
   });
   
   useEffect(() => {
@@ -209,12 +191,6 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
     isSubmitting,
     onCancel: onRoutineSaved,
     onCloseNav: () => isMobile && setIsNavOpen(false),
-    blockFields,
-    appendBlock,
-    removeBlock,
-    exerciseFields,
-    appendExercise,
-    removeExercise,
   };
 
   return (

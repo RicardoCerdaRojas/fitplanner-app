@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils';
 import { useRoutineCreator, defaultExerciseValues } from './coach-routine-creator';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StepperInput } from './ui/stepper-input';
+import { useFieldArray } from 'react-hook-form';
+import { useEffect } from 'react';
 
 const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerciseIndex: number }) => {
     const { form } = useRoutineCreator();
@@ -86,54 +88,26 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
     );
 };
 
-const ExercisesForBlock = ({ blockIndex }: { blockIndex: number }) => {
-    const { setActiveSelection, exerciseFields, form, appendExercise, removeExercise } = useRoutineCreator();
-  
+export function RoutineCreatorForm() {
+    const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel, setActiveSelection } = useRoutineCreator();
+    const { control, getValues } = form;
+
+    const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
+        control,
+        name: `blocks.${activeSelection.blockIndex}.exercises`,
+    });
+
     const handleAddExercise = () => {
         const newExerciseIndex = exerciseFields.length;
         appendExercise(defaultExerciseValues);
-        setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: newExerciseIndex });
+        setActiveSelection({ type: 'exercise', blockIndex: activeSelection.blockIndex, exerciseIndex: newExerciseIndex });
     };
 
-    if (exerciseFields.length === 0) {
-        return (
-            <div className="mt-4">
-                <Button variant="link" size="sm" className="w-full justify-start text-left h-auto py-1.5 px-0 text-sm font-normal" onClick={handleAddExercise}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Exercise
-                </Button>
-            </div>
-        );
-    }
-  
-    return (
-      <div className="space-y-2 mt-4">
-        <h3 className="text-sm font-semibold text-muted-foreground">Exercises in this block</h3>
-        {exerciseFields.map((field, index) => (
-          <div key={field.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50 text-sm">
-            <span>{form.getValues(`blocks.${blockIndex}.exercises.${index}.name`) || 'Untitled Exercise'}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: index })}
-            >
-              Edit
-            </Button>
-          </div>
-        ))}
-         <Button variant="link" size="sm" className="w-full justify-start text-left h-auto py-1.5 px-0 text-sm font-normal" onClick={handleAddExercise}>
-            <Plus className="mr-2 h-4 w-4" /> Add another exercise
-        </Button>
-      </div>
-    );
-};
+    const blockFields = getValues('blocks');
+    const activeBlock = blockFields?.[activeSelection.blockIndex];
 
-export function RoutineCreatorForm() {
-    const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel, blockFields } = useRoutineCreator();
-    const { control } = form;
-
-    const activeBlock = blockFields[activeSelection.blockIndex];
     if (!activeBlock) {
-        return null; // Should not happen if logic is correct
+        return null;
     }
 
     return (
@@ -209,7 +183,24 @@ export function RoutineCreatorForm() {
                             <FormField control={control} name={`blocks.${activeSelection.blockIndex}.name`} render={({ field }) => (<FormItem><FormLabel>Block Name</FormLabel><FormControl><Input placeholder="e.g., Upper Body Focus" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={control} name={`blocks.${activeSelection.blockIndex}.sets`} render={({ field }) => (<FormItem><FormLabel>Sets / Rounds</FormLabel><FormControl><Input placeholder="e.g., 3" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         </div>
-                         <ExercisesForBlock blockIndex={activeSelection.blockIndex} />
+                         <div className="space-y-2 mt-4">
+                            <h3 className="text-sm font-semibold text-muted-foreground">Exercises in this block</h3>
+                            {exerciseFields.map((field, index) => (
+                              <div key={field.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50 text-sm">
+                                <span>{getValues(`blocks.${activeSelection.blockIndex}.exercises.${index}.name`) || 'Untitled Exercise'}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setActiveSelection({ type: 'exercise', blockIndex: activeSelection.blockIndex, exerciseIndex: index })}
+                                >
+                                  Edit
+                                </Button>
+                              </div>
+                            ))}
+                             <Button variant="link" size="sm" className="w-full justify-start text-left h-auto py-1.5 px-0 text-sm font-normal" onClick={handleAddExercise}>
+                                <Plus className="mr-2 h-4 w-4" /> Add another exercise
+                            </Button>
+                          </div>
                     </CardContent>
                 </Card>
             )}
