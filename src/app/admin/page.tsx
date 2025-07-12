@@ -27,7 +27,7 @@ type Routine = {
 };
 
 const routineChartConfig: ChartConfig = {
-  count: { label: "Assignments", color: "hsl(var(--chart-1))" },
+  count: { label: "Assignments" },
 }
 
 const genderChartConfig: ChartConfig = {
@@ -36,7 +36,7 @@ const genderChartConfig: ChartConfig = {
 };
 
 const ageChartConfig: ChartConfig = {
-    count: { label: 'Members', color: 'hsl(var(--chart-1))' },
+    count: { label: 'Members' },
 }
 
 export default function AdminDashboardPage() {
@@ -47,10 +47,10 @@ export default function AdminDashboardPage() {
     const [coachCount, setCoachCount] = useState(0);
     const [pendingCount, setPendingCount] = useState(0);
     const [routinesThisMonth, setRoutinesThisMonth] = useState(0);
-    const [topRoutines, setTopRoutines] = useState<{ name: string; count: number; }[]>([]);
+    const [topRoutines, setTopRoutines] = useState<{ name: string; count: number; fill: string; }[]>([]);
     const [activeNow, setActiveNow] = useState(0);
     const [genderDistribution, setGenderDistribution] = useState<{ name: string; value: number; fill: string; }[]>([]);
-    const [ageDistribution, setAgeDistribution] = useState<{ name: string; count: number }[]>([]);
+    const [ageDistribution, setAgeDistribution] = useState<{ name: string; count: number; fill: string; }[]>([]);
 
     useEffect(() => {
         if (loading || !activeMembership?.gymId) return;
@@ -88,11 +88,12 @@ export default function AdminDashboardPage() {
             });
             
             setGenderDistribution([
-                { name: 'Male', value: genderCounts.male, fill: 'hsl(var(--chart-2))' },
-                { name: 'Female', value: genderCounts.female, fill: 'hsl(var(--chart-1))' }
+                { name: 'Male', value: genderCounts.male, fill: 'var(--color-male)' },
+                { name: 'Female', value: genderCounts.female, fill: 'var(--color-female)' }
             ].filter(item => item.value > 0));
 
-            setAgeDistribution(Object.entries(ageCounts).map(([name, count]) => ({ name, count })));
+            const ageColors = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
+            setAgeDistribution(Object.entries(ageCounts).map(([name, count], index) => ({ name, count, fill: ageColors[index % ageColors.length] })));
         });
 
         const pendingQuery = query(collection(db, 'memberships'), where('gymId', '==', gymId), where('status', '==', 'pending'));
@@ -116,10 +117,11 @@ export default function AdminDashboardPage() {
                 return acc;
             }, {} as Record<string, number>);
 
+            const routineColors = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
             const sortedRoutines = Object.entries(routineTypeCounts)
                 .sort(([, a], [, b]) => b - a)
                 .slice(0, 5)
-                .map(([name, count]) => ({ name, count }));
+                .map(([name, count], index) => ({ name, count, fill: routineColors[index % routineColors.length] }));
             setTopRoutines(sortedRoutines);
         });
 
@@ -243,7 +245,10 @@ export default function AdminDashboardPage() {
                                             <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
                                             <YAxis hide />
                                             <Tooltip content={<ChartTooltipContent hideIndicator />} />
-                                            <Bar dataKey="count" fill="var(--color-count)" radius={4}>
+                                            <Bar dataKey="count" radius={4}>
+                                                {ageDistribution.map((entry) => (
+                                                    <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                                                ))}
                                                 <LabelList 
                                                     position="insideTop"
                                                     offset={10}
@@ -273,7 +278,10 @@ export default function AdminDashboardPage() {
                                             <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} width={80} />
                                             <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                                             <Legend />
-                                            <Bar dataKey="count" fill="var(--color-count)" radius={4} layout="vertical">
+                                            <Bar dataKey="count" layout="vertical" radius={4}>
+                                                {topRoutines.map((entry) => (
+                                                    <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                                                ))}
                                                <LabelList 
                                                     dataKey="count" 
                                                     position="right" 
