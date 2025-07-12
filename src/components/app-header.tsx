@@ -44,7 +44,7 @@ export function AppHeader() {
             "sticky top-0 z-50 w-full",
             isGuestHomepage ? "bg-transparent" : "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
         )}>
-            <div className="container flex h-14 items-center max-w-7xl mx-auto">
+            <div className="flex h-14 max-w-7xl items-center mx-auto px-4 sm:px-6 lg:px-8">
                 <Link href="/" className="flex items-center gap-4 group mr-6">
                     {gymProfile?.logoUrl && !isGuestHomepage ? (
                         <Image src={gymProfile.logoUrl} alt={gymProfile.name ? `${gymProfile.name} Logo` : 'Gym Logo'} width={100} height={50} className="object-contain h-10 w-auto" priority />
