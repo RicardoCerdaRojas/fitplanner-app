@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -54,9 +53,12 @@ export function MemberCombobox({ members, value, onChange }: MemberComboboxProps
               {members.map((member) => (
                 <CommandItem
                   key={member.uid}
-                  value={member.uid}
+                  value={member.name}
                   onSelect={(currentValue) => {
-                    onChange(currentValue === value ? '' : currentValue);
+                    const selectedMember = members.find(m => m.name.toLowerCase() === currentValue.toLowerCase());
+                    if (selectedMember) {
+                      onChange(selectedMember.uid === value ? '' : selectedMember.uid);
+                    }
                     setOpen(false);
                   }}
                 >
