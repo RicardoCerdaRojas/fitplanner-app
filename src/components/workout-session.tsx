@@ -9,9 +9,8 @@ import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video, CheckCircle2, Circle } from 'lucide-react';
 import ReactPlayer from 'react-player/lazy';
 import { useAuth } from '@/contexts/auth-context';
-import { db, rtdb } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, Timestamp, getDoc } from 'firebase/firestore';
-import { ref, onDisconnect, set, remove } from 'firebase/database';
 
 
 // A type for the items in our session "playlist"
@@ -190,25 +189,6 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         return doc(db, "workoutSessions", sessionId);
     }, [sessionId]);
 
-    // Effect for Realtime Database: Manage presence
-    useEffect(() => {
-        if (!user || !userProfile?.gymId) return;
-
-        const sessionRef = ref(rtdb, `gyms/${userProfile.gymId}/sessions/${user.uid}`);
-        
-        // Set presence
-        set(sessionRef, true);
-        
-        // On disconnect, remove presence
-        onDisconnect(sessionRef).remove();
-    
-        // Cleanup function for when the component unmounts (session ends cleanly)
-        return () => {
-            remove(sessionRef);
-        };
-    }, [user, userProfile?.gymId]);
-
-
     // Effect for Firestore: Update live session document for gym admin view
     useEffect(() => {
         if (!sessionDocRef || !user || !userProfile?.gymId) return;
@@ -258,8 +238,6 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
 
     const handleSessionEnd = () => {
-        // The RTDB presence cleanup effect will handle removing the session.
-        // The Firestore cleanup effect will handle deleting the session doc.
         onSessionEnd();
     };
 
@@ -412,5 +390,3 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         </DialogContent>
     );
 }
-
-    

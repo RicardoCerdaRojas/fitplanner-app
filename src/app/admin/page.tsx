@@ -5,9 +5,8 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { db, rtdb } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, Timestamp, getCountFromServer } from 'firebase/firestore';
-import { ref, onValue } from "firebase/database";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Users, UserPlus, ClipboardList, Activity } from 'lucide-react';
 import { BarChart, ResponsiveContainer, Tooltip, Legend, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
@@ -57,10 +56,10 @@ export default function AdminDashboardPage() {
         if (loading || !activeMembership?.gymId) return;
 
         const gymId = activeMembership.gymId;
-
-        // Active Users (Realtime)
-        const activeUsersRef = ref(rtdb, `gyms/${gymId}/sessions`);
-        const unsubscribeActive = onValue(activeUsersRef, (snapshot) => {
+        
+        // Active Users (Firestore Snapshot)
+        const activeSessionsQuery = query(collection(db, 'workoutSessions'), where('gymId', '==', gymId), where('status', '==', 'active'));
+        const unsubscribeActive = onSnapshot(activeSessionsQuery, (snapshot) => {
             setActiveNow(snapshot.size);
         });
         
@@ -248,5 +247,3 @@ export default function AdminDashboardPage() {
         </div>
     );
 }
-
-    
