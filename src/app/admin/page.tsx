@@ -9,7 +9,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, Timestamp, getCountFromServer } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Users, UserPlus, ClipboardList, Activity } from 'lucide-react';
-import { BarChart, ResponsiveContainer, Tooltip, Legend, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, ResponsiveContainer, Tooltip, Legend, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, LabelList } from 'recharts';
 import { ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
@@ -33,7 +33,7 @@ const genderChartConfig: ChartConfig = {
   female: { label: 'Female', color: 'hsl(var(--chart-1))' },
 };
 const routineChartConfig: ChartConfig = {
-  count: { label: "Assignments", color: "hsl(var(--chart-2))" },
+  count: { label: "Assignments", color: "hsl(var(--chart-1))" },
 }
 const GENDER_COLORS = [
     'hsl(var(--chart-1))',
@@ -260,7 +260,9 @@ export default function AdminDashboardPage() {
                                             <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
                                             <YAxis />
                                             <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                                            <Bar dataKey="members" fill="var(--color-members)" radius={4} />
+                                            <Bar dataKey="members" fill="var(--color-members)" radius={4}>
+                                                <LabelList dataKey="members" position="top" offset={5} className="fill-foreground" fontSize={12} />
+                                            </Bar>
                                         </BarChart>
                                     </ChartContainer>
                                 ) : (
