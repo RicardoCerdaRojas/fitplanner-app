@@ -207,7 +207,10 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                                 <div key={blockIndex} className="p-4 rounded-lg bg-muted/50">
                                     <div className="flex justify-between items-center w-full mb-4">
                                         <h4 className="text-xl font-bold text-card-foreground">{block.name}</h4>
-                                        <Badge variant="secondary" className="text-base">{block.sets.match(/\d+/)?.[0] || block.sets}</Badge>
+                                        <Badge variant="secondary" className="text-base inline-flex items-center gap-1.5">
+                                            <Repeat className="w-4 h-4" />
+                                            <span>{block.sets.match(/\d+/)?.[0] || block.sets}</span>
+                                        </Badge>
                                     </div>
                                     <div className="space-y-3">
                                         {block.exercises.map((exercise, exIndex) => (
@@ -306,7 +309,7 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                             </Button>
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 pt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                         <div className="relative">
                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                              <Input 
@@ -398,4 +401,5 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
         </>
     );
 }
+
 
