@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -7,8 +8,6 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from '@/components/ui/select';
-import { MemberCombobox } from './ui/member-combobox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Trash2, Edit, ClipboardList, Repeat, Clock, Dumbbell, Search, FilterX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -45,9 +44,6 @@ type Props = {
 export function CoachRoutineManagement({ routines, members, routineTypes, onEdit, initialMemberId }: Props) {
     const { toast } = useToast();
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
-
-    const [memberFilter, setMemberFilter] = useState(initialMemberId || '');
-    const [typeFilter, setTypeFilter] = useState('');
     const [searchFilter, setSearchFilter] = useState('');
 
     const handleDelete = async (routineId: string) => {
@@ -75,19 +71,17 @@ export function CoachRoutineManagement({ routines, members, routineTypes, onEdit
 
     const filteredRoutines = useMemo(() => {
         return routines.filter(routine => {
-            const matchesMember = !memberFilter || routine.memberId === memberFilter;
-            const matchesType = !typeFilter || routine.routineTypeId === typeFilter;
-            const matchesSearch = !searchFilter || 
-                (routine.routineTypeName && routine.routineTypeName.toLowerCase().includes(searchFilter.toLowerCase())) ||
-                (routine.routineName && routine.routineName.toLowerCase().includes(searchFilter.toLowerCase()));
+            if (!searchFilter) return true;
+            const searchLower = searchFilter.toLowerCase();
+            const matchesSearch = 
+                (routine.routineTypeName && routine.routineTypeName.toLowerCase().includes(searchLower)) ||
+                (routine.userName && routine.userName.toLowerCase().includes(searchLower));
             
-            return matchesMember && matchesType && matchesSearch;
+            return matchesSearch;
         });
-    }, [routines, memberFilter, typeFilter, searchFilter]);
+    }, [routines, searchFilter]);
 
     const resetFilters = () => {
-        setMemberFilter('');
-        setTypeFilter('');
         setSearchFilter('');
     };
 
@@ -106,38 +100,15 @@ export function CoachRoutineManagement({ routines, members, routineTypes, onEdit
         <Card className="mt-4">
             <CardHeader>
                 <CardTitle>Manage Routines</CardTitle>
-                <CardDescription>Filter, search, and manage all created routines.</CardDescription>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-2 pt-4">
-                    <div className="md:col-span-2">
-                        <MemberCombobox members={members} value={memberFilter} onChange={setMemberFilter} />
-                    </div>
-                    <Input 
-                        placeholder="Search by routine name..." 
+                <CardDescription>Search for routines by routine name or member name.</CardDescription>
+                <div className="relative pt-4">
+                     <Search className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground" />
+                     <Input 
+                        placeholder="Search routines..." 
                         value={searchFilter} 
                         onChange={(e) => setSearchFilter(e.target.value)} 
+                        className="pl-10"
                     />
-                    <Select value={typeFilter} onValueChange={(value) => {
-                        if (value === "clear") {
-                            setTypeFilter("");
-                        } else {
-                            setTypeFilter(value);
-                        }
-                    }}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Filter by type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {routineTypes.map(rt => (
-                                <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
-                            ))}
-                            {typeFilter && (
-                                <>
-                                    <SelectSeparator />
-                                    <SelectItem value="clear">All Types</SelectItem>
-                                </>
-                            )}
-                        </SelectContent>
-                    </Select>
                 </div>
             </CardHeader>
             <CardContent>
@@ -219,9 +190,9 @@ export function CoachRoutineManagement({ routines, members, routineTypes, onEdit
                     <div className="text-center py-12 text-muted-foreground">
                         <FilterX className="mx-auto h-12 w-12" />
                         <h3 className="mt-4 text-lg font-semibold">No Routines Found</h3>
-                        <p className="mt-1 text-sm">Try adjusting your filters or search terms.</p>
+                        <p className="mt-1 text-sm">Try adjusting your search terms.</p>
                         <Button variant="outline" className="mt-4" onClick={resetFilters}>
-                            Clear All Filters
+                            Clear Search
                         </Button>
                     </div>
                 )}

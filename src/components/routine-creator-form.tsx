@@ -123,9 +123,9 @@ export function RoutineCreatorForm() {
                 <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField control={control} name="memberId" render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="flex flex-col">
                             <FormLabel>Member</FormLabel>
-                             <FormControl>
+                            <FormControl>
                                 {isEditing && routineToEdit ? (
                                     <Input value={routineToEdit.userName} disabled className="font-semibold" />
                                 ) : (
