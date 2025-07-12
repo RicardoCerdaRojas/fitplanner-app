@@ -152,7 +152,7 @@ export function GuestHomepage() {
                                                         <AvatarImage src={testimonial.avatar} alt={testimonial.name} data-ai-hint={testimonial.aiHint} />
                                                         <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
                                                     </Avatar>
-                                                    <h4 className="text-xl font-bold">{testimonial.name}</h4>
+                                                    <h4 className="text-xl font-bold text-white">{testimonial.name}</h4>
                                                     <p className="text-blue-400">{testimonial.role}</p>
                                                 </div>
                                             </CardContent>
