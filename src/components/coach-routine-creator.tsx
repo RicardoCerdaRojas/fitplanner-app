@@ -156,6 +156,15 @@ export function CoachRoutineCreator() {
     if(authLoading || !activeMembership?.gymId) return;
 
     const gymId = activeMembership.gymId;
+    let membersLoaded = false;
+    let typesLoaded = false;
+    let editDataLoaded = !editRoutineId; // If no edit ID, it's "loaded"
+
+    const checkLoadingState = () => {
+        if (membersLoaded && typesLoaded && editDataLoaded) {
+            setIsDataLoading(false);
+        }
+    };
     
     // Fetch Members
     const membersQuery = query(collection(db, 'users'), where('gymId', '==', gymId));
@@ -166,6 +175,8 @@ export function CoachRoutineCreator() {
           email: doc.data().email,
         })).filter(m => m.name) as Member[];
       setMembers(fetchedMembers);
+      membersLoaded = true;
+      checkLoadingState();
     });
 
     // Fetch Routine Types
@@ -173,6 +184,8 @@ export function CoachRoutineCreator() {
     const unsubscribeTypes = onSnapshot(typesQuery, (snapshot) => {
       const fetchedTypes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RoutineType));
       setRoutineTypes(fetchedTypes);
+      typesLoaded = true;
+      checkLoadingState();
     });
 
     // Fetch routine to edit if ID exists
@@ -192,10 +205,12 @@ export function CoachRoutineCreator() {
           toast({ variant: 'destructive', title: 'Error', description: 'Routine to edit not found.' });
           router.push('/coach');
         }
+        editDataLoaded = true;
+        checkLoadingState();
       }
     };
 
-    Promise.all([fetchEditData()]).finally(() => setIsDataLoading(false));
+    fetchEditData();
 
     return () => {
       unsubscribeMembers();
@@ -300,8 +315,14 @@ export function CoachRoutineCreator() {
     canProceed
   };
   
-  if (isDataLoading) {
-      return <Skeleton className="h-[500px] w-full" />
+  if (isDataLoading || authLoading) {
+      return (
+        <div>
+          <Skeleton className="h-8 w-48 mb-4" />
+          <Skeleton className="h-12 w-full mb-8" />
+          <Skeleton className="h-[500px] w-full" />
+        </div>
+      )
   }
 
   const handleStepClick = (clickedStep: number) => {
@@ -328,7 +349,7 @@ export function CoachRoutineCreator() {
                         "flex w-full items-center",
                         index !== stepsConfig.length - 1 && "after:content-[''] after:w-full after:h-1 after:border-b after:border-4 after:inline-block",
                         s.id < step ? "after:border-primary" : "after:border-muted",
-                        s.id <= step ? "cursor-pointer" : "cursor-not-allowed"
+                        s.id < step ? "cursor-pointer" : "cursor-not-allowed"
                     )} onClick={() => handleStepClick(s.id)}>
                         <span className={cn(
                             "flex items-center justify-center w-10 h-10 rounded-full lg:h-12 lg:w-12 shrink-0",
@@ -399,4 +420,3 @@ export function CoachRoutineCreator() {
     </RoutineCreatorContext.Provider>
   );
 }
-

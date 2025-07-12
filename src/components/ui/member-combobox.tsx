@@ -22,7 +22,7 @@ type MemberComboboxProps = {
     onChange: (value: string) => void;
 }
 
-export function MemberCombobox({ members, value, onChange }: MemberComboboxProps) {
+export function MemberCombobox({ members = [], value, onChange }: MemberComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
 
