@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -14,10 +15,12 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import type { Member } from "@/app/coach/page"
 import { ScrollArea } from "./scroll-area"
 
@@ -30,9 +33,14 @@ type MemberComboboxProps = {
 export function MemberCombobox({ members, value, onChange }: MemberComboboxProps) {
   const [open, setOpen] = React.useState(false)
 
+  const handleSelect = (selectedUid: string) => {
+    onChange(selectedUid);
+    setOpen(false);
+  }
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
         <Button
           variant="outline"
           role="combobox"
@@ -44,8 +52,11 @@ export function MemberCombobox({ members, value, onChange }: MemberComboboxProps
             : "Select member..."}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+      </DialogTrigger>
+      <DialogContent className="p-0">
+        <DialogHeader className="p-4 pb-0">
+            <DialogTitle>Select a Member</DialogTitle>
+        </DialogHeader>
         <Command>
           <CommandInput placeholder="Search member..." />
           <CommandList>
@@ -56,11 +67,7 @@ export function MemberCombobox({ members, value, onChange }: MemberComboboxProps
                     <CommandItem
                         key={member.uid}
                         value={member.name}
-                        onSelect={(currentValue) => {
-                            const selectedUid = members.find(m => m.name.toLowerCase() === currentValue.toLowerCase())?.uid || "";
-                            onChange(selectedUid)
-                            setOpen(false)
-                        }}
+                        onSelect={() => handleSelect(member.uid)}
                     >
                         <Check
                         className={cn(
@@ -75,7 +82,7 @@ export function MemberCombobox({ members, value, onChange }: MemberComboboxProps
             </CommandGroup>
           </CommandList>
         </Command>
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   )
 }
