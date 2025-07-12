@@ -80,14 +80,15 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
     const [routineToDelete, setRoutineToDelete] = useState<ManagedRoutine | null>(null);
     const [routineToTemplate, setRoutineToTemplate] = useState<ManagedRoutine | null>(null);
     const [templateName, setTemplateName] = useState('');
-
+    
     const handleOpenTemplateDialog = (routine: ManagedRoutine) => {
-      setTemplateName(routine.routineTypeName || 'New Template');
-      setRoutineToTemplate(routine);
+        setTemplateName(routine.routineTypeName || routine.routineName || 'New Template');
+        setRoutineToTemplate(routine);
     };
 
     const handleSaveAsTemplate = async () => {
-        if (!routineToTemplate || templateName.trim() === '') {
+        if (!routineToTemplate) return;
+        if (!templateName || templateName.trim() === '') {
             toast({ variant: 'destructive', title: 'Invalid Name', description: 'Template name cannot be empty.' });
             return;
         }
@@ -101,7 +102,7 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                     templateName,
                     createdAt: Timestamp.now(),
                 };
-
+                
                 await addDoc(collection(db, 'routineTemplates'), dataToSave);
                 toast({ title: 'Template Saved!', description: `"${templateName}" has been added to your library.` });
             } catch (error) {
@@ -224,8 +225,8 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                             </Button>
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
-                         <div className="relative lg:col-span-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                        <div className="relative">
                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                              <Input 
                                 placeholder="Search routines..." 
@@ -244,20 +245,20 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                                 {routineTypes.map(rt => <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
-                    </div>
-                     <div className="flex items-center gap-2 pt-4">
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal", !dateFilter && "text-muted-foreground")}>
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {dateFilter?.from ? (dateFilter.to ? <>{format(dateFilter.from, "LLL dd, y")} - {format(dateFilter.to, "LLL dd, y")}</> : format(dateFilter.from, "LLL dd, y")) : <span>Pick a date range</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar initialFocus mode="range" defaultMonth={dateFilter?.from} selected={dateFilter} onSelect={setDateFilter} numberOfMonths={2}/>
-                            </PopoverContent>
-                        </Popover>
-                        {areFiltersActive && <Button variant="ghost" onClick={clearFilters}><FilterX className="mr-2 h-4 w-4" /> Clear</Button>}
+                        <div className="flex items-center gap-2">
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !dateFilter && "text-muted-foreground")}>
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dateFilter?.from ? (dateFilter.to ? <>{format(dateFilter.from, "LLL dd, y")} - {format(dateFilter.to, "LLL dd, y")}</> : format(dateFilter.from, "LLL dd, y")) : <span>Pick a date range</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar initialFocus mode="range" defaultMonth={dateFilter?.from} selected={dateFilter} onSelect={setDateFilter} numberOfMonths={2}/>
+                                </PopoverContent>
+                            </Popover>
+                            {areFiltersActive && <Button variant="ghost" onClick={clearFilters}><FilterX className="mr-2 h-4 w-4" /> Clear</Button>}
+                        </div>
                     </div>
 
                 </CardHeader>
