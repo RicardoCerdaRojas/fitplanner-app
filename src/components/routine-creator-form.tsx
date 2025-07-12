@@ -78,8 +78,8 @@ function BlockForm({ blockIndex }: { blockIndex: number }) {
 
     return (
         <Card className="bg-muted/30">
-             <CardHeader className="flex flex-row items-center justify-between pb-4">
-                 <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+                <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (
                     <FormItem className='flex-1'>
                         <FormLabel className="sr-only">Block Name</FormLabel>
                         <FormControl>
@@ -88,13 +88,13 @@ function BlockForm({ blockIndex }: { blockIndex: number }) {
                         <FormMessage />
                     </FormItem>
                 )} />
-                 <Button type="button" variant="ghost" size="icon" onClick={() => removeBlock(blockIndex)} className="text-muted-foreground hover:text-destructive shrink-0">
+                <Button type="button" variant="ghost" size="icon" onClick={() => removeBlock(blockIndex)} className="text-muted-foreground hover:text-destructive shrink-0">
                     <Trash2 className="w-5 h-5"/>
                 </Button>
             </CardHeader>
             <Separator />
-             <CardContent className="pt-6 space-y-6">
-                 <div className="flex items-center justify-between">
+            <CardContent className="pt-6 space-y-6">
+                <div className="flex items-center justify-between">
                     <FormLabel className="font-semibold text-card-foreground">Sets</FormLabel>
                     <FormField control={control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (
                         <FormItem>
@@ -117,16 +117,20 @@ function BlockForm({ blockIndex }: { blockIndex: number }) {
 function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerciseIndex: number }) {
     const { form, removeExercise } = useRoutineCreator();
     const { control, watch } = form;
+    const repType = watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`);
 
-    const handleRepTypeChange = (newType: 'reps' | 'duration') => {
+    const handleRepTypeChange = (isDuration: boolean) => {
+        const newType = isDuration ? 'duration' : 'reps';
         form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, newType);
         if (newType === 'reps') {
             form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, '10');
-            form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, '');
+            form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, undefined);
         } else {
             form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, '1');
-            form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, '');
+            form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, undefined);
         }
+         // Trigger validation after setting value
+        form.trigger(`blocks.${blockIndex}.exercises.${exerciseIndex}`);
     }
     
     return (
@@ -147,22 +151,25 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
                 <Card className="p-4 bg-muted/30">
                     <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`} render={({ field }) => (
                         <FormItem className="flex items-center justify-between">
-                            <FormLabel className={cn("font-semibold", field.value !== 'reps' && "text-muted-foreground/70")}>Reps</FormLabel>
+                            <FormLabel className={cn(
+                                "font-semibold transition-all",
+                                repType === 'reps' ? 'text-primary text-lg' : 'text-muted-foreground'
+                            )}>Reps</FormLabel>
                             <FormControl>
                                 <Switch
-                                    checked={field.value === 'duration'}
-                                    onCheckedChange={(checked) => {
-                                        const newType = checked ? 'duration' : 'reps';
-                                        handleRepTypeChange(newType);
-                                    }}
+                                    checked={repType === 'duration'}
+                                    onCheckedChange={handleRepTypeChange}
                                 />
                             </FormControl>
-                            <FormLabel className={cn("font-semibold", field.value !== 'duration' && "text-muted-foreground/70")}>Duration</FormLabel>
+                             <FormLabel className={cn(
+                                "font-semibold transition-all",
+                                repType === 'duration' ? 'text-primary text-lg' : 'text-muted-foreground'
+                            )}>Duration</FormLabel>
                         </FormItem>
                     )} />
                 </Card>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`) === 'reps' ? (
+                    {repType === 'reps' ? (
                         <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`} render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Reps</FormLabel>
