@@ -7,7 +7,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/comp
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
-import { Calendar as CalendarIcon, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Trash2, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useRoutineCreator } from './coach-routine-creator';
@@ -75,16 +75,32 @@ function BlockForm({ blockIndex }: { blockIndex: number }) {
     const { control } = form;
     
     return (
-        <Card className="bg-card shadow-none border">
-            <CardHeader>
-                <div className="flex justify-between items-center gap-4">
-                     <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (<FormItem className="flex-1"><FormLabel className="sr-only">Block Name</FormLabel><FormControl><Input placeholder="e.g., Upper Body Focus" className="text-lg font-semibold border-none shadow-none -ml-3 p-0 focus-visible:ring-0 h-auto" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeBlock(blockIndex)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="w-5 h-5"/></Button>
-                </div>
-                 <FormField control={control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (<FormItem><FormLabel className="sr-only">Sets</FormLabel><FormControl><Input placeholder="e.g., 3 Sets" className="text-sm text-muted-foreground border-none shadow-none -ml-3 p-0 h-auto focus-visible:ring-0" {...field} /></FormControl><FormMessage /></FormItem>)} />
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                 <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (
+                    <FormItem className="flex-1">
+                        <FormLabel className="sr-only">Block Name</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g., Upper Body Focus" className="text-lg font-semibold border-none shadow-none -ml-3 p-0 focus-visible:ring-0 h-auto bg-transparent" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <Button type="button" variant="ghost" size="icon" onClick={() => removeBlock(blockIndex)} className="text-muted-foreground hover:text-destructive shrink-0">
+                    <Trash2 className="w-5 h-5"/>
+                </Button>
             </CardHeader>
-            <CardContent>
-                <p className="text-sm text-muted-foreground">Select an exercise from the left panel to edit its details.</p>
+            <CardContent className="space-y-4">
+                 <FormField control={control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="font-semibold text-card-foreground">Sets</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g., 3" className="text-base" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <p className="text-sm text-muted-foreground pt-4 border-t">Select an exercise from the left panel to edit its details.</p>
             </CardContent>
         </Card>
     )
@@ -95,31 +111,75 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
     const { control, watch } = form;
     
     return (
-        <Card className="bg-card shadow-none border">
-            <CardHeader>
+        <Card>
+            <CardHeader className='pb-4'>
                 <div className="flex justify-between items-center">
-                     <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`} render={({ field }) => (<FormItem className='flex-1'><FormLabel className="sr-only">Exercise Name</FormLabel><FormControl><Input placeholder="Exercise Name" className="text-lg font-semibold border-none shadow-none focus-visible:ring-0 p-0 h-auto" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                     <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`} render={({ field }) => (
+                        <FormItem className='flex-1'>
+                            <FormLabel className="sr-only">Exercise Name</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Exercise Name" className="text-xl font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
                      <Button type="button" variant="ghost" size="icon" onClick={() => removeExercise(blockIndex, exerciseIndex)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="w-5 h-5"/></Button>
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
                 <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`} render={({ field }) => (
-                    <FormItem className="space-y-3"><FormLabel>Reps or Duration?</FormLabel>
-                    <FormControl><div className="flex gap-2 p-1 bg-muted rounded-md">
-                        <Button type="button" variant={field.value === 'reps' ? 'secondary' : 'ghost'} onClick={() => { form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, 'reps');}} className="flex-1 shadow-sm h-9">Reps</Button>
-                        <Button type="button" variant={field.value === 'duration' ? 'secondary' : 'ghost'} onClick={() => { form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, 'duration');}} className="flex-1 shadow-sm h-9">Duration</Button>
-                    </div></FormControl><FormMessage />
+                    <FormItem className="space-y-3">
+                        <FormLabel>Reps or Duration?</FormLabel>
+                        <FormControl>
+                            <div className="flex gap-2 p-1 bg-muted rounded-md">
+                                <Button type="button" variant={field.value === 'reps' ? 'default' : 'ghost'} onClick={() => { form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, 'reps');}} className="flex-1 shadow-sm h-9">Reps</Button>
+                                <Button type="button" variant={field.value === 'duration' ? 'default' : 'ghost'} onClick={() => { form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, 'duration');}} className="flex-1 shadow-sm h-9">Duration</Button>
+                            </div>
+                        </FormControl>
+                        <FormMessage />
                     </FormItem>
                 )} />
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`) === 'reps' ? (
-                        <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`} render={({ field }) => (<FormItem><FormLabel>Reps</FormLabel><FormControl><StepperInput field={field} step={1} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`} render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Reps</FormLabel>
+                                <FormControl>
+                                    <Input placeholder='e.g., 8-12' {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
                     ) : (
-                        <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`} render={({ field }) => (<FormItem><FormLabel>Duration (min)</FormLabel><FormControl><StepperInput field={field} step={1} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`} render={({ field }) => (
+                             <FormItem>
+                                <FormLabel>Duration</FormLabel>
+                                <FormControl>
+                                    <Input placeholder='e.g., 30s' {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
                     )}
-                    <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`} render={({ field }) => (<FormItem><FormLabel>Weight (kg)</FormLabel><FormControl><StepperInput field={field} allowText="Bodyweight" /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`} render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Weight (kg)</FormLabel>
+                            <FormControl>
+                                <StepperInput field={field} allowText="Bodyweight" />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
                 </div>
-                <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.videoUrl`} render={({ field }) => (<FormItem><FormLabel>Example Video URL</FormLabel><FormControl><Input placeholder="https://example.com/video.mp4" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.videoUrl`} render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Example Video URL</FormLabel>
+                        <FormControl>
+                            <Input placeholder="https://example.com/video.mp4" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
             </CardContent>
         </Card>
     )
