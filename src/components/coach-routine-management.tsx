@@ -4,16 +4,16 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { doc, deleteDoc } from 'firebase/firestore';
+import { doc, deleteDoc, addDoc, collection, Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { Trash2, Edit, ClipboardList, Repeat, Clock, Dumbbell, Search, FilterX, Plus } from 'lucide-react';
+import { Trash2, Edit, ClipboardList, Repeat, Clock, Dumbbell, Search, FilterX, Plus, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Block, ExerciseProgress } from './athlete-routine-list'; 
-import type { Timestamp } from 'firebase/firestore';
+import type { Timestamp as FirestoreTimestamp } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,8 +36,8 @@ export type ManagedRoutine = {
     blocks: Block[];
     coachId: string;
     gymId: string;
-    createdAt: Timestamp;
-    updatedAt: Timestamp;
+    createdAt: FirestoreTimestamp;
+    updatedAt: FirestoreTimestamp;
     routineName?: string;
     routineTypeName?: string;
     routineTypeId?: string;
@@ -57,6 +57,29 @@ export function CoachRoutineManagement({ routines }: Props) {
 
     const handleDeleteClick = (routine: ManagedRoutine) => {
         setRoutineToDelete(routine);
+    };
+
+    const handleSaveAsTemplate = async (routine: ManagedRoutine) => {
+        const templateName = prompt("Enter a name for this new template:", routine.routineTypeName || "New Template");
+        if (!templateName) return;
+
+        try {
+            const { memberId, userName, routineDate, progress, id, createdAt, updatedAt, ...templateData } = routine;
+
+            await addDoc(collection(db, 'routineTemplates'), {
+                ...templateData,
+                templateName,
+                createdAt: Timestamp.now(),
+            });
+
+            toast({
+                title: 'Template Saved!',
+                description: `"${templateName}" has been added to your library.`,
+            });
+        } catch (error) {
+            console.error("Error saving template:", error);
+            toast({ variant: "destructive", title: "Error", description: "Could not save the routine as a template." });
+        }
     };
 
     const handleDeleteConfirm = async () => {
@@ -126,11 +149,18 @@ export function CoachRoutineManagement({ routines }: Props) {
                             <CardTitle>Manage Routines</CardTitle>
                             <CardDescription>Search for routines by routine name or member name.</CardDescription>
                         </div>
-                        <Button asChild>
-                           <Link href="/coach/create-routine">
-                             <Plus className="mr-2 h-4 w-4" /> Nueva Rutina
-                           </Link>
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button asChild variant="outline">
+                               <Link href="/coach/templates">
+                                 <ClipboardList className="mr-2 h-4 w-4" /> Template Library
+                               </Link>
+                            </Button>
+                            <Button asChild>
+                               <Link href="/coach/create-routine">
+                                 <Plus className="mr-2 h-4 w-4" /> Create Routine
+                               </Link>
+                            </Button>
+                        </div>
                     </div>
                     <div className="relative pt-4">
                          <Search className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground" />
@@ -157,6 +187,9 @@ export function CoachRoutineManagement({ routines }: Props) {
                                             </div>
                                         </AccordionTrigger>
                                         <div className="flex items-center gap-2 pl-4">
+                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleSaveAsTemplate(routine)}>
+                                               <Save className="h-4 w-4" />
+                                            </Button>
                                             <Button variant="outline" size="icon" className="h-8 w-8" asChild>
                                                 <Link href={`/coach/create-routine?edit=${routine.id}`}>
                                                    <Edit className="h-4 w-4" />

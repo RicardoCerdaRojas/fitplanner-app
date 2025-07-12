@@ -7,7 +7,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/comp
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
-import { Calendar as CalendarIcon, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Trash2, Library } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useRoutineCreator } from './coach-routine-creator';
@@ -16,7 +16,70 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { MemberCombobox } from '@/components/ui/member-combobox';
 import { Separator } from './ui/separator';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { useState, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { useAuth } from '@/contexts/auth-context';
+import type { RoutineTemplate } from '@/app/coach/templates/page';
+import { ScrollArea } from './ui/scroll-area';
+import { Skeleton } from './ui/skeleton';
 
+
+export function TemplateLoader() {
+    const { activeMembership } = useAuth();
+    const { loadTemplate } = useRoutineCreator();
+    const [templates, setTemplates] = useState<RoutineTemplate[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [open, setOpen] = useState(false);
+
+    useEffect(() => {
+        if (!activeMembership?.gymId || !open) return;
+        setLoading(true);
+        const q = query(collection(db, 'routineTemplates'), where('gymId', '==', activeMembership.gymId));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const fetchedTemplates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RoutineTemplate));
+            setTemplates(fetchedTemplates);
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    }, [activeMembership, open]);
+
+    const handleSelect = (template: RoutineTemplate) => {
+        loadTemplate(template);
+        setOpen(false);
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="lg"><Library className="mr-2 h-4 w-4" /> Load from Template</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Load Routine Template</DialogTitle>
+                    <DialogDescription>Select a pre-made template to load into the editor.</DialogDescription>
+                </DialogHeader>
+                <ScrollArea className="h-72 border rounded-md">
+                    <div className="p-2 space-y-1">
+                    {loading ? (
+                        <div className="space-y-2 p-2"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
+                    ) : templates.length === 0 ? (
+                        <p className="text-center text-sm text-muted-foreground py-4">No templates found.</p>
+                    ) : (
+                        templates.map(template => (
+                            <div key={template.id} onClick={() => handleSelect(template)} className="p-2 rounded-md hover:bg-muted cursor-pointer">
+                                <p className="font-semibold">{template.templateName}</p>
+                                <p className="text-sm text-muted-foreground">{template.routineTypeName}</p>
+                            </div>
+                        ))
+                    )}
+                    </div>
+                </ScrollArea>
+            </DialogContent>
+        </Dialog>
+    )
+}
 
 function RoutineDetailsForm() {
     const { form, members, routineTypes } = useRoutineCreator();
@@ -32,7 +95,7 @@ function RoutineDetailsForm() {
                 <FormField control={control} name="memberId" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Member</FormLabel>
-                        <MemberCombobox members={members} value={field.value} onChange={field.onChange} />
+                        <MemberCombobox members={members} value={field.value ?? ''} onChange={field.onChange} />
                         <FormMessage/>
                     </FormItem>
                 )} />

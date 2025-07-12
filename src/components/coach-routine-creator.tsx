@@ -15,11 +15,12 @@ import type { Member } from '@/app/coach/page';
 import type { ManagedRoutine } from './coach-routine-management';
 import type { RoutineType } from '@/app/admin/routine-types/page';
 import { Skeleton } from './ui/skeleton';
-import { RoutineCreatorForm } from './routine-creator-form';
+import { RoutineCreatorForm, TemplateLoader } from './routine-creator-form';
 import { RoutineCreatorNav } from './routine-creator-nav';
 import { Button } from './ui/button';
 import { RoutineCreatorLayout } from './routine-creator-layout';
 import { useFieldArray } from 'react-hook-form';
+import type { RoutineTemplate } from '@/app/coach/templates/page';
 
 
 const exerciseSchema = z.object({
@@ -46,9 +47,10 @@ const blockSchema = z.object({
 
 export const routineSchema = z.object({
   routineTypeId: z.string({ required_error: "Please select a routine type." }).min(1, 'Please select a routine type.'),
-  memberId: z.string({ required_error: "Please select a member." }).min(1, 'Please select a member.'),
-  routineDate: z.date({ required_error: "A date for the routine is required." }),
+  memberId: z.string().optional(),
+  routineDate: z.date().optional(),
   blocks: z.array(blockSchema).min(1, 'Please add at least one block.'),
+  templateName: z.string().optional(), // For saving as a new template
 });
 
 export type RoutineFormValues = z.infer<typeof routineSchema>;
@@ -71,6 +73,7 @@ type RoutineCreatorContextType = {
   appendExercise: (blockIndex: number) => void;
   removeExercise: (blockIndex: number, exerciseIndex: number) => void;
   onFormSubmit: () => void;
+  loadTemplate: (template: RoutineTemplate) => void;
 };
 
 const RoutineCreatorContext = createContext<RoutineCreatorContextType | null>(null);
@@ -99,30 +102,35 @@ export function CoachRoutineCreator() {
 
   const [members, setMembers] = useState<Member[]>([]);
   const [routineTypes, setRoutineTypes] = useState<RoutineType[]>([]);
-  const [routineToEdit, setRoutineToEdit] = useState<ManagedRoutine | null>(null);
+  const [dataToEdit, setDataToEdit] = useState<ManagedRoutine | RoutineTemplate | null>(null);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const editRoutineId = searchParams.get('edit');
-  const isEditing = !!editRoutineId;
+  const templateId = searchParams.get('template');
+  const isEditing = !!editRoutineId || !!templateId;
 
   const [activeSelection, setActiveSelection] = useState<ActiveSelection>({ type: 'details' });
 
   const defaultValues = useMemo(() => {
-    return routineToEdit 
-      ? {
-          routineTypeId: routineToEdit.routineTypeId || '',
-          memberId: routineToEdit.memberId,
-          routineDate: routineToEdit.routineDate,
-          blocks: routineToEdit.blocks,
-        }
-      : {
-          routineTypeId: '',
-          memberId: '',
-          routineDate: new Date(),
-          blocks: [{ name: 'Warm-up', sets: '1', exercises: [] }],
-        };
-  }, [routineToEdit]);
+    if (dataToEdit) {
+      const isRoutine = 'memberId' in dataToEdit;
+      return {
+        routineTypeId: dataToEdit.routineTypeId || '',
+        memberId: isRoutine ? dataToEdit.memberId : '',
+        routineDate: isRoutine ? dataToEdit.routineDate : new Date(),
+        blocks: dataToEdit.blocks,
+        templateName: isRoutine ? '' : dataToEdit.templateName,
+      }
+    }
+    return {
+      routineTypeId: '',
+      memberId: '',
+      routineDate: new Date(),
+      blocks: [{ name: 'Warm-up', sets: '1', exercises: [] }],
+      templateName: ''
+    };
+  }, [dataToEdit]);
 
   const form = useForm<RoutineFormValues>({
     resolver: zodResolver(routineSchema),
@@ -147,7 +155,6 @@ export function CoachRoutineCreator() {
     if ((activeSelection.type === 'block' && activeSelection.index === index) || (activeSelection.type === 'exercise' && activeSelection.blockIndex === index)) {
         setActiveSelection({ type: 'details' });
     } else if ((activeSelection.type === 'block' && activeSelection.index > index) || (activeSelection.type === 'exercise' && activeSelection.blockIndex > index)) {
-        // Adjust active selection if it's after the removed block
         if (activeSelection.type === 'block') {
             setActiveSelection({ type: 'block', index: activeSelection.index - 1 });
         }
@@ -181,11 +188,29 @@ export function CoachRoutineCreator() {
         setActiveSelection({ type: 'block', index: blockIndex });
     }
   }, [getValues, update]);
+
+  const loadTemplate = useCallback((template: RoutineTemplate) => {
+      reset({
+          routineTypeId: template.routineTypeId,
+          blocks: template.blocks,
+          templateName: template.templateName,
+          memberId: '',
+          routineDate: new Date(),
+      });
+      setActiveSelection({type: 'details'});
+      toast({title: "Template Loaded", description: `"${template.templateName}" has been loaded into the editor.`});
+  }, [reset, toast]);
+
   
   const onFormSubmit = handleSubmit(async (values) => {
-    if (!user) {
+    if (!user || !activeMembership?.gymId) {
       toast({ variant: 'destructive', title: 'Not Authenticated', description: 'You must be logged in to save a routine.' });
       return;
+    }
+
+    if (!values.memberId || !values.routineDate) {
+        toast({ variant: 'destructive', title: 'Missing Information', description: 'Please select a member and a date to assign the routine.' });
+        return;
     }
 
     const selectedMember = members.find((a) => a.uid === values.memberId);
@@ -221,14 +246,15 @@ export function CoachRoutineCreator() {
             routineTypeName: selectedRoutineType.name,
             userName: selectedMember.name,
             coachId: user.uid,
-            gymId: activeMembership!.gymId,
+            gymId: activeMembership.gymId,
             routineDate: Timestamp.fromDate(values.routineDate),
-            createdAt: isEditing && routineToEdit ? routineToEdit.createdAt : Timestamp.now(),
+            createdAt: (editRoutineId && 'createdAt' in dataToEdit!) ? dataToEdit.createdAt : Timestamp.now(),
             updatedAt: Timestamp.now(),
         };
+        delete routineData.templateName;
 
-        if(isEditing && routineToEdit) {
-            const routineRef = doc(db, 'routines', routineToEdit.id);
+        if(editRoutineId && dataToEdit) {
+            const routineRef = doc(db, 'routines', dataToEdit.id);
             await updateDoc(routineRef, routineData);
             toast({ title: 'Routine Updated!', description: `The routine for ${routineData.userName} has been updated.` });
         } else {
@@ -251,7 +277,7 @@ export function CoachRoutineCreator() {
     const gymId = activeMembership.gymId;
     let membersLoaded = false;
     let typesLoaded = false;
-    let editDataLoaded = !editRoutineId;
+    let editDataLoaded = !editRoutineId && !templateId;
 
     const checkLoadingState = () => {
         if (membersLoaded && typesLoaded && editDataLoaded) {
@@ -280,30 +306,40 @@ export function CoachRoutineCreator() {
     });
 
     const fetchEditData = async () => {
-      if (editRoutineId) {
+        let docRef;
+        let collectionName: 'routines' | 'routineTemplates' = 'routines';
+        if (editRoutineId) {
+            docRef = doc(db, 'routines', editRoutineId);
+        } else if (templateId) {
+            collectionName = 'routineTemplates';
+            docRef = doc(db, 'routineTemplates', templateId);
+        } else {
+            return;
+        }
+
         try {
-          const routineDoc = await getDoc(doc(db, 'routines', editRoutineId));
-          if (routineDoc.exists()) {
-            const data = routineDoc.data();
-            const managedRoutine: ManagedRoutine = {
-                id: routineDoc.id,
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            const loadedData = {
+                id: docSnap.id,
                 ...data,
-                routineDate: (data.routineDate as Timestamp).toDate(),
-            } as ManagedRoutine;
-            setRoutineToEdit(managedRoutine);
+                // Ensure date is a Date object if it exists
+                ...((data.routineDate instanceof Timestamp) && { routineDate: data.routineDate.toDate() }),
+            } as ManagedRoutine | RoutineTemplate;
+            setDataToEdit(loadedData);
           } else {
-            toast({ variant: 'destructive', title: 'Error', description: 'Routine to edit not found.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'Item to edit not found.' });
             router.push('/coach');
           }
         } catch (e) {
             console.error(e)
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to load routine.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to load data.' });
             router.push('/coach');
         } finally {
             editDataLoaded = true;
             checkLoadingState();
         }
-      }
     };
 
     fetchEditData();
@@ -313,11 +349,11 @@ export function CoachRoutineCreator() {
       unsubscribeTypes();
     };
 
-  }, [authLoading, activeMembership, editRoutineId, router, toast]);
+  }, [authLoading, activeMembership, editRoutineId, templateId, router, toast]);
 
   useEffect(() => {
       reset(defaultValues);
-  }, [routineToEdit, reset, defaultValues]);
+  }, [dataToEdit, reset, defaultValues]);
   
 
   const contextValue: RoutineCreatorContextType = {
@@ -334,6 +370,7 @@ export function CoachRoutineCreator() {
     appendExercise,
     removeExercise,
     onFormSubmit,
+    loadTemplate,
   };
   
   if (isDataLoading || authLoading) {
@@ -358,9 +395,10 @@ export function CoachRoutineCreator() {
                 <div className="flex-grow">
                     <RoutineCreatorForm />
                 </div>
-                <div className="flex justify-end pt-4 mt-auto">
+                <div className="flex justify-end pt-4 mt-auto gap-2">
+                    <TemplateLoader />
                     <Button type="button" onClick={onFormSubmit} size="lg" className="w-auto" disabled={isSubmitting}>
-                        {isSubmitting ? 'Saving...' : (isEditing ? 'Update Routine' : 'Create Routine')}
+                        {isSubmitting ? 'Assigning...' : 'Assign to Member'}
                     </Button>
                 </div>
             </div>
@@ -369,5 +407,3 @@ export function CoachRoutineCreator() {
     </RoutineCreatorContext.Provider>
   );
 }
-
-    
