@@ -26,8 +26,8 @@ type Routine = {
 };
 
 const ageChartConfig: ChartConfig = {
-  male: { label: 'Male', color: 'hsl(var(--chart-1))' },
-  female: { label: 'Female', color: 'hsl(var(--chart-2))' },
+  male: { label: 'Male', color: 'hsl(var(--chart-2))' },
+  female: { label: 'Female', color: 'hsl(var(--chart-1))' },
 };
 const routineChartConfig: ChartConfig = {
   count: { label: "Assignments", color: "hsl(var(--chart-1))" },
@@ -215,14 +215,14 @@ export default function AdminDashboardPage() {
                             <CardContent>
                                 {ageDistribution.some(d => d.male > 0 || d.female > 0) ? (
                                     <ChartContainer config={ageChartConfig} className="h-[250px] w-full">
-                                        <BarChart data={ageDistribution} accessibilityLayer>
+                                        <BarChart data={ageDistribution} accessibilityLayer stackOffset="sign">
                                             <CartesianGrid vertical={false} />
                                             <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
                                             <YAxis />
                                             <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                                             <Legend content={<ChartLegendContent />} />
-                                            <Bar dataKey="female" fill="var(--color-female)" radius={4} />
-                                            <Bar dataKey="male" fill="var(--color-male)" radius={4} />
+                                            <Bar dataKey="female" fill="var(--color-female)" radius={4} stackId="a" />
+                                            <Bar dataKey="male" fill="var(--color-male)" radius={4} stackId="a" />
                                         </BarChart>
                                     </ChartContainer>
                                 ) : (
@@ -264,5 +264,3 @@ export default function AdminDashboardPage() {
         </div>
     );
 }
-
-    
