@@ -231,6 +231,7 @@ export default function AdminDashboardPage() {
                                                 cx="50%"
                                                 cy="50%"
                                                 outerRadius={80}
+                                                labelLine={false}
                                                 label={({ name, value }) => `${name} (${value})`}
                                             >
                                                 {genderDistribution.map((entry, index) => (
@@ -303,4 +304,5 @@ export default function AdminDashboardPage() {
             </footer>
         </div>
     );
-}
+
+    
