@@ -35,10 +35,13 @@ export type ManagedRoutine = {
 
 type Props = {
     routines: ManagedRoutine[];
+    members: Member[];
+    routineTypes: RoutineType[];
     onEdit: (routine: ManagedRoutine) => void;
+    initialMemberId?: string | null;
 };
 
-export function CoachRoutineManagement({ routines, onEdit }: Props) {
+export function CoachRoutineManagement({ routines, members, routineTypes, onEdit, initialMemberId }: Props) {
     const { toast } = useToast();
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [searchFilter, setSearchFilter] = useState('');
@@ -112,9 +115,9 @@ export function CoachRoutineManagement({ routines, onEdit }: Props) {
                 {filteredRoutines.length > 0 ? (
                     <Accordion type="single" collapsible className="w-full space-y-2">
                         {filteredRoutines.map((routine) => (
-                            <AccordionItem value={routine.id} key={routine.id} className="border rounded-lg px-2">
-                                <div className="flex items-center justify-between w-full">
-                                    <AccordionTrigger className="flex-1 py-3 px-2 text-left hover:no-underline">
+                            <AccordionItem value={routine.id} key={routine.id} className="border rounded-lg">
+                                <div className="flex items-center justify-between w-full px-4 py-3">
+                                    <AccordionTrigger className="p-0 flex-1 text-left hover:no-underline">
                                         <div className="flex flex-col items-start">
                                             <span className="font-semibold">{routine.routineTypeName || routine.routineName || 'Untitled Routine'}</span>
                                             <span className="text-sm text-muted-foreground font-normal">
@@ -122,7 +125,7 @@ export function CoachRoutineManagement({ routines, onEdit }: Props) {
                                             </span>
                                         </div>
                                     </AccordionTrigger>
-                                    <div className="flex items-center gap-2 pr-2">
+                                    <div className="flex items-center gap-2 pl-4">
                                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onEdit(routine)}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
@@ -141,7 +144,7 @@ export function CoachRoutineManagement({ routines, onEdit }: Props) {
                                         </Button>
                                     </div>
                                 </div>
-                                <AccordionContent className="px-2 pb-3">
+                                <AccordionContent className="px-4 pb-3">
                                     <div className="space-y-2 pt-2 border-t">
                                         {routine.blocks.map((block, blockIndex) => (
                                             <div key={blockIndex} className="p-2 border rounded-md bg-card/50">
