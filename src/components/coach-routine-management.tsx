@@ -5,11 +5,11 @@ import { useState, useMemo, useTransition } from 'react';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
 import { doc, deleteDoc, addDoc, collection, Timestamp } from 'firebase/firestore';
-import { format } from 'date-fns';
+import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { Trash2, Edit, ClipboardList, Search, FilterX, Plus, Copy } from 'lucide-react';
+import { Trash2, Edit, ClipboardList, Search, FilterX, Plus, Copy, Calendar as CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Block, ExerciseProgress } from './athlete-routine-list'; 
 import type { Timestamp as FirestoreTimestamp } from 'firebase/firestore';
@@ -33,6 +33,15 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Label } from './ui/label';
+import { MemberCombobox } from './ui/member-combobox';
+import type { Member } from '@/app/coach/page';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import type { RoutineType } from '@/app/admin/routine-types/page';
+import { Popover, PopoverTrigger, PopoverContent } from './ui/popover';
+import { Calendar } from './ui/calendar';
+import type { DateRange } from 'react-day-picker';
+import { cn } from '@/lib/utils';
+
 
 // A more robust, combined type for routines being managed.
 export type ManagedRoutine = {
@@ -53,12 +62,21 @@ export type ManagedRoutine = {
 
 type Props = {
     routines: ManagedRoutine[];
+    members: Member[];
+    routineTypes: RoutineType[];
 };
 
-export function CoachRoutineManagement({ routines }: Props) {
+export function CoachRoutineManagement({ routines, members, routineTypes }: Props) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
+    
+    // Filter states
     const [searchFilter, setSearchFilter] = useState('');
+    const [memberFilter, setMemberFilter] = useState('');
+    const [typeFilter, setTypeFilter] = useState('');
+    const [dateFilter, setDateFilter] = useState<DateRange | undefined>(undefined);
+
+    // Dialog states
     const [routineToDelete, setRoutineToDelete] = useState<ManagedRoutine | null>(null);
     const [routineToTemplate, setRoutineToTemplate] = useState<ManagedRoutine | null>(null);
     const [templateName, setTemplateName] = useState('');
@@ -76,13 +94,11 @@ export function CoachRoutineManagement({ routines }: Props) {
 
         startTransition(async () => {
             try {
-                // Create a new object with only the properties needed for a template
+                const { memberId, userName, routineDate, progress, id, createdAt, updatedAt, ...templateData } = routineToTemplate;
+                
                 const dataToSave = {
+                    ...templateData,
                     templateName,
-                    routineTypeId: routineToTemplate.routineTypeId || '',
-                    routineTypeName: routineToTemplate.routineTypeName || '',
-                    blocks: routineToTemplate.blocks,
-                    gymId: routineToTemplate.gymId,
                     createdAt: Timestamp.now(),
                 };
 
@@ -110,15 +126,33 @@ export function CoachRoutineManagement({ routines }: Props) {
             setRoutineToDelete(null);
         }
     };
+    
+    const clearFilters = () => {
+        setSearchFilter('');
+        setMemberFilter('');
+        setTypeFilter('');
+        setDateFilter(undefined);
+    }
+    const areFiltersActive = searchFilter || memberFilter || typeFilter || dateFilter;
 
     const filteredRoutines = useMemo(() => {
         return routines.filter(routine => {
-            if (!searchFilter) return true;
             const searchLower = searchFilter.toLowerCase();
-            return (routine.routineTypeName && routine.routineTypeName.toLowerCase().includes(searchLower)) ||
+            const matchesSearch = !searchFilter ||
+                   (routine.routineTypeName && routine.routineTypeName.toLowerCase().includes(searchLower)) ||
                    (routine.userName && routine.userName.toLowerCase().includes(searchLower));
+            
+            const matchesMember = !memberFilter || routine.memberId === memberFilter;
+            const matchesType = !typeFilter || routine.routineTypeId === typeFilter;
+            
+            const matchesDate = !dateFilter || 
+                (dateFilter.from && dateFilter.to &&
+                 routine.routineDate >= startOfDay(dateFilter.from) &&
+                 routine.routineDate <= endOfDay(dateFilter.to));
+
+            return matchesSearch && matchesMember && matchesType && matchesDate;
         });
-    }, [routines, searchFilter]);
+    }, [routines, searchFilter, memberFilter, typeFilter, dateFilter]);
 
     return (
         <>
@@ -190,15 +224,40 @@ export function CoachRoutineManagement({ routines }: Props) {
                             </Button>
                         </div>
                     </div>
-                    <div className="relative pt-4">
-                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                         <Input 
-                            placeholder="Search routines..." 
-                            value={searchFilter} 
-                            onChange={(e) => setSearchFilter(e.target.value)} 
-                            className="pl-10"
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
+                         <div className="relative lg:col-span-2">
+                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                             <Input 
+                                placeholder="Search routines..." 
+                                value={searchFilter} 
+                                onChange={(e) => setSearchFilter(e.target.value)} 
+                                className="pl-10"
+                            />
+                        </div>
+                        <MemberCombobox members={members} value={memberFilter} onChange={setMemberFilter} />
+                        <Select value={typeFilter} onValueChange={setTypeFilter}>
+                            <SelectTrigger><SelectValue placeholder="Filter by type..." /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">All Types</SelectItem>
+                                {routineTypes.map(rt => <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                     </div>
+                     <div className="flex items-center gap-2 pt-4">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal", !dateFilter && "text-muted-foreground")}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {dateFilter?.from ? (dateFilter.to ? <>{format(dateFilter.from, "LLL dd, y")} - {format(dateFilter.to, "LLL dd, y")}</> : format(dateFilter.from, "LLL dd, y")) : <span>Pick a date range</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar initialFocus mode="range" defaultMonth={dateFilter?.from} selected={dateFilter} onSelect={setDateFilter} numberOfMonths={2}/>
+                            </PopoverContent>
+                        </Popover>
+                        {areFiltersActive && <Button variant="ghost" onClick={clearFilters}><FilterX className="mr-2 h-4 w-4" /> Clear</Button>}
+                    </div>
+
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-2">
@@ -236,11 +295,9 @@ export function CoachRoutineManagement({ routines }: Props) {
                                 <FilterX className="mx-auto h-12 w-12 text-muted-foreground" />
                                 <h3 className="mt-4 text-lg font-semibold">No Routines Found</h3>
                                 <p className="mt-1 text-sm text-muted-foreground">
-                                    {searchFilter ? "Try adjusting your search terms." : "You haven't created any routines yet."}
+                                    Try adjusting your filters or creating a new routine.
                                 </p>
-                                <Button variant="outline" className="mt-4" onClick={() => setSearchFilter('')}>
-                                    Clear Search
-                                </Button>
+                                {areFiltersActive && <Button variant="outline" className="mt-4" onClick={clearFilters}>Clear Filters</Button>}
                             </div>
                         )}
                     </div>

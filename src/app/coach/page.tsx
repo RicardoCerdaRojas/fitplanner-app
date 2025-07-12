@@ -5,12 +5,12 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, Timestamp, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { CoachRoutineManagement } from '@/components/coach-routine-management';
 import { AppHeader } from '@/components/app-header';
-import { AdminBottomNav } from '@/components/admin-bottom-nav';
+import type { RoutineType } from '@/app/admin/routine-types/page';
 
 
 export type Member = {
@@ -24,48 +24,73 @@ export default function CoachPage() {
   const { activeMembership, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [isLoadingRoutines, setIsLoadingRoutines] = useState(true);
-  const [routines, setRoutines] = useState<any[]>([]);
   
-  // Fetch routines for management
+  const [isLoading, setIsLoading] = useState(true);
+  const [routines, setRoutines] = useState<any[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [routineTypes, setRoutineTypes] = useState<RoutineType[]>([]);
+  
+  // Fetch all necessary data for the coach dashboard
   useEffect(() => {
     if (loading || !activeMembership?.gymId) {
-      setIsLoadingRoutines(false);
       return;
     }
+    
+    let routinesLoaded = false, membersLoaded = false, typesLoaded = false;
+    const checkLoadingState = () => {
+        if (routinesLoaded && membersLoaded && typesLoaded) {
+            setIsLoading(false);
+        }
+    };
 
-    setIsLoadingRoutines(true);
+    const gymId = activeMembership.gymId;
+
     const routinesQuery = query(
       collection(db, 'routines'),
-      where('gymId', '==', activeMembership.gymId)
+      where('gymId', '==', gymId)
     );
-
-    const unsubscribe = onSnapshot(routinesQuery, (snapshot) => {
+    const unsubscribeRoutines = onSnapshot(routinesQuery, (snapshot) => {
         const fetchedRoutines = snapshot.docs.map(doc => {
             const data = doc.data();
-            if (data.memberId && data.userName && data.routineDate) {
-                return {
-                    id: doc.id,
-                    ...data,
-                    routineDate: (data.routineDate as Timestamp).toDate(),
-                };
-            }
-            return null;
-        }).filter(r => r !== null)
-          .sort((a, b) => b!.routineDate.getTime() - a!.routineDate.getTime());
+            return {
+                id: doc.id,
+                ...data,
+                routineDate: (data.routineDate as Timestamp).toDate(),
+            };
+        }).sort((a, b) => b.routineDate.getTime() - a.routineDate.getTime());
         setRoutines(fetchedRoutines);
-        setIsLoadingRoutines(false);
+        routinesLoaded = true;
+        checkLoadingState();
     }, (error) => {
         console.error("Error fetching routines: ", error);
-        toast({
-            variant: 'destructive',
-            title: 'Database Error',
-            description: 'Could not fetch routines. Please check the console for details.',
-        });
-        setIsLoadingRoutines(false);
+        toast({ variant: 'destructive', title: 'Database Error', description: 'Could not fetch routines.' });
     });
 
-    return () => unsubscribe();
+    const membersQuery = query(collection(db, 'users'), where('gymId', '==', gymId));
+    const unsubscribeMembers = onSnapshot(membersQuery, (snapshot) => {
+      const fetchedMembers = snapshot.docs.map(doc => ({ 
+          uid: doc.id, 
+          name: doc.data().name || doc.data().email,
+          email: doc.data().email,
+        })).filter(m => m.name) as Member[];
+      setMembers(fetchedMembers);
+      membersLoaded = true;
+      checkLoadingState();
+    });
+
+    const typesQuery = query(collection(db, 'routineTypes'), where('gymId', '==', gymId), orderBy('name'));
+    const unsubscribeTypes = onSnapshot(typesQuery, (snapshot) => {
+      const fetchedTypes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RoutineType));
+      setRoutineTypes(fetchedTypes);
+      typesLoaded = true;
+      checkLoadingState();
+    });
+
+    return () => {
+        unsubscribeRoutines();
+        unsubscribeMembers();
+        unsubscribeTypes();
+    };
   }, [loading, activeMembership, toast]);
   
 
@@ -87,23 +112,18 @@ export default function CoachPage() {
       <AppHeader />
       <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
         <div className="w-full max-w-5xl">
-          {activeMembership.role === 'gym-admin' ? (
-              <>
-                  <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
-                  <AdminBottomNav />
-              </>
-            ) : (
-                <h1 className="text-3xl font-bold font-headline mb-8">Coach Dashboard</h1>
-            )}
+            <h1 className="text-3xl font-bold font-headline mb-8">Coach Dashboard</h1>
             
-            {isLoadingRoutines ? (
+            {isLoading ? (
                 <div className="w-full max-w-4xl space-y-8 mt-4">
-                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-24 w-full" />
                     <Skeleton className="h-48 w-full" />
                 </div>
             ) : (
                 <CoachRoutineManagement 
-                  routines={routines} 
+                  routines={routines}
+                  members={members}
+                  routineTypes={routineTypes}
                 />
             )}
         </div>

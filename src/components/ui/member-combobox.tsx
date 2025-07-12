@@ -21,9 +21,10 @@ type MemberComboboxProps = {
     members: Member[];
     value: string;
     onChange: (value: string) => void;
+    placeholder?: string;
 }
 
-export function MemberCombobox({ members = [], value, onChange }: MemberComboboxProps) {
+export function MemberCombobox({ members = [], value, onChange, placeholder = "Select member..." }: MemberComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
 
@@ -49,11 +50,11 @@ export function MemberCombobox({ members = [], value, onChange }: MemberCombobox
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between h-10"
+          className="w-full justify-between"
         >
           {selectedMember
-            ? <div className="flex items-center gap-2"><Avatar className="h-6 w-6"><AvatarFallback>{selectedMember.name.charAt(0)}</AvatarFallback></Avatar> {selectedMember.name}</div>
-            : "Select member..."}
+            ? <div className="flex items-center gap-2 truncate"><Avatar className="h-6 w-6"><AvatarFallback>{selectedMember.name.charAt(0)}</AvatarFallback></Avatar> {selectedMember.name}</div>
+            : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </DialogTrigger>
@@ -71,10 +72,22 @@ export function MemberCombobox({ members = [], value, onChange }: MemberCombobox
           <div className="border-t">
               <ScrollArea className="h-72">
                   <div className="p-2 space-y-1">
+                      {filteredMembers.length > 0 ? (
+                        <div
+                            className="w-full text-left h-auto p-2 rounded-md transition-colors hover:bg-muted cursor-pointer"
+                            onClick={() => handleSelect('')}
+                        >
+                          All Members
+                        </div>
+                      ) : null}
+
                       {filteredMembers.length > 0 ? filteredMembers.map((member) => (
                            <div
                               key={member.uid}
-                              className="w-full text-left h-auto p-2 rounded-md transition-colors hover:bg-muted cursor-pointer"
+                              className={cn(
+                                "w-full text-left h-auto p-2 rounded-md transition-colors hover:bg-muted cursor-pointer",
+                                value === member.uid && "bg-muted font-semibold"
+                              )}
                               onClick={() => handleSelect(member.uid)}
                           >
                               <div className="flex items-center gap-3">
