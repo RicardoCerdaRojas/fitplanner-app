@@ -14,6 +14,7 @@ import { useRoutineCreator } from './coach-routine-creator';
 import { StepperInput } from './ui/stepper-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { MemberCombobox } from '@/components/ui/member-combobox';
+import { Separator } from './ui/separator';
 
 
 function RoutineDetailsForm() {
@@ -72,35 +73,50 @@ function RoutineDetailsForm() {
 
 function BlockForm({ blockIndex }: { blockIndex: number }) {
     const { form, removeBlock } = useRoutineCreator();
-    const { control } = form;
+    const { control, watch } = form;
+    const blockName = watch(`blocks.${blockIndex}.name`);
     
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-                 <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (
-                    <FormItem className="flex-1">
-                        <FormLabel className="sr-only">Block Name</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g., Upper Body Focus" className="text-lg font-semibold border-none shadow-none -ml-3 p-0 focus-visible:ring-0 h-auto bg-transparent" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-                <Button type="button" variant="ghost" size="icon" onClick={() => removeBlock(blockIndex)} className="text-muted-foreground hover:text-destructive shrink-0">
-                    <Trash2 className="w-5 h-5"/>
-                </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                 <FormField control={control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="font-semibold text-card-foreground">Sets</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g., 3" className="text-base" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-                <p className="text-sm text-muted-foreground pt-4 border-t">Select an exercise from the left panel to edit its details.</p>
+        <Card className="bg-card">
+             <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-6">
+                    <div>
+                        <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="sr-only">Block Name</FormLabel>
+                                <FormControl>
+                                    <Input 
+                                        placeholder="e.g., Warm-up" 
+                                        className="text-xl font-bold border-none shadow-none -ml-3 p-0 focus-visible:ring-0 h-auto bg-transparent focus:bg-muted/50 rounded-md px-2" 
+                                        {...field} 
+                                    />
+                                </FormControl>
+                                <FormMessage className="ml-2" />
+                            </FormItem>
+                        )} />
+                    </div>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removeBlock(blockIndex)} className="text-muted-foreground hover:text-destructive shrink-0">
+                        <Trash2 className="w-5 h-5"/>
+                    </Button>
+                </div>
+
+                <div className="space-y-4">
+                    <FormField control={control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="font-semibold text-card-foreground">Sets</FormLabel>
+                            <FormControl>
+                                <StepperInput field={field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+
+                    <Separator className="my-6" />
+
+                    <p className="text-sm text-muted-foreground text-center">
+                        Select an exercise from the left panel to edit its details.
+                    </p>
+                </div>
             </CardContent>
         </Card>
     )
@@ -112,19 +128,17 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
     
     return (
         <Card>
-            <CardHeader className='pb-4'>
-                <div className="flex justify-between items-center">
-                     <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`} render={({ field }) => (
-                        <FormItem className='flex-1'>
-                            <FormLabel className="sr-only">Exercise Name</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Exercise Name" className="text-xl font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                     <Button type="button" variant="ghost" size="icon" onClick={() => removeExercise(blockIndex, exerciseIndex)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="w-5 h-5"/></Button>
-                </div>
+            <CardHeader className='pb-4 flex flex-row items-center justify-between'>
+                 <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`} render={({ field }) => (
+                    <FormItem className='flex-1'>
+                        <FormLabel className="sr-only">Exercise Name</FormLabel>
+                        <FormControl>
+                            <Input placeholder="Exercise Name" className="text-xl font-bold border-none shadow-none focus-visible:ring-0 pl-2 pr-2 h-auto bg-transparent focus:bg-muted/50 rounded-md" {...field} />
+                        </FormControl>
+                        <FormMessage className="pl-2" />
+                    </FormItem>
+                )} />
+                 <Button type="button" variant="ghost" size="icon" onClick={() => removeExercise(blockIndex, exerciseIndex)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="w-5 h-5"/></Button>
             </CardHeader>
             <CardContent className="space-y-6">
                 <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`} render={({ field }) => (
@@ -132,8 +146,8 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
                         <FormLabel>Reps or Duration?</FormLabel>
                         <FormControl>
                             <div className="flex gap-2 p-1 bg-muted rounded-md">
-                                <Button type="button" variant={field.value === 'reps' ? 'default' : 'ghost'} onClick={() => { form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, 'reps');}} className="flex-1 shadow-sm h-9">Reps</Button>
-                                <Button type="button" variant={field.value === 'duration' ? 'default' : 'ghost'} onClick={() => { form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, 'duration');}} className="flex-1 shadow-sm h-9">Duration</Button>
+                                <Button type="button" variant={field.value === 'reps' ? 'default' : 'outline'} onClick={() => { form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, 'reps');}} className="flex-1 shadow-sm h-9">Reps</Button>
+                                <Button type="button" variant={field.value === 'duration' ? 'default' : 'outline'} onClick={() => { form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, 'duration');}} className="flex-1 shadow-sm h-9">Duration</Button>
                             </div>
                         </FormControl>
                         <FormMessage />
@@ -165,7 +179,7 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
                         <FormItem>
                             <FormLabel>Weight (kg)</FormLabel>
                             <FormControl>
-                                <StepperInput field={field} allowText="Bodyweight" />
+                                <Input placeholder="e.g. Bodyweight or 50" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>

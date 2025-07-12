@@ -340,18 +340,18 @@ export function CoachRoutineCreator() {
     <RoutineCreatorContext.Provider value={contextValue}>
        <FormProvider {...form}>
         <RoutineCreatorLayout
-          sidebar={<RoutineCreatorNav />}
+            sidebar={<RoutineCreatorNav />}
         >
-          <form onSubmit={(e) => { e.preventDefault(); onFormSubmit(); }} className="h-full flex flex-col">
-            <div className="flex-grow">
-              <RoutineCreatorForm />
+            <div className="h-full flex flex-col">
+                <div className="flex-grow">
+                    <RoutineCreatorForm />
+                </div>
+                <div className="flex justify-end pt-4 mt-auto">
+                    <Button type="button" onClick={onFormSubmit} size="lg" className="w-auto" disabled={isSubmitting}>
+                        {isSubmitting ? 'Saving...' : (isEditing ? 'Update Routine' : 'Create Routine')}
+                    </Button>
+                </div>
             </div>
-            <div className="flex justify-end pt-4 mt-auto">
-                <Button type="submit" size="lg" className="w-auto" disabled={isSubmitting}>
-                    {isSubmitting ? 'Saving...' : (isEditing ? 'Update Routine' : 'Create Routine')}
-                </Button>
-            </div>
-          </form>
         </RoutineCreatorLayout>
        </FormProvider>
     </RoutineCreatorContext.Provider>

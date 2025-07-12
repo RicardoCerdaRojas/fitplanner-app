@@ -9,10 +9,9 @@ import { ControllerRenderProps } from 'react-hook-form';
 type StepperInputProps = {
   field: ControllerRenderProps<any, string>;
   step?: number;
-  allowText?: string;
 };
 
-export function StepperInput({ field, step = 1, allowText }: StepperInputProps) {
+export function StepperInput({ field, step = 1 }: StepperInputProps) {
   const currentValue = field.value || '0';
   const isNumeric = !isNaN(parseFloat(currentValue)) && isFinite(Number(currentValue));
 
@@ -31,14 +30,13 @@ export function StepperInput({ field, step = 1, allowText }: StepperInputProps) 
   };
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1 w-full max-w-[150px]">
       <Button
         type="button"
         variant="outline"
         size="icon"
         className="h-10 w-10 shrink-0"
         onClick={() => handleStep('decrement')}
-        disabled={!isNumeric}
       >
         <Minus className="h-4 w-4" />
       </Button>
@@ -46,8 +44,9 @@ export function StepperInput({ field, step = 1, allowText }: StepperInputProps) 
         {...field}
         value={field.value ?? ''}
         onChange={handleChange}
-        className="text-center font-semibold"
-        placeholder={allowText}
+        className="text-center font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+        type="number"
+        min={0}
       />
       <Button
         type="button"
@@ -55,7 +54,6 @@ export function StepperInput({ field, step = 1, allowText }: StepperInputProps) 
         size="icon"
         className="h-10 w-10 shrink-0"
         onClick={() => handleStep('increment')}
-        disabled={!isNumeric}
       >
         <Plus className="h-4 w-4" />
       </Button>
