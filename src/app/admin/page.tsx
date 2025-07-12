@@ -13,8 +13,6 @@ import { BarChart, ResponsiveContainer, Tooltip, Legend, Bar, XAxis, YAxis, Cart
 import { ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
-import { ref, onValue } from 'firebase/database';
-import { rtdb } from '@/lib/firebase';
 
 
 type UserProfile = {
@@ -32,7 +30,7 @@ const ageChartConfig: ChartConfig = {
   female: { label: 'Female', color: 'hsl(var(--chart-1))' },
 };
 const routineChartConfig: ChartConfig = {
-  count: { label: "Assignments", color: "hsl(var(--chart-1))" },
+  count: { label: "Assignments", color: "hsl(var(--chart-2))" },
 }
 
 const calculateAge = (dob: Date): number => {
@@ -74,10 +72,8 @@ export default function AdminDashboardPage() {
         const usersQuery = query(collection(db, 'users'), where('gymId', '==', gymId));
         const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
             const users = snapshot.docs.map(doc => doc.data() as UserProfile);
-            const members = users.filter(u => u.role === 'member');
-            const coaches = users.filter(u => u.role === 'coach');
-            setMemberCount(members.length);
-            setCoachCount(coaches.length);
+            setMemberCount(users.filter(u => u.role === 'member').length);
+            setCoachCount(users.filter(u => u.role === 'coach').length);
 
             // Age and Gender distribution
             const ageGroups: Record<string, { male: number; female: number }> = {
@@ -86,6 +82,7 @@ export default function AdminDashboardPage() {
                 '40-49': { male: 0, female: 0 },
                 '50+': { male: 0, female: 0 },
             };
+
             users.forEach(user => {
                 if(user.dob && user.gender && (user.gender === 'male' || user.gender === 'female')) {
                     const age = calculateAge(user.dob.toDate());
@@ -223,8 +220,8 @@ export default function AdminDashboardPage() {
                                             <YAxis />
                                             <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                                             <Legend content={<ChartLegendContent />} />
-                                            <Bar dataKey="female" fill="var(--color-female)" radius={4} stackId="a" />
-                                            <Bar dataKey="male" fill="var(--color-male)" radius={4} stackId="a" />
+                                            <Bar dataKey="female" fill="var(--color-female)" radius={4} />
+                                            <Bar dataKey="male" fill="var(--color-male)" radius={4} />
                                         </BarChart>
                                     </ChartContainer>
                                 ) : (
@@ -266,5 +263,3 @@ export default function AdminDashboardPage() {
         </div>
     );
 }
-
-    
