@@ -59,9 +59,9 @@ export default function AdminDashboardPage() {
         const gymId = activeMembership.gymId;
 
         // Active Users (Realtime)
-        const activeUsersRef = ref(rtdb, `gyms/${gymId}/activeSessions`);
+        const activeUsersRef = ref(rtdb, `gyms/${gymId}/sessions`);
         const unsubscribeActive = onValue(activeUsersRef, (snapshot) => {
-            setActiveNow(snapshot.val() ?? 0);
+            setActiveNow(snapshot.size);
         });
         
         // Users collection for members, coaches, and age distribution
@@ -248,3 +248,5 @@ export default function AdminDashboardPage() {
         </div>
     );
 }
+
+    

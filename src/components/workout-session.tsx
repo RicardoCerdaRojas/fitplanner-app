@@ -11,7 +11,7 @@ import ReactPlayer from 'react-player/lazy';
 import { useAuth } from '@/contexts/auth-context';
 import { db, rtdb } from '@/lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, Timestamp, getDoc } from 'firebase/firestore';
-import { ref, onDisconnect, set, runTransaction, serverTimestamp } from 'firebase/database';
+import { ref, onDisconnect, set, remove } from 'firebase/database';
 
 
 // A type for the items in our session "playlist"
@@ -190,27 +190,23 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         return doc(db, "workoutSessions", sessionId);
     }, [sessionId]);
 
-    // Effect for Realtime Database: Increment/decrement active user count
+    // Effect for Realtime Database: Manage presence
     useEffect(() => {
-        if (!userProfile?.gymId) return;
-    
-        const activeCountRef = ref(rtdb, `gyms/${userProfile.gymId}/activeSessions`);
+        if (!user || !userProfile?.gymId) return;
+
+        const sessionRef = ref(rtdb, `gyms/${userProfile.gymId}/sessions/${user.uid}`);
         
-        // Increment count when session starts
-        runTransaction(activeCountRef, (currentValue) => (currentValue || 0) + 1);
-    
-        const onDisconnectRef = onDisconnect(activeCountRef);
-        onDisconnectRef.set({'.sv': {'increment': -1}});
+        // Set presence
+        set(sessionRef, true);
+        
+        // On disconnect, remove presence
+        onDisconnect(sessionRef).remove();
     
         // Cleanup function for when the component unmounts (session ends cleanly)
         return () => {
-            onDisconnectRef.cancel(); // Cancel the onDisconnect handler
-            runTransaction(activeCountRef, (currentValue) => {
-                const newValue = (currentValue || 0) - 1;
-                return newValue < 0 ? 0 : newValue;
-            });
+            remove(sessionRef);
         };
-    }, [userProfile?.gymId]);
+    }, [user, userProfile?.gymId]);
 
 
     // Effect for Firestore: Update live session document for gym admin view
@@ -262,8 +258,8 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
 
     const handleSessionEnd = () => {
-        // The cleanup effect for RTDB will handle decrementing.
-        // The cleanup effect for Firestore will handle deleting the session doc.
+        // The RTDB presence cleanup effect will handle removing the session.
+        // The Firestore cleanup effect will handle deleting the session doc.
         onSessionEnd();
     };
 
@@ -416,3 +412,5 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         </DialogContent>
     );
 }
+
+    
