@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon, Plus, User, ChevronsUpDown, CheckCircle } from 'lucide-react';
@@ -16,8 +15,8 @@ import { useFieldArray } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { ScrollArea } from './ui/scroll-area';
 import { Avatar, AvatarFallback } from './ui/avatar';
+import { MemberCombobox } from './ui/member-combobox';
 
 
 const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerciseIndex: number }) => {
@@ -148,23 +147,12 @@ export function RoutineCreatorForm() {
                     <AccordionContent className="p-6 pt-2 border-t">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <FormField control={control} name="memberId" render={({ field }) => (
-                                <FormItem>
+                                <FormItem className="flex flex-col">
                                     <FormLabel>Member</FormLabel>
                                     {isEditing && routineToEdit ? (
                                         <Input value={routineToEdit.userName} disabled className="font-semibold" />
                                     ) : (
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select member..." /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                <ScrollArea className="h-[200px]">
-                                                    {members.map((member) => (
-                                                        <SelectItem key={member.uid} value={member.uid}>
-                                                            {member.name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </ScrollArea>
-                                            </SelectContent>
-                                        </Select>
+                                        <MemberCombobox members={members} value={field.value} onChange={field.onChange} />
                                     )}
                                     <FormMessage />
                                 </FormItem>
