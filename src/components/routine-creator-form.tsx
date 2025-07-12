@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -7,16 +6,19 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/comp
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Plus } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, User, ChevronsUpDown, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useRoutineCreator } from './coach-routine-creator';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StepperInput } from './ui/stepper-input';
 import { useFieldArray } from 'react-hook-form';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { MemberCombobox } from './ui/member-combobox';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { ScrollArea } from './ui/scroll-area';
+import { Avatar, AvatarFallback } from './ui/avatar';
+
 
 const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerciseIndex: number }) => {
     const { form, onAddExercise } = useRoutineCreator();
@@ -92,9 +94,9 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
 
 export function RoutineCreatorForm() {
     const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel, setActiveSelection, onAddExercise } = useRoutineCreator();
-    const { control, getValues } = form;
+    const { control, getValues, watch } = form;
     
-     const { fields: exerciseFields } = useFieldArray({
+    const { fields: exerciseFields } = useFieldArray({
       control,
       name: `blocks.${activeSelection.blockIndex}.exercises`,
     });
@@ -106,71 +108,100 @@ export function RoutineCreatorForm() {
 
     const blockFields = getValues('blocks');
     const activeBlock = blockFields?.[activeSelection.blockIndex];
+    
+    const [accordionValue, setAccordionValue] = useState<string>('routine-details');
+
+    const selectedMemberId = watch('memberId');
+    const selectedRoutineTypeId = watch('routineTypeId');
+    const selectedDate = watch('routineDate');
+
+    const selectedMember = members.find(m => m.uid === selectedMemberId);
+    const selectedRoutineType = routineTypes.find(rt => rt.id === selectedRoutineTypeId);
 
     if (!activeBlock) {
         return null;
     }
 
+    const isRoutineDetailsComplete = selectedMemberId && selectedRoutineTypeId && selectedDate;
+
     return (
         <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                <CardTitle>{isEditing ? 'Edit Routine' : 'Create Routine'}</CardTitle>
-                <CardDescription>
-                    {isEditing && routineToEdit ? `Editing a routine for ${routineToEdit.userName}.` : 'Design a personalized workout session.'}
-                </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <FormField control={control} name="memberId" render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                            <FormLabel>Member</FormLabel>
-                            <FormControl>
-                                {isEditing && routineToEdit ? (
-                                    <Input value={routineToEdit.userName} disabled className="font-semibold" />
-                                ) : (
-                                    <MemberCombobox
-                                        members={members}
-                                        value={field.value}
-                                        onChange={field.onChange}
-                                    />
-                                )}
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                    <FormField control={control} name="routineTypeId" render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Routine Type</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ''}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
-                            <SelectContent>
-                            {routineTypes.map(rt => (<SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>))}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )} />
-                    <FormField control={control} name="routineDate" render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Date</FormLabel>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                </Button>
-                            </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                        </FormItem>
-                    )} />
-                </div>
-                </CardContent>
-            </Card>
+            <Accordion type="single" collapsible value={accordionValue} onValueChange={setAccordionValue} className="w-full">
+                <AccordionItem value="routine-details" className="border rounded-lg">
+                    <AccordionTrigger className={cn("p-4 hover:no-underline text-lg font-semibold", !isRoutineDetailsComplete && 'text-destructive')}>
+                        <div className="flex items-center gap-4 w-full">
+                            {isRoutineDetailsComplete ? <CheckCircle className="h-6 w-6 text-green-500"/> : <ChevronsUpDown className="h-6 w-6"/>}
+                             <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 text-sm font-normal text-left">
+                                {selectedMember ? (
+                                    <div className="flex items-center gap-2">
+                                        <Avatar className="h-6 w-6"><AvatarFallback>{selectedMember.name.charAt(0)}</AvatarFallback></Avatar>
+                                        <span className="font-semibold">{selectedMember.name}</span>
+                                    </div>
+                                ) : <span className="text-muted-foreground">Select Member</span>}
+                                {selectedRoutineType && <div className="hidden sm:block w-[1px] h-4 bg-border"></div>}
+                                {selectedRoutineType ? <span className="font-semibold">{selectedRoutineType.name}</span> : <span className="text-muted-foreground">Select Type</span>}
+                                 {selectedDate && <div className="hidden sm:block w-[1px] h-4 bg-border"></div>}
+                                {selectedDate ? <span className="font-semibold">{format(selectedDate, "PPP")}</span> : <span className="text-muted-foreground">Select Date</span>}
+                            </div>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="p-6 pt-2 border-t">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <FormField control={control} name="memberId" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Member</FormLabel>
+                                    {isEditing && routineToEdit ? (
+                                        <Input value={routineToEdit.userName} disabled className="font-semibold" />
+                                    ) : (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Select member..." /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                <ScrollArea className="h-[200px]">
+                                                    {members.map((member) => (
+                                                        <SelectItem key={member.uid} value={member.uid}>
+                                                            {member.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </ScrollArea>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={control} name="routineTypeId" render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Routine Type</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value || ''}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                    {routineTypes.map(rt => (<SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={control} name="routineDate" render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Date</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                        </Button>
+                                    </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                                </FormItem>
+                            )} />
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
             
             {activeSelection.type === 'block' && activeSelection.exerciseIndex === undefined && (
                 <Card>
