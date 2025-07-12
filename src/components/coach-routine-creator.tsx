@@ -117,7 +117,7 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
           routineTypeId: '',
           memberId: '',
           routineDate: new Date(),
-          blocks: [{ name: 'Warm-up', sets: '3', exercises: [] }],
+          blocks: [{ name: 'Warm-up', sets: '4', exercises: [] }],
         };
   }, [routineToEdit]);
 

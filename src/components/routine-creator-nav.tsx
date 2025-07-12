@@ -5,6 +5,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRoutineCreator, defaultExerciseValues } from './coach-routine-creator';
 import { useFieldArray } from 'react-hook-form';
+import { useEffect } from 'react';
 
 export function RoutineCreatorNav() {
   const { 
@@ -21,7 +22,7 @@ export function RoutineCreatorNav() {
 
   const handleAddBlock = () => {
     const newBlockIndex = blockFields.length;
-    appendBlock({ name: `Block ${newBlockIndex + 1}`, sets: '3', exercises: [] });
+    appendBlock({ name: `Block ${newBlockIndex + 1}`, sets: '4', exercises: [] });
     setActiveSelection({ type: 'block', blockIndex: newBlockIndex });
   };
   
@@ -45,6 +46,11 @@ export function RoutineCreatorNav() {
         control,
         name: `blocks.${blockIndex}.exercises`
     });
+
+    useEffect(() => {
+        // This effect can be used for any logic when exercises for a specific block change.
+        // For now, it's just here to demonstrate the correct use of the hook.
+    }, [fields]);
     
     const handleAddExercise = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -76,7 +82,7 @@ export function RoutineCreatorNav() {
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                            className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive opacity-0 group-hover/item:opacity-100"
                             onClick={(e) => handleRemoveExercise(e, eIndex)}
                         >
                             <Trash2 className="h-4 w-4" />
@@ -113,7 +119,7 @@ export function RoutineCreatorNav() {
                     onClick={() => handleSelect({ type: 'block', blockIndex: bIndex })}
                 >
                     <div className="flex-1">
-                        <p className="font-semibold">{block.name || 'Untitled Block'}</p>
+                        <p className="font-semibold">{getValues(`blocks.${bIndex}.name`) || 'Untitled Block'}</p>
                         <p className="text-xs text-muted-foreground">{getValues(`blocks.${bIndex}.sets`)} sets &bull; {exercises.length || 0} exercises</p>
                     </div>
                 </div>
@@ -121,7 +127,7 @@ export function RoutineCreatorNav() {
                      <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive opacity-0 group-hover/block:opacity-100"
                         onClick={(e) => handleRemoveBlock(e, bIndex)}
                      >
                         <Trash2 className="h-4 w-4" />
