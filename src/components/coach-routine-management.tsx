@@ -43,6 +43,7 @@ import type { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from './ui/scroll-area';
 import { startOfDay, endOfDay } from 'date-fns';
+import { Badge } from './ui/badge';
 
 // A more robust, combined type for routines being managed.
 export type ManagedRoutine = {
@@ -141,8 +142,8 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
     const copyForWhatsapp = () => {
         if (!routineToView) return;
 
-        let text = `*💪 ${routineToView.routineTypeName || 'Workout Routine'}*\n`;
-        text += `_For ${routineToView.userName} on 📅 ${format(routineToView.routineDate, 'PPP')}_\n\n`;
+        let text = `💪 *${routineToView.routineTypeName || 'Workout Routine'}*\n`;
+        text += `📅 _For ${routineToView.userName} on ${format(routineToView.routineDate, 'PPP')}_\n\n`;
 
         routineToView.blocks.forEach(block => {
             text += `*${block.name}* (${block.sets})\n`;
@@ -193,7 +194,7 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
     return (
         <>
             <Dialog open={!!routineToView} onOpenChange={(isOpen) => !isOpen && setRoutineToView(null)}>
-                 <DialogContent className="sm:max-w-2xl">
+                 <DialogContent className="sm:max-w-xl">
                      <DialogHeader>
                          <DialogTitle className="text-2xl font-headline">{routineToView?.routineTypeName || 'Routine Details'}</DialogTitle>
                          <DialogDescription>
@@ -201,26 +202,26 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                          </DialogDescription>
                      </DialogHeader>
                      <ScrollArea className="max-h-[70vh]">
-                        <div className="space-y-4 p-4 pr-6">
+                        <div className="space-y-4 p-1 pr-4">
                             {routineToView?.blocks.map((block, blockIndex) => (
-                                <div key={blockIndex} className="p-4 border rounded-lg bg-muted/30">
-                                    <div className="flex justify-between items-center w-full mb-3">
-                                        <h4 className="text-lg font-bold text-card-foreground">{block.name}</h4>
-                                        <span className="text-sm font-semibold text-accent bg-accent/10 px-3 py-1 rounded-full">{block.sets}</span>
+                                <div key={blockIndex} className="p-4 rounded-lg bg-muted/50">
+                                    <div className="flex justify-between items-center w-full mb-4">
+                                        <h4 className="text-xl font-bold text-card-foreground">{block.name}</h4>
+                                        <Badge variant="secondary" className="text-base">{block.sets.match(/\d+/)?.[0] || block.sets}</Badge>
                                     </div>
                                     <div className="space-y-3">
                                         {block.exercises.map((exercise, exIndex) => (
                                             <div key={exIndex} className="p-3 rounded-md bg-background">
-                                                <p className="font-semibold text-md text-card-foreground">{exercise.name}</p>
-                                                <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground mt-2">
+                                                <p className="font-bold text-sm uppercase text-card-foreground tracking-wider">{exercise.name}</p>
+                                                <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-muted-foreground mt-2">
                                                     {exercise.repType === 'reps' && exercise.reps && (
-                                                        <div className="flex items-center gap-1.5" title="Reps"><Repeat className="w-4 h-4 text-primary" /><span>{exercise.reps} reps</span></div>
+                                                        <div className="flex items-center gap-1.5 font-medium text-foreground"><Repeat className="w-4 h-4 text-primary" /><span>{exercise.reps} reps</span></div>
                                                     )}
                                                     {exercise.repType === 'duration' && exercise.duration && (
-                                                        <div className="flex items-center gap-1.5" title="Duration"><Clock className="w-4 h-4 text-primary" /><span>{exercise.duration}</span></div>
+                                                        <div className="flex items-center gap-1.5 font-medium text-foreground"><Clock className="w-4 h-4 text-primary" /><span>{exercise.duration}</span></div>
                                                     )}
                                                     {exercise.weight && (
-                                                        <div className="flex items-center gap-1.5" title="Weight"><Dumbbell className="w-4 h-4 text-primary" /><span>{exercise.weight}</span></div>
+                                                        <div className="flex items-center gap-1.5 font-medium text-foreground"><Dumbbell className="w-4 h-4 text-primary" /><span>{exercise.weight}</span></div>
                                                     )}
                                                 </div>
                                             </div>
@@ -397,3 +398,4 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
         </>
     );
 }
+
