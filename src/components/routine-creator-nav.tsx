@@ -13,7 +13,7 @@ function ExercisesNavList({ blockIndex }: { blockIndex: number }) {
     const watchedExercises = form.watch(`blocks.${blockIndex}.exercises`);
 
     return (
-        <div className="pl-4 border-l-2 ml-4 border-muted/50 py-2 space-y-1">
+        <ul className="pl-4 border-l-2 ml-[1.3rem] border-primary/10 py-2 space-y-1">
             {(watchedExercises || []).map((_, exIndex) => {
                 const isActive = activeSelection.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === exIndex;
                 return (
@@ -38,7 +38,7 @@ function ExercisesNavList({ blockIndex }: { blockIndex: number }) {
                     <Plus className="mr-2 h-4 w-4" /> Add Exercise
                 </Button>
             </li>
-        </div>
+        </ul>
     );
 }
 
@@ -62,8 +62,11 @@ export function RoutineCreatorNav() {
                     <li>
                         <Button 
                             type="button" 
-                            variant={activeSelection.type === 'details' ? 'default' : 'ghost'}
-                            className="w-full justify-start font-semibold h-10 px-3"
+                            variant="ghost"
+                            className={cn(
+                                "w-full justify-start font-semibold h-10 px-3",
+                                activeSelection.type === 'details' && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
+                            )}
                             onClick={() => setActiveSelection({ type: 'details' })}
                         >
                             <ListChecks className="mr-2 h-4 w-4" /> Routine Details
@@ -77,10 +80,11 @@ export function RoutineCreatorNav() {
                             <li key={field.id} className="list-none">
                                 <Button 
                                     type="button" 
-                                    variant={isActive && activeSelection.type === 'block' ? 'default' : 'ghost'}
+                                    variant={'ghost'}
                                     className={cn(
                                         "w-full justify-start font-semibold h-10 px-3",
-                                        isActive && ! (activeSelection.type === 'block') && "text-primary bg-primary/10"
+                                        isActive && activeSelection.type === 'block' && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                                        isChildExerciseActive && "bg-primary/10 text-primary"
                                     )}
                                     onClick={() => setActiveSelection({ type: 'block', index })}
                                 >
