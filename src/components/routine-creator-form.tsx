@@ -79,7 +79,7 @@ function BlockForm({ blockIndex }: { blockIndex: number }) {
     return (
         <Card className="bg-muted/30">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
-                <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (
+                 <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (
                     <FormItem className='flex-1'>
                         <FormLabel className="sr-only">Block Name</FormLabel>
                         <FormControl>
