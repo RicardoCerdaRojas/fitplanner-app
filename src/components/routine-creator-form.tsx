@@ -2,7 +2,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -148,11 +148,11 @@ const Step1RoutineDetails = () => {
                     )} />
                 </div>
             </CardContent>
-             <Card.Footer className="flex justify-end">
+             <CardFooter className="flex justify-end">
                 <Button onClick={() => setStep(2)} disabled={!canProceed}>
                     Next: Build Routine <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-            </Card.Footer>
+            </CardFooter>
         </Card>
     )
 }
