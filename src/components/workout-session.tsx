@@ -9,7 +9,7 @@ import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Cl
 import ReactPlayer from 'react-player/lazy';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc, Timestamp, getDoc } from 'firebase/firestore';
 
 
 // A type for the items in our session "playlist"
@@ -193,24 +193,26 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         if (!sessionDocRef || !user || !userProfile?.gymId) return;
 
         const updateSessionDocument = async () => {
-            if (!sessionDocRef || !user || !userProfile?.gymId) return;
+             if (!sessionDocRef || !user || !userProfile?.gymId) return;
 
             const currentItem = sessionPlaylist[currentIndex];
             if (!currentItem) return;
 
             const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
+            const docSnapshot = await getDoc(sessionDocRef);
+
             const sessionData = {
                 userId: user.uid,
                 userName: userProfile.name || user.email || 'Unknown User',
                 gymId: userProfile.gymId,
                 routineId: routine.id,
                 routineName: routine.routineTypeName || routine.routineName || 'Untitled Routine',
-                startTime: Timestamp.now(),
+                startTime: docSnapshot.exists() ? docSnapshot.data().startTime : Timestamp.now(),
                 status: 'active' as const,
                 currentExerciseName: currentItem.name,
                 currentSetIndex: currentIndex,
                 totalSetsInSession: sessionPlaylist.length,
-                lastReportedDifficulty: progress[exerciseKey]?.difficulty || null,
+                lastReportedDifficulty: progress[exerciseKey]?.difficulty,
                 lastUpdateTime: Timestamp.now(),
             };
             
@@ -227,8 +229,9 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         // Set up the heartbeat
         const heartbeatInterval = setInterval(updateSessionDocument, 15000); // 15 seconds
 
-        const handleBeforeUnload = async () => {
+        const handleBeforeUnload = async (e: BeforeUnloadEvent) => {
              if (sessionDocRef) {
+                e.preventDefault();
                 deleteDoc(sessionDocRef);
             }
         };

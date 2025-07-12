@@ -46,7 +46,7 @@ export function AdminBottomNav() {
       {/* Desktop Horizontal Bar */}
       <nav className="hidden md:flex items-center gap-2 mb-8 border-b pb-4">
          {links.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname === href;
+            const isActive = pathname.startsWith(href) && (href !== '/admin' || pathname === '/admin');
             return (
               <Button key={href} asChild variant={isActive ? 'default' : 'ghost'} className="font-semibold">
                 <Link href={href}>
