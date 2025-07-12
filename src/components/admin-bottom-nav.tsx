@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -13,10 +12,10 @@ export function AdminBottomNav() {
   const links = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/admin/live', label: 'Live', icon: Activity },
+    { href: '/coach', label: 'Routines', icon: ClipboardList },
     { href: '/admin/members', label: 'Members', icon: Users },
     { href: '/admin/routine-types', label: 'Types', icon: Layers },
     { href: '/admin/settings', label: 'Branding', icon: Palette },
-    { href: '/coach', label: 'Routines', icon: ClipboardList },
   ];
 
   return (
@@ -46,7 +45,7 @@ export function AdminBottomNav() {
       {/* Desktop Horizontal Bar */}
       <nav className="hidden md:flex items-center gap-2 mb-8 border-b pb-4">
          {links.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname.startsWith(href) && (href !== '/admin' || pathname === '/admin');
+            const isActive = pathname.startsWith(href) && (href !== '/admin' || pathname === '/admin') && (href !== '/coach' || ['/coach', '/coach/create-routine', '/coach/templates'].includes(pathname));
             return (
               <Button key={href} asChild variant={isActive ? 'default' : 'ghost'} className="font-semibold">
                 <Link href={href}>
