@@ -262,7 +262,14 @@ export default function AdminDashboardPage() {
                                             <YAxis />
                                             <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                                             <Bar dataKey="members" fill="var(--color-members)" radius={4}>
-                                                <LabelList dataKey="members" position="top" offset={5} className="fill-foreground" fontSize={12} />
+                                                <LabelList 
+                                                    dataKey="members" 
+                                                    position="top" 
+                                                    offset={5} 
+                                                    className="fill-foreground" 
+                                                    fontSize={12} 
+                                                    formatter={(value: number) => (value > 0 ? value : null)}
+                                                />
                                             </Bar>
                                         </BarChart>
                                     </ChartContainer>
@@ -281,12 +288,20 @@ export default function AdminDashboardPage() {
                             <CardContent>
                                 {topRoutines.length > 0 ? (
                                     <ChartContainer config={routineChartConfig} className="h-[250px] w-full">
-                                         <BarChart data={topRoutines} layout="vertical" accessibilityLayer>
+                                         <BarChart data={topRoutines} layout="vertical" accessibilityLayer margin={{ left: 10 }}>
                                             <XAxis type="number" hide />
                                             <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} width={80} />
                                             <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                                             <Legend />
-                                            <Bar dataKey="count" fill="var(--color-count)" radius={4} layout="vertical" />
+                                            <Bar dataKey="count" fill="var(--color-count)" radius={4} layout="vertical">
+                                               <LabelList 
+                                                    dataKey="count" 
+                                                    position="right" 
+                                                    offset={8} 
+                                                    className="fill-foreground" 
+                                                    fontSize={12} 
+                                                />
+                                            </Bar>
                                         </BarChart>
                                     </ChartContainer>
                                 ) : (
@@ -304,5 +319,4 @@ export default function AdminDashboardPage() {
             </footer>
         </div>
     );
-
-    
+}
