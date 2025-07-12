@@ -29,12 +29,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   email: z.string().email({ message: 'Please enter a valid email.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   dob: z.date({ required_error: 'Date of birth is required.' }),
+  gender: z.enum(['male', 'female', 'other'], { required_error: 'Please select a gender.' }),
 });
 
 export default function SignupPage() {
@@ -56,6 +58,7 @@ export default function SignupPage() {
       email: '',
       password: '',
       dob: undefined,
+      gender: undefined,
     },
   });
 
@@ -85,6 +88,7 @@ export default function SignupPage() {
         name: values.name,
         email: lowerCaseEmail,
         dob: Timestamp.fromDate(values.dob),
+        gender: values.gender,
         createdAt: Timestamp.now(),
         gymId: null, // gymId will be set by the auth context trigger
       });
@@ -155,6 +159,7 @@ export default function SignupPage() {
                       </FormItem>
                     )}
                   />
+                  <div className="grid grid-cols-2 gap-4">
                    <FormField control={form.control} name="dob" render={({ field }) => (
                       <FormItem className="flex flex-col">
                           <FormLabel>Date of Birth</FormLabel>
@@ -185,6 +190,37 @@ export default function SignupPage() {
                           <FormMessage />
                       </FormItem>
                   )}/>
+                  <FormField
+                    control={form.control}
+                    name="gender"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2">
+                        <FormLabel>Gender</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            className="flex flex-col space-y-1 pt-2"
+                          >
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl><RadioGroupItem value="male" /></FormControl>
+                              <FormLabel className="font-normal">Male</FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl><RadioGroupItem value="female" /></FormControl>
+                              <FormLabel className="font-normal">Female</FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl><RadioGroupItem value="other" /></FormControl>
+                              <FormLabel className="font-normal">Other</FormLabel>
+                            </FormItem>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  </div>
                   <FormField
                     control={form.control}
                     name="password"

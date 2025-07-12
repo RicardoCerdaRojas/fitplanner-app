@@ -16,6 +16,7 @@ import { AdminBottomNav } from '@/components/admin-bottom-nav';
 
 type UserProfile = {
   dob?: Timestamp;
+  gender?: 'male' | 'female' | 'other';
   role: 'member' | 'coach' | 'gym-admin';
 };
 
@@ -24,7 +25,8 @@ type Routine = {
 };
 
 const ageChartConfig: ChartConfig = {
-  count: { label: "Members", color: "hsl(var(--chart-1))" },
+  male: { label: 'Male', color: 'hsl(var(--chart-1))' },
+  female: { label: 'Female', color: 'hsl(var(--chart-2))' },
 };
 const routineChartConfig: ChartConfig = {
   count: { label: "Assignments", color: "hsl(var(--chart-2))" },
@@ -48,7 +50,7 @@ export default function AdminDashboardPage() {
     const [coachCount, setCoachCount] = useState(0);
     const [pendingCount, setPendingCount] = useState(0);
     const [routinesThisMonth, setRoutinesThisMonth] = useState(0);
-    const [ageDistribution, setAgeDistribution] = useState<{ name: string; count: number; }[]>([]);
+    const [ageDistribution, setAgeDistribution] = useState<{ name: string; male: number; female: number; }[]>([]);
     const [topRoutines, setTopRoutines] = useState<{ name: string; count: number; }[]>([]);
     const [activeNow, setActiveNow] = useState(0);
 
@@ -72,18 +74,23 @@ export default function AdminDashboardPage() {
             setMemberCount(members.length);
             setCoachCount(coaches.length);
 
-            // Age distribution
-            const ageGroups = { '<30': 0, '30-39': 0, '40-49': 0, '50+': 0 };
+            // Age and Gender distribution
+            const ageGroups = {
+                '<30': { male: 0, female: 0 },
+                '30-39': { male: 0, female: 0 },
+                '40-49': { male: 0, female: 0 },
+                '50+': { male: 0, female: 0 },
+            };
             members.forEach(user => {
-                if(user.dob) {
+                if(user.dob && user.gender && (user.gender === 'male' || user.gender === 'female')) {
                     const age = calculateAge(user.dob.toDate());
-                    if (age < 30) ageGroups['<30']++;
-                    else if (age >= 30 && age < 40) ageGroups['30-39']++;
-                    else if (age >= 40 && age < 50) ageGroups['40-49']++;
-                    else ageGroups['50+']++;
+                    if (age < 30) ageGroups['<30'][user.gender]++;
+                    else if (age >= 30 && age < 40) ageGroups['30-39'][user.gender]++;
+                    else if (age >= 40 && age < 50) ageGroups['40-49'][user.gender]++;
+                    else ageGroups['50+'][user.gender]++;
                 }
             });
-            setAgeDistribution(Object.entries(ageGroups).map(([name, count]) => ({ name, count })));
+            setAgeDistribution(Object.entries(ageGroups).map(([name, counts]) => ({ name, ...counts })));
         });
 
         // Pending memberships
@@ -194,23 +201,25 @@ export default function AdminDashboardPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Member Age Distribution</CardTitle>
-                                <CardDescription>A demographic breakdown of your members.</CardDescription>
+                                <CardTitle>Member Demographics</CardTitle>
+                                <CardDescription>A breakdown of your members by age and gender.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                {ageDistribution.some(d => d.count > 0) ? (
+                                {ageDistribution.some(d => d.male > 0 || d.female > 0) ? (
                                     <ChartContainer config={ageChartConfig} className="h-[250px] w-full">
                                         <BarChart data={ageDistribution} accessibilityLayer>
                                             <CartesianGrid vertical={false} />
                                             <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
                                             <YAxis />
                                             <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                                            <Bar dataKey="count" fill="var(--color-count)" radius={4} />
+                                            <Legend content={<ChartLegendContent />} />
+                                            <Bar dataKey="male" fill="var(--color-male)" radius={4} />
+                                            <Bar dataKey="female" fill="var(--color-female)" radius={4} />
                                         </BarChart>
                                     </ChartContainer>
                                 ) : (
                                     <div className="h-[250px] flex items-center justify-center">
-                                        <p className="text-muted-foreground">No member age data available.</p>
+                                        <p className="text-muted-foreground">No member demographic data available.</p>
                                     </div>
                                 )}
                             </CardContent>

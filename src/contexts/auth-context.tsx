@@ -24,6 +24,7 @@ type UserProfile = {
   createdAt: Timestamp;
   gymId?: string;
   dob?: Timestamp;
+  gender?: 'male' | 'female' | 'other';
 };
 
 export type Membership = {
