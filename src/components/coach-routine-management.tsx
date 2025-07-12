@@ -57,10 +57,30 @@ export function CoachRoutineManagement({ routines }: Props) {
 
     const handleSaveAsTemplate = async (routine: ManagedRoutine) => {
         const templateName = prompt("Enter a name for this new template:", routine.routineTypeName || "New Template");
-        if (!templateName) return;
+        if (templateName === null) { // User clicked "Cancel"
+            return;
+        }
+
+        if (!templateName) {
+            toast({
+                variant: "destructive",
+                title: "Invalid Name",
+                description: "Template name cannot be empty.",
+            });
+            return;
+        }
 
         try {
-            const { memberId, userName, routineDate, progress, id, createdAt, updatedAt, ...templateData } = routine;
+            const { 
+                id, 
+                memberId, 
+                userName, 
+                routineDate, 
+                progress, 
+                createdAt, 
+                updatedAt,
+                ...templateData 
+            } = routine;
             
             const dataToSave = {
                 ...templateData,
