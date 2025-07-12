@@ -15,6 +15,7 @@ import type { Member } from "@/app/coach/page"
 import { ScrollArea } from "./scroll-area"
 import { Input } from "./input"
 import { Avatar, AvatarFallback } from "./avatar"
+import { cn } from "@/lib/utils"
 
 type MemberComboboxProps = {
     members: Member[];
@@ -46,7 +47,7 @@ export function MemberCombobox({ members = [], value, onChange }: MemberCombobox
         <div className="flex items-center gap-4">
             <div className="flex-1 flex flex-col gap-1.5">
                 <label className="text-sm font-medium">Member</label>
-                <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-muted">
+                <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-background">
                     {selectedMember ? (
                         <div className="flex items-center gap-2 truncate">
                             <Avatar className="h-6 w-6"><AvatarFallback>{selectedMember.name.charAt(0)}</AvatarFallback></Avatar>
@@ -79,10 +80,9 @@ export function MemberCombobox({ members = [], value, onChange }: MemberCombobox
                 <ScrollArea className="h-72">
                     <div className="p-2 space-y-1">
                         {filteredMembers.length > 0 ? filteredMembers.map((member) => (
-                            <Button
+                             <div
                                 key={member.uid}
-                                variant="ghost"
-                                className="w-full justify-start h-auto py-2"
+                                className="w-full text-left h-auto p-2 rounded-md transition-colors hover:bg-muted cursor-pointer"
                                 onClick={() => handleSelect(member.uid)}
                             >
                                 <div className="flex items-center gap-3">
@@ -90,11 +90,11 @@ export function MemberCombobox({ members = [], value, onChange }: MemberCombobox
                                         <AvatarFallback>{member.name ? member.name.charAt(0).toUpperCase() : <User />}</AvatarFallback>
                                     </Avatar>
                                     <div>
-                                        <p className="font-semibold text-left">{member.name}</p>
-                                        <p className="text-xs text-muted-foreground text-left">{member.email}</p>
+                                        <p className="font-semibold">{member.name}</p>
+                                        <p className="text-xs text-muted-foreground">{member.email}</p>
                                     </div>
                                 </div>
-                            </Button>
+                            </div>
                         )) : (
                             <p className="text-center text-sm text-muted-foreground py-4">No members found.</p>
                         )}
