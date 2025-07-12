@@ -93,11 +93,6 @@ export const defaultExerciseValues = {
   videoUrl: '' 
 };
 
-const stepsConfig = [
-    { id: 1, name: 'Details' },
-    { id: 2, name: 'Build Routine' },
-]
-
 export function CoachRoutineCreator() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -325,12 +320,6 @@ export function CoachRoutineCreator() {
       )
   }
 
-  const handleStepClick = (clickedStep: number) => {
-    if (clickedStep < step) {
-        setStep(clickedStep);
-    }
-  }
-
   const selectedRoutineTypeName = routineTypes.find(rt => rt.id === getValues('routineTypeId'))?.name;
   const routineDate = getValues('routineDate');
 
@@ -342,26 +331,6 @@ export function CoachRoutineCreator() {
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to All Routines
         </Button>
         
-        <div className="mb-8">
-            <ol className="flex items-center w-full">
-                {stepsConfig.map((s, index) => (
-                    <li key={s.id} className={cn(
-                        "flex w-full items-center",
-                        index !== stepsConfig.length - 1 && "after:content-[''] after:w-full after:h-1 after:border-b after:border-4 after:inline-block",
-                        s.id < step ? "after:border-primary" : "after:border-muted",
-                        s.id < step ? "cursor-pointer" : "cursor-not-allowed"
-                    )} onClick={() => handleStepClick(s.id)}>
-                        <span className={cn(
-                            "flex items-center justify-center w-10 h-10 rounded-full lg:h-12 lg:w-12 shrink-0",
-                            s.id === step ? "bg-primary text-primary-foreground" : (s.id < step ? "bg-primary/80 text-primary-foreground" : "bg-muted text-muted-foreground")
-                        )}>
-                            {s.id < step ? <Check className="w-5 h-5" /> : s.id}
-                        </span>
-                    </li>
-                ))}
-            </ol>
-        </div>
-
         {step === 2 && (
             <Card className="mb-6 bg-muted/30">
                 <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-4 justify-between">
