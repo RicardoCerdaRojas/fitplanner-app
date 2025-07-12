@@ -69,11 +69,6 @@ export default function CoachPage() {
   }, [loading, activeMembership, toast]);
   
 
-  const handleEditRoutine = (routine: any) => {
-    router.push(`/coach/create-routine?edit=${routine.id}`);
-  };
-
-
   if (loading || !activeMembership || (activeMembership.role !== 'coach' && activeMembership.role !== 'gym-admin')) {
     return (
         <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
@@ -109,7 +104,6 @@ export default function CoachPage() {
             ) : (
                 <CoachRoutineManagement 
                   routines={routines} 
-                  onEdit={handleEditRoutine} 
                 />
             )}
         </div>
@@ -124,4 +118,3 @@ export default function CoachPage() {
     </div>
   );
 }
-

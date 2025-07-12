@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { db } from '@/lib/firebase';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
@@ -45,10 +46,9 @@ export type ManagedRoutine = {
 
 type Props = {
     routines: ManagedRoutine[];
-    onEdit: (routine: ManagedRoutine) => void;
 };
 
-export function CoachRoutineManagement({ routines, onEdit }: Props) {
+export function CoachRoutineManagement({ routines }: Props) {
     const router = useRouter();
     const { toast } = useToast();
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -126,8 +126,10 @@ export function CoachRoutineManagement({ routines, onEdit }: Props) {
                             <CardTitle>Manage Routines</CardTitle>
                             <CardDescription>Search for routines by routine name or member name.</CardDescription>
                         </div>
-                        <Button onClick={() => router.push('/coach/create-routine')}>
-                            <Plus className="mr-2 h-4 w-4" /> Nueva Rutina
+                        <Button asChild>
+                           <Link href="/coach/create-routine">
+                             <Plus className="mr-2 h-4 w-4" /> Nueva Rutina
+                           </Link>
                         </Button>
                     </div>
                     <div className="relative pt-4">
@@ -155,8 +157,10 @@ export function CoachRoutineManagement({ routines, onEdit }: Props) {
                                             </div>
                                         </AccordionTrigger>
                                         <div className="flex items-center gap-2 pl-4">
-                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onEdit(routine)}>
-                                                <Edit className="h-4 w-4" />
+                                            <Button variant="outline" size="icon" className="h-8 w-8" asChild>
+                                                <Link href={`/coach/create-routine?edit=${routine.id}`}>
+                                                   <Edit className="h-4 w-4" />
+                                                </Link>
                                             </Button>
                                             <Button
                                                 variant="destructive"
