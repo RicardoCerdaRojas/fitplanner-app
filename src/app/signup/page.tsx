@@ -108,114 +108,116 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
+    <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader className="text-center">
-            <div className="flex justify-center items-center gap-3 mb-2">
-                <UserPlus className="w-8 h-8 text-primary" />
-                <CardTitle className="text-3xl font-headline">Create an Account</CardTitle>
-            </div>
-          <CardDescription>Join Fitness Flow to start your journey.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                       <Input 
-                        placeholder="John Doe" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                       <Input 
-                        type="email" 
-                        placeholder="you@example.com" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField control={form.control} name="dob" render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                      <FormLabel>Date of Birth</FormLabel>
-                      <Popover>
-                          <PopoverTrigger asChild>
-                              <FormControl>
-                                  <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                      {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button>
-                              </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={field.onChange}
-                                  captionLayout="dropdown"
-                                  fromYear={1940}
-                                  toYear={new Date().getFullYear()}
-                                  disabled={(date) =>
-                                      date > new Date() || date < new Date("1940-01-01")
-                                  }
-                                  initialFocus
-                              />
-                          </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                  </FormItem>
-              )}/>
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="password" 
-                        placeholder="••••••••" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? 'Creating account...' : 'Create Account'}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-        <CardFooter className="text-center text-sm">
-            <p className="w-full text-muted-foreground">
-                Already have an account?{' '}
-                <Link href="/login" className="text-primary hover:underline">
-                    Login
-                </Link>
-            </p>
-        </CardFooter>
-      </Card>
+      <main className="flex-grow flex items-center justify-center p-4">
+          <Card className="w-full max-w-md mx-auto">
+            <CardHeader className="text-center">
+                <div className="flex justify-center items-center gap-3 mb-2">
+                    <UserPlus className="w-8 h-8 text-primary" />
+                    <CardTitle className="text-3xl font-headline">Create an Account</CardTitle>
+                </div>
+              <CardDescription>Join Fitness Flow to start your journey.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                           <Input 
+                            placeholder="John Doe" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                           <Input 
+                            type="email" 
+                            placeholder="you@example.com" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                   <FormField control={form.control} name="dob" render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                          <FormLabel>Date of Birth</FormLabel>
+                          <Popover>
+                              <PopoverTrigger asChild>
+                                  <FormControl>
+                                      <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                      </Button>
+                                  </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                      mode="single"
+                                      selected={field.value}
+                                      onSelect={field.onChange}
+                                      captionLayout="dropdown"
+                                      fromYear={1940}
+                                      toYear={new Date().getFullYear()}
+                                      disabled={(date) =>
+                                          date > new Date() || date < new Date("1940-01-01")
+                                      }
+                                      initialFocus
+                                  />
+                              </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                      </FormItem>
+                  )}/>
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="password" 
+                            placeholder="••••••••" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                    {form.formState.isSubmitting ? 'Creating account...' : 'Create Account'}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+            <CardFooter className="text-center text-sm">
+                <p className="w-full text-muted-foreground">
+                    Already have an account?{' '}
+                    <Link href="/login" className="text-primary hover:underline">
+                        Login
+                    </Link>
+                </p>
+            </CardFooter>
+          </Card>
+      </main>
     </div>
   );
 }
