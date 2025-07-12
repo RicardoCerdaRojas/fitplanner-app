@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -174,7 +175,7 @@ export default function RoutineTypesPage() {
                                 <CardDescription>A list of all available routine types in your gym.</CardDescription>
                                 <div className="pt-4">
                                      <Form {...form}>
-                                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-end gap-2">
+                                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-start gap-2">
                                             <FormField control={form.control} name="name" render={({ field }) => (
                                                 <FormItem className="flex-1">
                                                     <FormLabel className="sr-only">Type Name</FormLabel>
