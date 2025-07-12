@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
 import { doc, deleteDoc, addDoc, collection, Timestamp } from 'firebase/firestore';
@@ -23,6 +23,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Label } from './ui/label';
 
 // A more robust, combined type for routines being managed.
 export type ManagedRoutine = {
@@ -47,37 +57,45 @@ type Props = {
 
 export function CoachRoutineManagement({ routines }: Props) {
     const { toast } = useToast();
+    const [isPending, startTransition] = useTransition();
     const [searchFilter, setSearchFilter] = useState('');
     const [routineToDelete, setRoutineToDelete] = useState<ManagedRoutine | null>(null);
+    const [routineToTemplate, setRoutineToTemplate] = useState<ManagedRoutine | null>(null);
+    const [templateName, setTemplateName] = useState('');
 
-    const handleSaveAsTemplate = async (routine: ManagedRoutine) => {
-        const templateName = prompt("Enter a name for this new template:", routine.routineTypeName || "New Template");
-        
-        if (templateName === null || templateName.trim() === '') {
-            // User cancelled or entered an empty name
-            if (templateName !== null) {
-                toast({ variant: "destructive", title: "Invalid Name", description: "Template name cannot be empty." });
-            }
+    const handleOpenTemplateDialog = (routine: ManagedRoutine) => {
+      setTemplateName(routine.routineTypeName || 'New Template');
+      setRoutineToTemplate(routine);
+    };
+
+    const handleSaveAsTemplate = async () => {
+        if (!routineToTemplate || templateName.trim() === '') {
+            toast({ variant: 'destructive', title: 'Invalid Name', description: 'Template name cannot be empty.' });
             return;
         }
 
-        try {
-            // Explicitly create a new object with only the properties needed for a template
-            const dataToSave = {
-                templateName,
-                routineTypeId: routine.routineTypeId || '',
-                routineTypeName: routine.routineTypeName || '',
-                blocks: routine.blocks,
-                gymId: routine.gymId,
-                createdAt: Timestamp.now(),
-            };
+        startTransition(async () => {
+            try {
+                // Create a new object with only the properties needed for a template
+                const dataToSave = {
+                    templateName,
+                    routineTypeId: routineToTemplate.routineTypeId || '',
+                    routineTypeName: routineToTemplate.routineTypeName || '',
+                    blocks: routineToTemplate.blocks,
+                    gymId: routineToTemplate.gymId,
+                    createdAt: Timestamp.now(),
+                };
 
-            await addDoc(collection(db, 'routineTemplates'), dataToSave);
-            toast({ title: 'Template Saved!', description: `"${templateName}" has been added to your library.` });
-        } catch (error) {
-            console.error("Error saving template:", error);
-            toast({ variant: "destructive", title: "Error", description: "Could not save the routine as a template." });
-        }
+                await addDoc(collection(db, 'routineTemplates'), dataToSave);
+                toast({ title: 'Template Saved!', description: `"${templateName}" has been added to your library.` });
+            } catch (error) {
+                console.error("Error saving template:", error);
+                toast({ variant: "destructive", title: "Error", description: "Could not save the routine as a template." });
+            } finally {
+                setRoutineToTemplate(null);
+                setTemplateName('');
+            }
+        });
     };
 
     const handleDeleteConfirm = async () => {
@@ -104,6 +122,34 @@ export function CoachRoutineManagement({ routines }: Props) {
 
     return (
         <>
+            <Dialog open={!!routineToTemplate} onOpenChange={(isOpen) => !isOpen && setRoutineToTemplate(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Save Routine as Template</DialogTitle>
+                        <DialogDescription>
+                           This will create a reusable template from {routineToTemplate?.routineTypeName}. Give it a name.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Label htmlFor="template-name">Template Name</Label>
+                        <Input
+                            id="template-name"
+                            value={templateName}
+                            onChange={(e) => setTemplateName(e.target.value)}
+                            placeholder="e.g., 'Beginner Full Body'"
+                        />
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button type="button" variant="outline">Cancel</Button>
+                        </DialogClose>
+                        <Button onClick={handleSaveAsTemplate} disabled={isPending}>
+                            {isPending ? 'Saving...' : 'Save Template'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <AlertDialog open={!!routineToDelete} onOpenChange={(isOpen) => !isOpen && setRoutineToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -166,7 +212,7 @@ export function CoachRoutineManagement({ routines }: Props) {
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <Button variant="ghost" size="icon" onClick={() => handleSaveAsTemplate(routine)}>
+                                        <Button variant="ghost" size="icon" onClick={() => handleOpenTemplateDialog(routine)}>
                                             <Copy className="h-4 w-4" />
                                         </Button>
                                         <Button variant="ghost" size="icon" asChild>
