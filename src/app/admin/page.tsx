@@ -13,9 +13,6 @@ import { BarChart, ResponsiveContainer, Tooltip, Legend, Bar, XAxis, YAxis, Cart
 import { ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
-import { Button } from '@/components/ui/button';
-import { backfillUserGenders } from './actions';
-import { useToast } from '@/hooks/use-toast';
 
 
 type UserProfile = {
@@ -49,7 +46,6 @@ const calculateAge = (dob: Date): number => {
 export default function AdminDashboardPage() {
     const { activeMembership, loading } = useAuth();
     const router = useRouter();
-    const { toast } = useToast();
 
     const [memberCount, setMemberCount] = useState(0);
     const [coachCount, setCoachCount] = useState(0);
@@ -145,20 +141,6 @@ export default function AdminDashboardPage() {
         };
 
     }, [loading, activeMembership]);
-
-    const handleBackfill = async () => {
-        try {
-            const result = await backfillUserGenders();
-            if (result.success) {
-                toast({ title: "Success!", description: `${result.updatedCount} users have been updated.` });
-            } else {
-                toast({ variant: 'destructive', title: "Error", description: result.error });
-            }
-        } catch(e) {
-            toast({ variant: 'destructive', title: "Error", description: "An unexpected error occurred." });
-        }
-    };
-
 
     if (loading || !activeMembership || activeMembership.role !== 'gym-admin') {
         return (
@@ -271,20 +253,6 @@ export default function AdminDashboardPage() {
                                         <p className="text-muted-foreground">No routine data available.</p>
                                     </div>
                                 )}
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    <div className="mt-8">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>One-Time Data Migration</CardTitle>
-                                <CardDescription>This tool will update existing user profiles that are missing the 'gender' field. It will set 'gender' to 'male' for them. Use this once to populate data for the demographics chart.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Button onClick={handleBackfill}>
-                                    Backfill Genders
-                                </Button>
                             </CardContent>
                         </Card>
                     </div>
