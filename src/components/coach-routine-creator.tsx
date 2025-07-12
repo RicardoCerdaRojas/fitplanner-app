@@ -315,13 +315,14 @@ export function CoachRoutineCreator() {
   
   if (isDataLoading || authLoading) {
       return (
-        <div className="flex gap-8">
-          <Skeleton className="h-[600px] w-72" />
-          <div className="flex-1 space-y-4">
-             <Skeleton className="h-8 w-48 mb-4" />
-             <Skeleton className="h-96 w-full" />
+        <RoutineCreatorLayout
+          sidebar={<Skeleton className="h-full w-full" />}
+        >
+          <div className="space-y-4">
+             <Skeleton className="h-48 w-full" />
+             <Skeleton className="h-12 w-32 self-end" />
           </div>
-        </div>
+        </RoutineCreatorLayout>
       )
   }
 

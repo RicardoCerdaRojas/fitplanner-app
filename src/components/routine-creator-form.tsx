@@ -102,10 +102,10 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
                 </div>
                 <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`} render={({ field }) => (<FormItem><FormLabel className="sr-only">Exercise Name</FormLabel><FormControl><Input placeholder="e.g., Bench Press" className="text-xl font-bold border-none shadow-none -ml-3 p-0 focus-visible:ring-0" {...field} /></FormControl><FormMessage /></FormItem>)} />
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
                 <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`} render={({ field }) => (
-                    <FormItem className="space-y-2"><FormLabel>Reps or Duration?</FormLabel>
-                    <FormControl><div className="flex gap-4">
+                    <FormItem className="space-y-3"><FormLabel>Reps or Duration?</FormLabel>
+                    <FormControl><div className="flex gap-2">
                         <Button type="button" variant={field.value === 'reps' ? 'default' : 'outline'} onClick={() => { form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, 'reps');}} className="flex-1">Reps</Button>
                         <Button type="button" variant={field.value === 'duration' ? 'default' : 'outline'} onClick={() => { form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, 'duration');}} className="flex-1">Duration</Button>
                     </div></FormControl><FormMessage />
@@ -117,7 +117,7 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
                     ) : (
                         <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`} render={({ field }) => (<FormItem><FormLabel>Duration (min)</FormLabel><FormControl><StepperInput field={field} step={1} /></FormControl><FormMessage /></FormItem>)} />
                     )}
-                    <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`} render={({ field }) => (<FormItem><FormLabel>Weight</FormLabel><FormControl><StepperInput field={field} step={5} allowText="Bodyweight" /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`} render={({ field }) => (<FormItem><FormLabel>Weight (kg)</FormLabel><FormControl><Input placeholder="e.g., 50 or Bodyweight" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 </div>
                 <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.videoUrl`} render={({ field }) => (<FormItem><FormLabel>Example Video URL</FormLabel><FormControl><Input placeholder="https://example.com/video.mp4" {...field} /></FormControl><FormMessage /></FormItem>)} />
             </CardContent>
