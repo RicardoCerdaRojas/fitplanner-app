@@ -61,7 +61,7 @@ type RoutineCreatorContextType = {
   blockFields: any[];
   appendBlock: (block: BlockFormValues) => void;
   removeBlock: (index: number) => void;
-  onAddExercise: (blockIndex: number, exercise: ExerciseFormValues) => void;
+  appendExercise: (blockIndex: number, exercise: ExerciseFormValues) => void;
   removeExercise: (blockIndex: number, exerciseIndex: number) => void;
   activeSelection: { type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number };
   setActiveSelection: React.Dispatch<React.SetStateAction<{ type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number }>>;
@@ -140,7 +140,7 @@ export function CoachRoutineCreator() {
     name: 'blocks',
   });
 
-  const onAddExercise = useCallback((blockIndex: number, exercise: ExerciseFormValues) => {
+  const appendExercise = useCallback((blockIndex: number, exercise: ExerciseFormValues) => {
     const blocks = getValues('blocks');
     const newExercises = [...(blocks[blockIndex].exercises || []), exercise];
     setValue(`blocks.${blockIndex}.exercises`, newExercises, { shouldValidate: true });
@@ -290,7 +290,7 @@ export function CoachRoutineCreator() {
     blockFields,
     appendBlock,
     removeBlock,
-    onAddExercise,
+    appendExercise,
     removeExercise,
     activeSelection,
     setActiveSelection,
