@@ -16,7 +16,7 @@ import { StepperInput } from './ui/stepper-input';
 import { useFieldArray } from 'react-hook-form';
 import { useEffect } from 'react';
 
-const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerciseIndex: number }) => {
+const ExerciseForm = ({ blockIndex, exerciseIndex, onAddExercise }: { blockIndex: number; exerciseIndex: number, onAddExercise: () => void; }) => {
     const { form } = useRoutineCreator();
     const { control, setValue, watch } = form;
     
@@ -40,10 +40,11 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
         <Card>
             <CardHeader>
                 <div className="flex justify-between items-center">
-                    <div>
-                        <CardTitle>Editing Exercise</CardTitle>
-                        <CardDescription>Details for this exercise in the <span className="font-semibold text-primary">{blockName}</span> block.</CardDescription>
-                    </div>
+                    <CardTitle>Editing Exercise</CardTitle>
+                    <Button variant="outline" size="sm" onClick={onAddExercise}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Exercise
+                    </Button>
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -91,19 +92,16 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
 export function RoutineCreatorForm() {
     const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel, setActiveSelection } = useRoutineCreator();
     const { control, getValues } = form;
-    const { blockIndex } = activeSelection;
-
+    
     const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
       control,
-      name: `blocks.${blockIndex}.exercises`,
+      name: `blocks.${activeSelection.blockIndex}.exercises`,
     });
     
     useEffect(() => {
         // When block changes, reset exercise selection
-        if (activeSelection.type === 'block') {
-            setActiveSelection(prev => ({ ...prev, exerciseIndex: undefined }));
-        }
-    }, [blockIndex, activeSelection.type, setActiveSelection]);
+        setActiveSelection(prev => ({ ...prev, exerciseIndex: undefined }));
+    }, [activeSelection.blockIndex, setActiveSelection]);
 
     const handleAddExercise = () => {
         const newExerciseIndex = exerciseFields.length;
@@ -222,6 +220,7 @@ export function RoutineCreatorForm() {
                     key={`exercise-form-${activeSelection.blockIndex}-${activeSelection.exerciseIndex}`}
                     blockIndex={activeSelection.blockIndex}
                     exerciseIndex={activeSelection.exerciseIndex}
+                    onAddExercise={handleAddExercise}
                 />
             ) : null}
 
