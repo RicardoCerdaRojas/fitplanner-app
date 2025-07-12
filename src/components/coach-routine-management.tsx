@@ -23,8 +23,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Separator } from './ui/separator';
-
 
 // A more robust, combined type for routines being managed.
 export type ManagedRoutine = {
@@ -56,19 +54,22 @@ export function CoachRoutineManagement({ routines }: Props) {
         const templateName = prompt("Enter a name for this new template:", routine.routineTypeName || "New Template");
         
         if (templateName === null || templateName.trim() === '') {
-            if (templateName !== null) { // Only show toast if user didn't cancel
+            // User cancelled or entered an empty name
+            if (templateName !== null) {
                 toast({ variant: "destructive", title: "Invalid Name", description: "Template name cannot be empty." });
             }
             return;
         }
 
         try {
-            const { id, memberId, userName, routineDate, progress, createdAt, updatedAt, ...templateData } = routine;
-            
-            const dataToSave = { 
-                ...templateData, 
-                templateName, 
-                createdAt: Timestamp.now() 
+            // Explicitly create a new object with only the properties needed for a template
+            const dataToSave = {
+                templateName,
+                routineTypeId: routine.routineTypeId || '',
+                routineTypeName: routine.routineTypeName || '',
+                blocks: routine.blocks,
+                gymId: routine.gymId,
+                createdAt: Timestamp.now(),
             };
 
             await addDoc(collection(db, 'routineTemplates'), dataToSave);
