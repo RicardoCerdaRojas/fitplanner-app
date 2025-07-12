@@ -16,11 +16,10 @@ import type { Member } from '@/app/coach/page';
 import type { ManagedRoutine } from './coach-routine-management';
 import type { RoutineType } from '@/app/admin/routine-types/page';
 import { RoutineCreatorNav } from './routine-creator-nav';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
-import { PanelLeft, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { RoutineCreatorForm } from './routine-creator-form';
+import { RoutineCreatorLayout } from './routine-creator-layout';
 
 
 const exerciseSchema = z.object({
@@ -61,15 +60,14 @@ type RoutineCreatorContextType = {
   blockFields: any[];
   appendBlock: (block: BlockFormValues) => void;
   removeBlock: (index: number) => void;
-  appendExercise: (blockIndex: number, exercise: ExerciseFormValues) => void;
+  appendExercise: (blockIndex: number) => void;
   removeExercise: (blockIndex: number, exerciseIndex: number) => void;
-  activeSelection: { type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number };
-  setActiveSelection: React.Dispatch<React.SetStateAction<{ type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number }>>;
+  activeSelection: { type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number } | null;
+  setActiveSelection: React.Dispatch<React.SetStateAction<{ type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number } | null>>;
   members: Member[];
   routineTypes: RoutineType[];
   isEditing: boolean;
   isSubmitting: boolean;
-  onCloseNav?: () => void;
 };
 
 const RoutineCreatorContext = createContext<RoutineCreatorContextType | null>(null);
@@ -82,8 +80,7 @@ export function useRoutineCreator() {
   return context;
 }
 
-export const defaultExerciseValues: ExerciseFormValues = { 
-  name: 'Untitled Exercise', 
+export const defaultExerciseValues: Omit<ExerciseFormValues, 'name'> = { 
   repType: 'reps' as const, 
   reps: '10', 
   duration: undefined,
@@ -103,10 +100,8 @@ export function CoachRoutineCreator() {
   const [isDataLoading, setIsDataLoading] = useState(true);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const isMobile = useIsMobile();
-  const [isNavOpen, setIsNavOpen] = useState(false);
   
-  const [activeSelection, setActiveSelection] = useState<{ type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number }>({ type: 'block', blockIndex: 0 });
+  const [activeSelection, setActiveSelection] = useState<{ type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number } | null>(null);
 
   const editRoutineId = searchParams.get('edit');
   const isEditing = !!editRoutineId;
@@ -140,18 +135,25 @@ export function CoachRoutineCreator() {
     name: 'blocks',
   });
 
-  const appendExercise = useCallback((blockIndex: number, exercise: ExerciseFormValues) => {
-    const blocks = getValues('blocks');
-    const newExercises = [...(blocks[blockIndex].exercises || []), exercise];
-    setValue(`blocks.${blockIndex}.exercises`, newExercises, { shouldValidate: true });
+  const appendExercise = useCallback((blockIndex: number) => {
+    const newExerciseName = `Exercise ${getValues(`blocks.${blockIndex}.exercises`).length + 1}`;
+    const newExercise = { name: newExerciseName, ...defaultExerciseValues };
+    
+    const currentExercises = getValues(`blocks.${blockIndex}.exercises`);
+    setValue(`blocks.${blockIndex}.exercises`, [...currentExercises, newExercise], { shouldValidate: true });
+    
+    setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: currentExercises.length });
   }, [getValues, setValue]);
 
   const removeExercise = useCallback((blockIndex: number, exerciseIndex: number) => {
-    const blocks = getValues('blocks');
-    const newExercises = blocks[blockIndex].exercises.filter((_, i) => i !== exerciseIndex);
+    const currentExercises = getValues(`blocks.${blockIndex}.exercises`);
+    const newExercises = currentExercises.filter((_, i) => i !== exerciseIndex);
     setValue(`blocks.${blockIndex}.exercises`, newExercises, { shouldValidate: true });
-    setActiveSelection({ type: 'block', blockIndex });
-  }, [getValues, setValue, setActiveSelection]);
+    
+    if (activeSelection?.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === exerciseIndex) {
+      setActiveSelection({ type: 'block', blockIndex });
+    }
+  }, [getValues, setValue, activeSelection]);
 
 
   useEffect(() => {
@@ -190,21 +192,28 @@ export function CoachRoutineCreator() {
 
     const fetchEditData = async () => {
       if (editRoutineId) {
-        const routineDoc = await getDoc(doc(db, 'routines', editRoutineId));
-        if (routineDoc.exists()) {
-          const data = routineDoc.data();
-          const managedRoutine: ManagedRoutine = {
-              id: routineDoc.id,
-              ...data,
-              routineDate: (data.routineDate as Timestamp).toDate(),
-          } as ManagedRoutine;
-          setRoutineToEdit(managedRoutine);
-        } else {
-          toast({ variant: 'destructive', title: 'Error', description: 'Routine to edit not found.' });
-          router.push('/coach');
+        try {
+          const routineDoc = await getDoc(doc(db, 'routines', editRoutineId));
+          if (routineDoc.exists()) {
+            const data = routineDoc.data();
+            const managedRoutine: ManagedRoutine = {
+                id: routineDoc.id,
+                ...data,
+                routineDate: (data.routineDate as Timestamp).toDate(),
+            } as ManagedRoutine;
+            setRoutineToEdit(managedRoutine);
+          } else {
+            toast({ variant: 'destructive', title: 'Error', description: 'Routine to edit not found.' });
+            router.push('/coach');
+          }
+        } catch (e) {
+            console.error(e)
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to load routine.' });
+            router.push('/coach');
+        } finally {
+            editDataLoaded = true;
+            checkLoadingState();
         }
-        editDataLoaded = true;
-        checkLoadingState();
       }
     };
 
@@ -298,7 +307,6 @@ export function CoachRoutineCreator() {
     routineTypes,
     isEditing,
     isSubmitting,
-    onCloseNav: () => isMobile && setIsNavOpen(false),
   };
   
   if (isDataLoading || authLoading) {
@@ -318,36 +326,15 @@ export function CoachRoutineCreator() {
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to All Routines
         </Button>
         
-        <div className="flex flex-col md:flex-row gap-4 md:gap-8">
-            {isMobile ? (
-                <Sheet open={isNavOpen} onOpenChange={setIsNavOpen}>
-                <SheetTrigger asChild>
-                    <Button variant="outline" className="md:hidden flex items-center gap-2 font-semibold">
-                        <PanelLeft />
-                        Routine Navigation
-                    </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-[300px] p-0">
-                    <SheetHeader className="p-4 border-b">
-                    <SheetTitle>Routine Structure</SheetTitle>
-                    </SheetHeader>
-                    <RoutineCreatorNav />
-                </SheetContent>
-                </Sheet>
-            ) : (
-                <div className="w-full md:w-1/3 lg:w-1/4">
-                    <RoutineCreatorNav />
-                </div>
-            )}
-            
-            <div className="flex-1">
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        <RoutineCreatorForm />
-                    </form>
-                </Form>
-            </div>
-        </div>
+        <RoutineCreatorLayout
+          navigation={<RoutineCreatorNav />}
+        >
+          <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <RoutineCreatorForm />
+              </form>
+          </Form>
+        </RoutineCreatorLayout>
       </div>
     </RoutineCreatorContext.Provider>
   );

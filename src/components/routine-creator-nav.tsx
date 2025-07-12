@@ -3,36 +3,34 @@
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useRoutineCreator, defaultExerciseValues } from './coach-routine-creator';
+import { useRoutineCreator } from './coach-routine-creator';
 
 type ExercisesNavListProps = {
     blockIndex: number;
+    onCloseNav?: () => void;
 };
 
-const ExercisesNavList = ({ blockIndex }: ExercisesNavListProps) => {
-    const { form, setActiveSelection, onCloseNav, appendExercise, removeExercise } = useRoutineCreator();
-    const { activeSelection } = useRoutineCreator();
+const ExercisesNavList = ({ blockIndex, onCloseNav }: ExercisesNavListProps) => {
+    const { form, activeSelection, setActiveSelection, appendExercise, removeExercise } = useRoutineCreator();
 
     const exercises = form.watch(`blocks.${blockIndex}.exercises`);
 
     const handleRemoveExercise = (e: React.MouseEvent, exerciseIndex: number) => {
         e.stopPropagation();
         removeExercise(blockIndex, exerciseIndex);
-        setActiveSelection({ type: 'block', blockIndex });
     };
 
     const handleAddExercise = (e: React.MouseEvent) => {
          e.stopPropagation();
-         const newIndex = exercises.length;
-         appendExercise(blockIndex, defaultExerciseValues);
-         setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: newIndex });
+         appendExercise(blockIndex);
+         onCloseNav?.();
     };
 
 
     return (
         <ul className="pl-6 pr-2 py-1 space-y-1 mt-1 border-l-2 ml-4">
-            {exercises && exercises.map((exercise, eIndex) => {
-                 const isExerciseActive = activeSelection.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === eIndex;
+            {exercises && exercises.map((_, eIndex) => {
+                 const isExerciseActive = activeSelection?.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === eIndex;
                  const exerciseName = form.getValues(`blocks.${blockIndex}.exercises.${eIndex}.name`) || 'Untitled Exercise';
                  return (
                     <li key={`exercise-nav-${blockIndex}-${eIndex}`} className="flex items-center group/item">
@@ -72,16 +70,17 @@ const ExercisesNavList = ({ blockIndex }: ExercisesNavListProps) => {
 type BlockNavItemProps = {
     blockIndex: number;
     blockId: string;
+    onCloseNav?: () => void;
 }
 
-const BlockNavItem = ({ blockIndex, blockId }: BlockNavItemProps) => {
-    const { form, activeSelection, setActiveSelection, onCloseNav, removeBlock } = useRoutineCreator();
+const BlockNavItem = ({ blockIndex, blockId, onCloseNav }: BlockNavItemProps) => {
+    const { form, activeSelection, setActiveSelection, removeBlock } = useRoutineCreator();
     
     const blockName = form.watch(`blocks.${blockIndex}.name`);
     const blockSets = form.watch(`blocks.${blockIndex}.sets`);
     const exercises = form.watch(`blocks.${blockIndex}.exercises`);
     
-    const isBlockActive = activeSelection.blockIndex === blockIndex;
+    const isBlockActive = activeSelection?.blockIndex === blockIndex;
 
     const handleSelect = () => {
         setActiveSelection({ type: 'block', blockIndex });
@@ -91,6 +90,10 @@ const BlockNavItem = ({ blockIndex, blockId }: BlockNavItemProps) => {
     const handleRemove = (e: React.MouseEvent) => {
         e.stopPropagation();
         removeBlock(blockIndex);
+        // If we deleted the active block, select the first one.
+        if (isBlockActive) {
+            setActiveSelection({ type: 'block', blockIndex: 0 });
+        }
     };
 
     return (
@@ -99,7 +102,7 @@ const BlockNavItem = ({ blockIndex, blockId }: BlockNavItemProps) => {
                 <div
                     className={cn(
                         'flex-1 justify-start text-left h-auto py-2 px-3 rounded-md',
-                        isBlockActive && activeSelection.type === 'block' ? 'bg-secondary' : 'bg-transparent hover:bg-muted/50'
+                        isBlockActive && activeSelection?.type === 'block' ? 'bg-secondary' : 'bg-transparent hover:bg-muted/50'
                     )}
                     onClick={handleSelect}
                 >
@@ -123,6 +126,7 @@ const BlockNavItem = ({ blockIndex, blockId }: BlockNavItemProps) => {
             {isBlockActive && (
                 <ExercisesNavList 
                     blockIndex={blockIndex}
+                    onCloseNav={onCloseNav}
                 />
             )}
         </div>
@@ -130,7 +134,7 @@ const BlockNavItem = ({ blockIndex, blockId }: BlockNavItemProps) => {
 };
 
 
-export function RoutineCreatorNav() {
+export function RoutineCreatorNav({ onCloseNav }: { onCloseNav?: () => void}) {
   const { 
     blockFields,
     appendBlock,
@@ -151,6 +155,7 @@ export function RoutineCreatorNav() {
                 key={block.id}
                 blockIndex={bIndex}
                 blockId={block.id}
+                onCloseNav={onCloseNav}
             />
         ))}
       </div>
