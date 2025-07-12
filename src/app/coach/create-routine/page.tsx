@@ -25,7 +25,7 @@ export default function CreateRoutinePage() {
            <div className="flex flex-col min-h-screen">
                 <AppHeader />
                 <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
-                    <div className="w-full max-w-6xl">
+                    <div className="w-full max-w-7xl">
                          <CoachRoutineCreator />
                     </div>
                 </main>
@@ -36,4 +36,3 @@ export default function CreateRoutinePage() {
         </Suspense>
     )
 }
-
