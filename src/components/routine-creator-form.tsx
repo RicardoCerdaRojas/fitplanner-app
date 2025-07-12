@@ -79,7 +79,7 @@ function BlockForm({ blockIndex }: { blockIndex: number }) {
     return (
         <Card className="bg-muted/30">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
-                <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (
+                 <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (
                     <FormItem className='flex-1'>
                         <FormLabel className="sr-only">Block Name</FormLabel>
                         <FormControl>
@@ -116,21 +116,20 @@ function BlockForm({ blockIndex }: { blockIndex: number }) {
 
 function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerciseIndex: number }) {
     const { form, removeExercise } = useRoutineCreator();
-    const { control, watch } = form;
+    const { control, watch, setValue, trigger } = form;
     const repType = watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`);
 
     const handleRepTypeChange = (isDuration: boolean) => {
         const newType = isDuration ? 'duration' : 'reps';
-        form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, newType);
+        setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, newType);
         if (newType === 'reps') {
-            form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, '10');
-            form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, undefined);
+            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, '10');
+            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, undefined);
         } else {
-            form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, '1');
-            form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, undefined);
+            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, '1');
+            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, undefined);
         }
-         // Trigger validation after setting value
-        form.trigger(`blocks.${blockIndex}.exercises.${exerciseIndex}`);
+        trigger(`blocks.${blockIndex}.exercises.${exerciseIndex}`);
     }
     
     return (
