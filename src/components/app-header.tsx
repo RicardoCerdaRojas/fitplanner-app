@@ -40,15 +40,18 @@ export function AppHeader() {
     const isGuestHomepage = !user && pathname === '/';
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <header className={cn(
+            "sticky top-0 z-50 w-full",
+            isGuestHomepage ? "bg-transparent" : "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+        )}>
             <div className="container flex h-14 items-center max-w-7xl mx-auto">
                 <Link href="/" className="flex items-center gap-4 group mr-6">
                     {gymProfile?.logoUrl && !isGuestHomepage ? (
                         <Image src={gymProfile.logoUrl} alt={gymProfile.name ? `${gymProfile.name} Logo` : 'Gym Logo'} width={100} height={50} className="object-contain h-10 w-auto" priority />
                     ) : (
                         <h1 className={cn(
-                            "font-headline font-bold text-card-foreground",
-                            isGuestHomepage ? "text-2xl text-white" : "text-2xl"
+                            "font-headline font-bold",
+                            isGuestHomepage ? "text-2xl text-white" : "text-2xl text-card-foreground"
                         )}>
                             FITNESS FLOW
                         </h1>
