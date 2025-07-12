@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Input } from '@/components/ui/input';
@@ -43,6 +42,7 @@ export function StepperInput({ field, step = 1, allowText = false }: StepperInpu
         <Minus className="h-4 w-4" />
       </Button>
       <Input
+        key={field.value}
         {...field}
         value={field.value ?? ''}
         onChange={handleChange}
@@ -63,5 +63,3 @@ export function StepperInput({ field, step = 1, allowText = false }: StepperInpu
     </div>
   );
 }
-
-    

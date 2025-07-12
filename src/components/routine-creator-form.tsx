@@ -121,32 +121,20 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
 
     const handleRepTypeChange = (isDuration: boolean) => {
         const newType = isDuration ? 'duration' : 'reps';
-        console.log('Switch toggled. New type will be:', newType);
-
+        
         setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, newType);
         
         if (newType === 'reps') {
-            console.log('Setting values for REPS mode...');
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, '10');
-            console.log('  - setting reps: 10');
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`, '5');
-            console.log('  - setting weight: 5');
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, '');
-            console.log('  - clearing duration');
         } else { // newType === 'duration'
-            console.log('Setting values for DURATION mode...');
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, '1');
-            console.log('  - setting duration: 1');
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`, '0');
-            console.log('  - setting weight: 0');
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, '');
-            console.log('  - clearing reps');
         }
         
-        console.log('setValue calls completed. Triggering re-validation...');
-        trigger(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`);
-        trigger(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`);
-        trigger(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`);
+        trigger(`blocks.${blockIndex}.exercises.${exerciseIndex}`);
     }
     
     return (
