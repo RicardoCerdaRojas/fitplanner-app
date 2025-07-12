@@ -29,8 +29,8 @@ export default function AdminMembersPage() {
         <div className="flex flex-col min-h-screen">
             <AppHeader />
             <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-28 md:pb-8">
-                 <div className="w-full max-w-6xl">
-                    <h1 className="text-3xl font-bold font-headline mb-4">Manage Members</h1>
+                 <div className="w-full max-w-4xl">
+                    <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
                     <AdminBottomNav />
                     {activeMembership.gymId && <AdminUserManagement gymId={activeMembership.gymId} />}
                  </div>
