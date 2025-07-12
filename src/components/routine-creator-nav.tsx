@@ -10,10 +10,10 @@ type ExercisesNavListProps = {
 };
 
 const ExercisesNavList = ({ blockIndex }: ExercisesNavListProps) => {
-    const { form, setActiveSelection, onCloseNav, appendExercise, removeExercise, exerciseFields } = useRoutineCreator();
+    const { form, setActiveSelection, onCloseNav, appendExercise, removeExercise } = useRoutineCreator();
     const { activeSelection } = useRoutineCreator();
 
-    const exercises = exerciseFields(blockIndex);
+    const exercises = form.watch(`blocks.${blockIndex}.exercises`);
 
     const handleRemoveExercise = (e: React.MouseEvent, exerciseIndex: number) => {
         e.stopPropagation();
@@ -35,7 +35,7 @@ const ExercisesNavList = ({ blockIndex }: ExercisesNavListProps) => {
                  const isExerciseActive = activeSelection.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === eIndex;
                  const exerciseName = form.getValues(`blocks.${blockIndex}.exercises.${eIndex}.name`) || 'Untitled Exercise';
                  return (
-                    <li key={exercise.id} className="flex items-center group/item">
+                    <li key={`exercise-nav-${blockIndex}-${eIndex}`} className="flex items-center group/item">
                         <Button
                             type="button"
                             variant={isExerciseActive ? 'secondary' : 'ghost'}

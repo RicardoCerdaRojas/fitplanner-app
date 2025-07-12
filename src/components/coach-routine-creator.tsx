@@ -3,7 +3,7 @@
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useState, useMemo, useEffect, createContext, useContext } from 'react';
+import { useState, useMemo, useEffect, createContext, useContext, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
@@ -19,10 +19,9 @@ import { RoutineCreatorNav } from './routine-creator-nav';
 import { RoutineCreatorForm } from './routine-creator-form';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
-import { PanelLeft, ArrowLeft, ClipboardList, Calendar } from 'lucide-react';
+import { PanelLeft, ArrowLeft } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
-import { Card, CardContent } from './ui/card';
-import { format } from 'date-fns';
+
 
 const exerciseSchema = z.object({
   name: z.string().min(2, 'Exercise name is required.'),
@@ -60,7 +59,6 @@ export type ExerciseFormValues = z.infer<typeof exerciseSchema>;
 type RoutineCreatorContextType = {
   form: ReturnType<typeof useForm<RoutineFormValues>>;
   blockFields: any[];
-  exerciseFields: (blockIndex: number) => any[];
   appendBlock: (block: BlockFormValues) => void;
   removeBlock: (index: number) => void;
   appendExercise: (blockIndex: number, exercise: ExerciseFormValues) => void;
@@ -72,9 +70,6 @@ type RoutineCreatorContextType = {
   isEditing: boolean;
   isSubmitting: boolean;
   onCloseNav?: () => void;
-  step: number;
-  setStep: (step: number) => void;
-  canProceed: boolean;
 };
 
 const RoutineCreatorContext = createContext<RoutineCreatorContextType | null>(null);
@@ -112,7 +107,6 @@ export function CoachRoutineCreator() {
   const [isNavOpen, setIsNavOpen] = useState(false);
   
   const [activeSelection, setActiveSelection] = useState<{ type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number }>({ type: 'block', blockIndex: 0 });
-  const [step, setStep] = useState(1);
 
   const editRoutineId = searchParams.get('edit');
   const isEditing = !!editRoutineId;
@@ -139,48 +133,27 @@ export function CoachRoutineCreator() {
     mode: 'onBlur'
   });
 
-  const { control, watch, getValues } = form;
-  const formValues = watch();
+  const { control, getValues, setValue } = form;
 
   const { fields: blockFields, append: appendBlock, remove: removeBlock } = useFieldArray({
     control,
     name: 'blocks',
   });
 
-  const exerciseFieldArrayHooks = blockFields.map((_, index) => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    return useFieldArray({
-      control,
-      name: `blocks.${index}.exercises`
-    });
-  });
+  // Centralized functions to manage nested exercises array
+  const appendExercise = useCallback((blockIndex: number, exercise: ExerciseFormValues) => {
+    const currentBlocks = getValues('blocks');
+    const targetBlock = currentBlocks[blockIndex];
+    const updatedExercises = [...targetBlock.exercises, exercise];
+    setValue(`blocks.${blockIndex}.exercises`, updatedExercises, { shouldValidate: true });
+  }, [getValues, setValue]);
 
-  const appendExercise = (blockIndex: number, exercise: ExerciseFormValues) => {
-    exerciseFieldArrayHooks[blockIndex].append(exercise);
-  };
-  
-  const removeExercise = (blockIndex: number, exerciseIndex: number) => {
-    exerciseFieldArrayHooks[blockIndex].remove(exerciseIndex);
-  };
-
-  const exerciseFields = (blockIndex: number) => {
-    return exerciseFieldArrayHooks[blockIndex].fields;
-  };
-
-  const onAddExercise = (blockIndex: number) => {
-    const exercises = getValues(`blocks.${blockIndex}.exercises`);
-    const newExerciseIndex = exercises.length;
-    appendExercise(blockIndex, defaultExerciseValues);
-    setActiveSelection({ type: 'exercise', blockIndex: blockIndex, exerciseIndex: newExerciseIndex });
-  };
-
-
-  const canProceed = useMemo(() => {
-      if (step === 1) {
-          return !!formValues.routineTypeId && !!formValues.routineDate;
-      }
-      return true;
-  }, [step, formValues]);
+  const removeExercise = useCallback((blockIndex: number, exerciseIndex: number) => {
+    const currentBlocks = getValues('blocks');
+    const targetBlock = currentBlocks[blockIndex];
+    const updatedExercises = targetBlock.exercises.filter((_, i) => i !== exerciseIndex);
+    setValue(`blocks.${blockIndex}.exercises`, updatedExercises, { shouldValidate: true });
+  }, [getValues, setValue]);
 
 
   useEffect(() => {
@@ -189,7 +162,7 @@ export function CoachRoutineCreator() {
     const gymId = activeMembership.gymId;
     let membersLoaded = false;
     let typesLoaded = false;
-    let editDataLoaded = !editRoutineId; // If no edit ID, it's "loaded"
+    let editDataLoaded = !editRoutineId;
 
     const checkLoadingState = () => {
         if (membersLoaded && typesLoaded && editDataLoaded) {
@@ -197,7 +170,6 @@ export function CoachRoutineCreator() {
         }
     };
     
-    // Fetch Members
     const membersQuery = query(collection(db, 'users'), where('gymId', '==', gymId));
     const unsubscribeMembers = onSnapshot(membersQuery, (snapshot) => {
       const fetchedMembers = snapshot.docs.map(doc => ({ 
@@ -210,7 +182,6 @@ export function CoachRoutineCreator() {
       checkLoadingState();
     });
 
-    // Fetch Routine Types
     const typesQuery = query(collection(db, 'routineTypes'), where('gymId', '==', gymId), orderBy('name'));
     const unsubscribeTypes = onSnapshot(typesQuery, (snapshot) => {
       const fetchedTypes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RoutineType));
@@ -219,7 +190,6 @@ export function CoachRoutineCreator() {
       checkLoadingState();
     });
 
-    // Fetch routine to edit if ID exists
     const fetchEditData = async () => {
       if (editRoutineId) {
         const routineDoc = await getDoc(doc(db, 'routines', editRoutineId));
@@ -231,7 +201,6 @@ export function CoachRoutineCreator() {
               routineDate: (data.routineDate as Timestamp).toDate(),
           } as ManagedRoutine;
           setRoutineToEdit(managedRoutine);
-          setStep(2); // Go directly to step 2 if editing
         } else {
           toast({ variant: 'destructive', title: 'Error', description: 'Routine to edit not found.' });
           router.push('/coach');
@@ -321,7 +290,6 @@ export function CoachRoutineCreator() {
   const contextValue: RoutineCreatorContextType = {
     form,
     blockFields,
-    exerciseFields,
     appendBlock,
     removeBlock,
     appendExercise,
@@ -333,9 +301,6 @@ export function CoachRoutineCreator() {
     isEditing,
     isSubmitting,
     onCloseNav: () => isMobile && setIsNavOpen(false),
-    step,
-    setStep,
-    canProceed,
   };
   
   if (isDataLoading || authLoading) {
@@ -348,9 +313,6 @@ export function CoachRoutineCreator() {
       )
   }
 
-  const selectedRoutineTypeName = routineTypes.find(rt => rt.id === getValues('routineTypeId'))?.name;
-  const routineDate = getValues('routineDate');
-
   return (
     <RoutineCreatorContext.Provider value={contextValue}>
       <div>
@@ -358,28 +320,8 @@ export function CoachRoutineCreator() {
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to All Routines
         </Button>
         
-        {step === 2 && (
-            <Card className="mb-6 bg-muted/30">
-                <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-4 justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 text-sm">
-                            <ClipboardList className="w-5 h-5 text-primary" />
-                            <span className="font-semibold text-muted-foreground">Type:</span>
-                            <span className="font-bold">{selectedRoutineTypeName || 'Not set'}</span>
-                        </div>
-                         <div className="flex items-center gap-2 text-sm">
-                            <Calendar className="w-5 h-5 text-primary" />
-                            <span className="font-semibold text-muted-foreground">Date:</span>
-                            <span className="font-bold">{routineDate ? format(routineDate, 'PPP') : 'Not set'}</span>
-                        </div>
-                    </div>
-                     <Button variant="outline" size="sm" onClick={() => setStep(1)}>Change Details</Button>
-                </CardContent>
-            </Card>
-        )}
-
         <div className="flex flex-col md:flex-row gap-4 md:gap-8">
-            {step === 2 && (isMobile ? (
+            {isMobile ? (
                 <Sheet open={isNavOpen} onOpenChange={setIsNavOpen}>
                 <SheetTrigger asChild>
                     <Button variant="outline" className="md:hidden flex items-center gap-2 font-semibold">
@@ -396,15 +338,17 @@ export function CoachRoutineCreator() {
                 </Sheet>
             ) : (
                 <div className="w-full md:w-1/3 lg:w-1/4">
-                <RoutineCreatorNav />
+                    <RoutineCreatorNav />
                 </div>
-            ))}
+            )}
             
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex-1">
-                    <RoutineCreatorForm />
-                </form>
-            </Form>
+            <div className="flex-1">
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <RoutineCreatorForm />
+                    </form>
+                </Form>
+            </div>
         </div>
       </div>
     </RoutineCreatorContext.Provider>

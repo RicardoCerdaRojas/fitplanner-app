@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -11,9 +11,10 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useRoutineCreator, defaultExerciseValues } from './coach-routine-creator';
 import { StepperInput } from './ui/stepper-input';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { MemberCombobox } from '@/components/ui/member-combobox';
+import { CardFooter } from '@/components/ui/card';
 
 
 const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerciseIndex: number }) => {
@@ -89,15 +90,19 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
 };
 
 
-const Step1RoutineDetails = () => {
-    const { form, routineTypes, setStep, canProceed, members } = useRoutineCreator();
-    const { control } = form;
+const Step1RoutineDetails = ({ setStep } : { setStep: (step: number) => void}) => {
+    const { form, routineTypes, members } = useRoutineCreator();
+    const { control, watch } = form;
+    const routineTypeId = watch('routineTypeId');
+    const routineDate = watch('routineDate');
+    const memberId = watch('memberId');
+    const canProceed = !!routineTypeId && !!routineDate && !!memberId;
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Step 1: Routine Details</CardTitle>
-                <CardDescription>Select the type of routine and the date it should be performed.</CardDescription>
+                <CardDescription>Select the member, type of routine, and the date it should be performed.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                  <FormField
@@ -152,15 +157,16 @@ const Step1RoutineDetails = () => {
 }
 
 export function RoutineCreatorForm() {
-    const { form, activeSelection, isSubmitting, step, setStep, setActiveSelection, appendExercise, members } = useRoutineCreator();
+    const { form, activeSelection, isSubmitting, setActiveSelection, appendExercise } = useRoutineCreator();
     const { control, getValues } = form;
+    
+    const [step, setStep] = useState(1);
     
     const allBlocks = getValues('blocks');
     const activeBlock = allBlocks?.[activeSelection.blockIndex];
     const exerciseFields = activeBlock?.exercises || [];
     
     useEffect(() => {
-        // When block changes, reset exercise selection to avoid showing exercise form
         if (activeSelection.type === 'block') {
             setActiveSelection(prev => ({ ...prev, exerciseIndex: undefined }));
         }
@@ -168,20 +174,42 @@ export function RoutineCreatorForm() {
 
 
     const handleAddExerciseClick = () => {
+        const currentExercises = getValues(`blocks.${activeSelection.blockIndex}.exercises`);
+        const newExerciseIndex = currentExercises.length;
         appendExercise(activeSelection.blockIndex, defaultExerciseValues);
+        setActiveSelection({ type: 'exercise', blockIndex: activeSelection.blockIndex, exerciseIndex: newExerciseIndex });
     };
 
     if (step === 1) {
-        return <Step1RoutineDetails />;
+        return <Step1RoutineDetails setStep={setStep} />;
     }
     
     if (!activeBlock) {
-        // This can happen if a block is removed.
         return <div>Loading block...</div>;
     }
 
+    const selectedRoutineTypeName = useRoutineCreator().routineTypes.find(rt => rt.id === getValues('routineTypeId'))?.name;
+    const routineDate = getValues('routineDate');
+
     return (
         <div className="space-y-6">
+            <Card className="bg-muted/30">
+                <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-4 justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 text-sm">
+                            <Library className="w-5 h-5 text-primary" />
+                            <span className="font-semibold text-muted-foreground">Type:</span>
+                            <span className="font-bold">{selectedRoutineTypeName || 'Not set'}</span>
+                        </div>
+                         <div className="flex items-center gap-2 text-sm">
+                            <CalendarIcon className="w-5 h-5 text-primary" />
+                            <span className="font-semibold text-muted-foreground">Date:</span>
+                            <span className="font-bold">{routineDate ? format(routineDate, 'PPP') : 'Not set'}</span>
+                        </div>
+                    </div>
+                     <Button type="button" variant="outline" size="sm" onClick={() => setStep(1)}>Change Details</Button>
+                </CardContent>
+            </Card>
             
             {activeSelection.type === 'block' && activeSelection.exerciseIndex === undefined && (
                 <Card>
@@ -218,7 +246,7 @@ export function RoutineCreatorForm() {
                                 <p className="text-sm text-muted-foreground p-2 text-center">No exercises in this block yet.</p>
                              )}
                              <Button type="button" variant="outline" size="sm" className="w-full justify-center" onClick={handleAddExerciseClick}>
-                                <Plus className="mr-2 h-4 w-4" /> Add another exercise
+                                <FilePlus className="mr-2 h-4 w-4" /> Add another exercise
                             </Button>
                           </div>
                     </CardContent>
