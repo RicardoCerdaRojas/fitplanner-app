@@ -235,10 +235,12 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                             />
                         </div>
                         <MemberCombobox members={members} value={memberFilter} onChange={setMemberFilter} />
-                        <Select value={typeFilter} onValueChange={setTypeFilter}>
+                        <Select value={typeFilter} onValueChange={(value) => {
+                            setTypeFilter(value === 'all' ? '' : value);
+                        }}>
                             <SelectTrigger><SelectValue placeholder="Filter by type..." /></SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">All Types</SelectItem>
+                                <SelectItem value="all">All Types</SelectItem>
                                 {routineTypes.map(rt => <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
