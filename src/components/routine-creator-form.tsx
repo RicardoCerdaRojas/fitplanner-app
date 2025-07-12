@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -200,7 +199,7 @@ export function RoutineCreatorForm() {
                         name="memberId"
                         render={({ field }) => (
                             <FormItem>
-                                 <MemberCombobox value={field.value} onChange={field.onChange} />
+                                 <MemberCombobox members={members} value={field.value} onChange={field.onChange} />
                                  <FormMessage/>
                             </FormItem>
                      )} />
