@@ -64,12 +64,13 @@ export function CoachRoutineManagement({ routines }: Props) {
         if (!templateName) return;
 
         try {
+            // Correctly destructure to exclude properties not needed in a template.
             const { memberId, userName, routineDate, progress, id, createdAt, updatedAt, ...templateData } = routine;
             
             const dataToSave = {
                 ...templateData,
                 templateName,
-                createdAt: Timestamp.now(),
+                createdAt: Timestamp.now(), // Give the template its own creation timestamp
             };
 
             await addDoc(collection(db, 'routineTemplates'), dataToSave);
