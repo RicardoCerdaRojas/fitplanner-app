@@ -16,11 +16,11 @@ import type { Member } from '@/app/coach/page';
 import type { ManagedRoutine } from './coach-routine-management';
 import type { RoutineType } from '@/app/admin/routine-types/page';
 import { RoutineCreatorNav } from './routine-creator-nav';
-import { RoutineCreatorForm } from './routine-creator-form';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { PanelLeft, ArrowLeft } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
+import { RoutineCreatorForm } from './routine-creator-form';
 
 
 const exerciseSchema = z.object({
@@ -61,7 +61,7 @@ type RoutineCreatorContextType = {
   blockFields: any[];
   appendBlock: (block: BlockFormValues) => void;
   removeBlock: (index: number) => void;
-  appendExercise: (blockIndex: number, exercise: ExerciseFormValues) => void;
+  appendExercise: (blockIndex: number) => void;
   removeExercise: (blockIndex: number, exerciseIndex: number) => void;
   activeSelection: { type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number };
   setActiveSelection: React.Dispatch<React.SetStateAction<{ type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number }>>;
@@ -140,19 +140,16 @@ export function CoachRoutineCreator() {
     name: 'blocks',
   });
 
-  // Centralized functions to manage nested exercises array
-  const appendExercise = useCallback((blockIndex: number, exercise: ExerciseFormValues) => {
-    const currentBlocks = getValues('blocks');
-    const targetBlock = currentBlocks[blockIndex];
-    const updatedExercises = [...targetBlock.exercises, exercise];
-    setValue(`blocks.${blockIndex}.exercises`, updatedExercises, { shouldValidate: true });
+  const appendExercise = useCallback((blockIndex: number) => {
+    const blocks = getValues('blocks');
+    const newExercises = [...blocks[blockIndex].exercises, defaultExerciseValues];
+    setValue(`blocks.${blockIndex}.exercises`, newExercises, { shouldValidate: true });
   }, [getValues, setValue]);
 
   const removeExercise = useCallback((blockIndex: number, exerciseIndex: number) => {
-    const currentBlocks = getValues('blocks');
-    const targetBlock = currentBlocks[blockIndex];
-    const updatedExercises = targetBlock.exercises.filter((_, i) => i !== exerciseIndex);
-    setValue(`blocks.${blockIndex}.exercises`, updatedExercises, { shouldValidate: true });
+    const blocks = getValues('blocks');
+    const newExercises = blocks[blockIndex].exercises.filter((_, i) => i !== exerciseIndex);
+    setValue(`blocks.${blockIndex}.exercises`, newExercises, { shouldValidate: true });
   }, [getValues, setValue]);
 
 

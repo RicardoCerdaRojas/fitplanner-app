@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Calendar as CalendarIcon, Plus, ArrowRight, Library, FilePlus, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useRoutineCreator, defaultExerciseValues } from './coach-routine-creator';
+import { useRoutineCreator } from './coach-routine-creator';
 import { StepperInput } from './ui/stepper-input';
 import { useEffect, useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -41,7 +41,7 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
             <CardHeader>
                 <div className="flex justify-between items-center">
                     <CardTitle>Editing Exercise</CardTitle>
-                    <Button type="button" variant="outline" size="sm" onClick={() => appendExercise(blockIndex, defaultExerciseValues)}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => appendExercise(blockIndex)}>
                         <Plus className="mr-2 h-4 w-4" />
                         Add Exercise
                     </Button>
@@ -162,10 +162,6 @@ export function RoutineCreatorForm() {
     
     const [step, setStep] = useState(1);
     
-    const allBlocks = getValues('blocks');
-    const activeBlock = allBlocks?.[activeSelection.blockIndex];
-    const exerciseFields = activeBlock?.exercises || [];
-    
     useEffect(() => {
         if (activeSelection.type === 'block') {
             setActiveSelection(prev => ({ ...prev, exerciseIndex: undefined }));
@@ -174,9 +170,8 @@ export function RoutineCreatorForm() {
 
 
     const handleAddExerciseClick = () => {
-        const currentExercises = getValues(`blocks.${activeSelection.blockIndex}.exercises`);
-        const newExerciseIndex = currentExercises.length;
-        appendExercise(activeSelection.blockIndex, defaultExerciseValues);
+        const newExerciseIndex = getValues(`blocks.${activeSelection.blockIndex}.exercises`)?.length || 0;
+        appendExercise(activeSelection.blockIndex);
         setActiveSelection({ type: 'exercise', blockIndex: activeSelection.blockIndex, exerciseIndex: newExerciseIndex });
     };
 
@@ -184,10 +179,13 @@ export function RoutineCreatorForm() {
         return <Step1RoutineDetails setStep={setStep} />;
     }
     
+    const allBlocks = getValues('blocks');
+    const activeBlock = allBlocks?.[activeSelection.blockIndex];
     if (!activeBlock) {
         return <div>Loading block...</div>;
     }
-
+    
+    const exerciseFields = activeBlock.exercises || [];
     const selectedRoutineTypeName = useRoutineCreator().routineTypes.find(rt => rt.id === getValues('routineTypeId'))?.name;
     const routineDate = getValues('routineDate');
 
