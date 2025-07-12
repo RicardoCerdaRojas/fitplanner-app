@@ -123,19 +123,19 @@ export function RoutineCreatorForm() {
                 <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField control={control} name="memberId" render={({ field }) => (
-                        <FormItem className="flex flex-col">
+                        <FormItem>
                             <FormLabel>Member</FormLabel>
-                            {isEditing && routineToEdit ? (
-                                <FormControl><Input value={routineToEdit.userName} disabled className="font-semibold" /></FormControl>
-                            ) : (
-                                <FormControl>
+                             <FormControl>
+                                {isEditing && routineToEdit ? (
+                                    <Input value={routineToEdit.userName} disabled className="font-semibold" />
+                                ) : (
                                     <MemberCombobox
                                         members={members}
                                         value={field.value}
                                         onChange={field.onChange}
                                     />
-                                </FormControl>
-                            )}
+                                )}
+                            </FormControl>
                             <FormMessage />
                         </FormItem>
                     )} />
