@@ -13,6 +13,8 @@ import { BarChart, ResponsiveContainer, Tooltip, Legend, Bar, XAxis, YAxis, Cart
 import { ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
+import { ref, onValue } from 'firebase/database';
+import { rtdb } from '@/lib/firebase';
 
 
 type UserProfile = {
@@ -215,7 +217,7 @@ export default function AdminDashboardPage() {
                             <CardContent>
                                 {ageDistribution.some(d => d.male > 0 || d.female > 0) ? (
                                     <ChartContainer config={ageChartConfig} className="h-[250px] w-full">
-                                        <BarChart data={ageDistribution} accessibilityLayer stackOffset="sign">
+                                        <BarChart data={ageDistribution} accessibilityLayer>
                                             <CartesianGrid vertical={false} />
                                             <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
                                             <YAxis />
