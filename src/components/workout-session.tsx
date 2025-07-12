@@ -199,15 +199,12 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         // Increment count when session starts
         runTransaction(activeCountRef, (currentValue) => (currentValue || 0) + 1);
     
-        // Set up onDisconnect to decrement count if user leaves unexpectedly
         const onDisconnectRef = onDisconnect(activeCountRef);
-        onDisconnectRef.set(serverTimestamp()); // Temporary value
         onDisconnectRef.set({'.sv': {'increment': -1}});
     
-        // Cleanup function for when the component unmounts (session ends)
+        // Cleanup function for when the component unmounts (session ends cleanly)
         return () => {
             onDisconnectRef.cancel(); // Cancel the onDisconnect handler
-            // Decrement count when session ends cleanly
             runTransaction(activeCountRef, (currentValue) => {
                 const newValue = (currentValue || 0) - 1;
                 return newValue < 0 ? 0 : newValue;
