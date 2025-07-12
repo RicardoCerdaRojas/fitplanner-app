@@ -158,21 +158,29 @@ const Step1RoutineDetails = () => {
 }
 
 export function RoutineCreatorForm() {
-    const { form, activeSelection, members, isSubmitting, step } = useRoutineCreator();
+    const { form, activeSelection, members, isSubmitting, step, setActiveSelection } = useRoutineCreator();
     const { control, getValues } = form;
     
-    const { fields: exerciseFields } = useFieldArray({
+    const { fields: exerciseFields, append: appendExercise } = useFieldArray({
       control,
       name: `blocks.${activeSelection.blockIndex}.exercises`,
     });
     
     useEffect(() => {
         // When block changes, reset exercise selection to avoid showing exercise form
-        activeSelection.exerciseIndex = undefined;
-    }, [activeSelection.blockIndex]);
+        if (activeSelection.type === 'block') {
+            setActiveSelection(prev => ({ ...prev, exerciseIndex: undefined }));
+        }
+    }, [activeSelection.blockIndex, activeSelection.type, setActiveSelection]);
 
     const blockFields = getValues('blocks');
     const activeBlock = blockFields?.[activeSelection.blockIndex];
+
+    const handleAddExerciseClick = () => {
+        const newIndex = exerciseFields.length;
+        appendExercise({ name: 'New Exercise', repType: 'reps', reps: '10', weight: '5' });
+        setActiveSelection(prev => ({ ...prev, type: 'exercise', exerciseIndex: newIndex }));
+    };
 
     if (step === 1) {
         return <Step1RoutineDetails />;
@@ -180,7 +188,6 @@ export function RoutineCreatorForm() {
     
     if (!activeBlock) {
         // This can happen if a block is removed.
-        // TODO: Handle this case more gracefully, e.g., select the previous block.
         return <div>Loading block...</div>;
     }
 
@@ -188,9 +195,15 @@ export function RoutineCreatorForm() {
         <div className="space-y-6">
             <Card>
                 <CardContent className="p-4">
-                     <FormField control={control} name="memberId" render={({ field }) => (
-                         <MemberCombobox members={members} value={field.value} onChange={field.onChange} />
-                    )} />
+                     <FormField
+                        control={control}
+                        name="memberId"
+                        render={({ field }) => (
+                            <FormItem>
+                                 <MemberCombobox members={members} value={field.value} onChange={field.onChange} />
+                                 <FormMessage/>
+                            </FormItem>
+                     )} />
                 </CardContent>
             </Card>
 
@@ -200,7 +213,7 @@ export function RoutineCreatorForm() {
                     <CardHeader>
                         <div className='flex justify-between items-center'>
                             <div>
-                                <CardTitle>Editing Block: <span className="text-primary">{control._getWatch(`blocks.${activeSelection.blockIndex}.name`)}</span></CardTitle>
+                                <CardTitle>Editing Block: <span className="text-primary">{getValues(`blocks.${activeSelection.blockIndex}.name`)}</span></CardTitle>
                                 <CardDescription>Define the name and number of sets for this block.</CardDescription>
                             </div>
                         </div>
@@ -219,7 +232,7 @@ export function RoutineCreatorForm() {
                                         <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => activeSelection.exerciseIndex = index}
+                                        onClick={() => setActiveSelection({ type: 'exercise', blockIndex: activeSelection.blockIndex, exerciseIndex: index})}
                                         >
                                         Edit
                                         </Button>
@@ -228,11 +241,7 @@ export function RoutineCreatorForm() {
                              ) : (
                                 <p className="text-sm text-muted-foreground p-2 text-center">No exercises in this block yet.</p>
                              )}
-                             <Button variant="outline" size="sm" className="w-full justify-center" onClick={() => {
-                                 const newIndex = exerciseFields.length;
-                                 getValues('blocks')[activeSelection.blockIndex].exercises.push({ name: 'New Exercise', repType: 'reps' });
-                                 activeSelection.exerciseIndex = newIndex;
-                                }}>
+                             <Button variant="outline" size="sm" className="w-full justify-center" onClick={handleAddExerciseClick}>
                                 <Plus className="mr-2 h-4 w-4" /> Add another exercise
                             </Button>
                           </div>

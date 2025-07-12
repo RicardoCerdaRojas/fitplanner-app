@@ -2,7 +2,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, User, ChevronsUpDown } from "lucide-react"
+import { User, ChevronsUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -15,7 +15,6 @@ import type { Member } from "@/app/coach/page"
 import { ScrollArea } from "./scroll-area"
 import { Input } from "./input"
 import { Avatar, AvatarFallback } from "./avatar"
-import { FormMessage } from "./form"
 
 type MemberComboboxProps = {
     members: Member[];
@@ -57,7 +56,6 @@ export function MemberCombobox({ members, value, onChange }: MemberComboboxProps
                         <span className="text-muted-foreground">Select member...</span>
                     )}
                 </div>
-                 {!value && <FormMessage>Please select a member.</FormMessage>}
             </div>
             <div className="self-end">
                 <DialogTrigger asChild>
