@@ -61,7 +61,7 @@ type RoutineCreatorContextType = {
   blockFields: any[];
   appendBlock: (block: BlockFormValues) => void;
   removeBlock: (index: number) => void;
-  appendExercise: (blockIndex: number) => void;
+  onAddExercise: (blockIndex: number, exercise: ExerciseFormValues) => void;
   removeExercise: (blockIndex: number, exerciseIndex: number) => void;
   activeSelection: { type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number };
   setActiveSelection: React.Dispatch<React.SetStateAction<{ type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number }>>;
@@ -82,7 +82,7 @@ export function useRoutineCreator() {
   return context;
 }
 
-export const defaultExerciseValues = { 
+export const defaultExerciseValues: ExerciseFormValues = { 
   name: 'Untitled Exercise', 
   repType: 'reps' as const, 
   reps: '10', 
@@ -140,9 +140,9 @@ export function CoachRoutineCreator() {
     name: 'blocks',
   });
 
-  const appendExercise = useCallback((blockIndex: number) => {
+  const onAddExercise = useCallback((blockIndex: number, exercise: ExerciseFormValues) => {
     const blocks = getValues('blocks');
-    const newExercises = [...blocks[blockIndex].exercises, defaultExerciseValues];
+    const newExercises = [...(blocks[blockIndex].exercises || []), exercise];
     setValue(`blocks.${blockIndex}.exercises`, newExercises, { shouldValidate: true });
   }, [getValues, setValue]);
 
@@ -150,7 +150,8 @@ export function CoachRoutineCreator() {
     const blocks = getValues('blocks');
     const newExercises = blocks[blockIndex].exercises.filter((_, i) => i !== exerciseIndex);
     setValue(`blocks.${blockIndex}.exercises`, newExercises, { shouldValidate: true });
-  }, [getValues, setValue]);
+    setActiveSelection({ type: 'block', blockIndex });
+  }, [getValues, setValue, setActiveSelection]);
 
 
   useEffect(() => {
@@ -289,7 +290,7 @@ export function CoachRoutineCreator() {
     blockFields,
     appendBlock,
     removeBlock,
-    appendExercise,
+    onAddExercise,
     removeExercise,
     activeSelection,
     setActiveSelection,
