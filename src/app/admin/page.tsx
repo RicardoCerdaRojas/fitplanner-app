@@ -268,7 +268,6 @@ export default function AdminDashboardPage() {
                                                     offset={5} 
                                                     className="fill-foreground" 
                                                     fontSize={12} 
-                                                    formatter={(value: number) => (value > 0 ? value : null)}
                                                 />
                                             </Bar>
                                         </BarChart>
