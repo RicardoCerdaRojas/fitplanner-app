@@ -11,7 +11,7 @@ import ReactPlayer from 'react-player/lazy';
 import { useAuth } from '@/contexts/auth-context';
 import { db, rtdb } from '@/lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, Timestamp, getDoc } from 'firebase/firestore';
-import { ref, onDisconnect, set, runTransaction } from 'firebase/database';
+import { ref, onDisconnect, set, runTransaction, serverTimestamp } from 'firebase/database';
 
 
 // A type for the items in our session "playlist"
@@ -193,16 +193,17 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     // Effect for Realtime Database: Increment/decrement active user count
     useEffect(() => {
         if (!userProfile?.gymId) return;
-
+    
         const activeCountRef = ref(rtdb, `gyms/${userProfile.gymId}/activeSessions`);
         
         // Increment count when session starts
         runTransaction(activeCountRef, (currentValue) => (currentValue || 0) + 1);
-
+    
         // Set up onDisconnect to decrement count if user leaves unexpectedly
         const onDisconnectRef = onDisconnect(activeCountRef);
+        onDisconnectRef.set(serverTimestamp()); // Temporary value
         onDisconnectRef.set({'.sv': {'increment': -1}});
-
+    
         // Cleanup function for when the component unmounts (session ends)
         return () => {
             onDisconnectRef.cancel(); // Cancel the onDisconnect handler
