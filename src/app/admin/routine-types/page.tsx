@@ -175,24 +175,28 @@ export default function RoutineTypesPage() {
                                 <CardDescription>A list of all available routine types in your gym.</CardDescription>
                                 <div className="pt-4">
                                      <Form {...form}>
-                                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-start gap-2">
+                                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-1">
                                             <FormField control={form.control} name="name" render={({ field }) => (
-                                                <FormItem className="flex-1">
+                                                <FormItem>
                                                     <FormLabel className="sr-only">Type Name</FormLabel>
-                                                    <FormControl><Input placeholder={editingType ? `Renaming "${editingType.name}"` : "e.g. Upper Body"} {...field} /></FormControl>
-                                                    <FormMessage />
+                                                     <div className="flex items-start gap-2">
+                                                        <FormControl>
+                                                          <Input placeholder={editingType ? `Renaming "${editingType.name}"` : "e.g. Upper Body"} {...field} />
+                                                        </FormControl>
+                                                        <div className="flex gap-2">
+                                                            <Button type="submit" disabled={isSubmitting}>
+                                                                {isSubmitting ? (editingType ? 'Updating...' : 'Adding...') : (editingType ? 'Update' : 'Add')}
+                                                            </Button>
+                                                            {editingType && (
+                                                                <Button type="button" variant="outline" onClick={handleCancelEdit}>
+                                                                    Cancel
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <FormMessage className="pl-1"/>
                                                 </FormItem>
                                             )}/>
-                                            <div className="flex gap-2">
-                                                <Button type="submit" disabled={isSubmitting}>
-                                                    {isSubmitting ? (editingType ? 'Updating...' : 'Adding...') : (editingType ? 'Update' : 'Add')}
-                                                </Button>
-                                                {editingType && (
-                                                    <Button type="button" variant="outline" onClick={handleCancelEdit}>
-                                                        Cancel
-                                                    </Button>
-                                                )}
-                                            </div>
                                         </form>
                                     </Form>
                                 </div>
