@@ -7,7 +7,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/comp
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
-import { Calendar as CalendarIcon, Trash2, Library } from 'lucide-react';
+import { Calendar as CalendarIcon, Trash2, Library, Save } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useRoutineCreator } from './coach-routine-creator';
@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { MemberCombobox } from '@/components/ui/member-combobox';
 import { Separator } from './ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from './ui/dialog';
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -24,6 +24,9 @@ import { useAuth } from '@/contexts/auth-context';
 import type { RoutineTemplate } from '@/app/coach/templates/page';
 import { ScrollArea } from './ui/scroll-area';
 import { Skeleton } from './ui/skeleton';
+import { useForm, FormProvider } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 
 export function TemplateLoader() {
@@ -80,6 +83,68 @@ export function TemplateLoader() {
         </Dialog>
     )
 }
+
+const templateFormSchema = z.object({
+  templateName: z.string().min(3, { message: 'Template name must be at least 3 characters.' }),
+});
+
+export function SaveTemplateDialog() {
+    const { handleSaveAsTemplate } = useRoutineCreator();
+    const [open, setOpen] = useState(false);
+    
+    const form = useForm<z.infer<typeof templateFormSchema>>({
+        resolver: zodResolver(templateFormSchema),
+        defaultValues: { templateName: '' },
+    });
+
+    const onSubmit = async (data: z.infer<typeof templateFormSchema>) => {
+        await handleSaveAsTemplate(data.templateName);
+        form.reset();
+        setOpen(false);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="lg"><Save className="mr-2 h-4 w-4" /> Save as Template</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <FormProvider {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)}>
+                        <DialogHeader>
+                            <DialogTitle>Save New Template</DialogTitle>
+                            <DialogDescription>
+                                Give your new template a descriptive name so you can easily find it later.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <FormField
+                                control={form.control}
+                                name="templateName"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Template Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., 'Beginner Full Body Strength'" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                        <DialogFooter>
+                            <DialogClose asChild>
+                                <Button type="button" variant="outline">Cancel</Button>
+                            </DialogClose>
+                            <Button type="submit">Save Template</Button>
+                        </DialogFooter>
+                    </form>
+                </FormProvider>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 
 function RoutineDetailsForm() {
     const { form, members, routineTypes } = useRoutineCreator();

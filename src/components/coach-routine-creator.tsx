@@ -15,7 +15,7 @@ import type { Member } from '@/app/coach/page';
 import type { ManagedRoutine } from './coach-routine-management';
 import type { RoutineType } from '@/app/admin/routine-types/page';
 import { Skeleton } from './ui/skeleton';
-import { RoutineCreatorForm, TemplateLoader } from './routine-creator-form';
+import { RoutineCreatorForm, TemplateLoader, SaveTemplateDialog } from './routine-creator-form';
 import { RoutineCreatorNav } from './routine-creator-nav';
 import { Button } from './ui/button';
 import { RoutineCreatorLayout } from './routine-creator-layout';
@@ -73,6 +73,7 @@ type RoutineCreatorContextType = {
   appendExercise: (blockIndex: number) => void;
   removeExercise: (blockIndex: number, exerciseIndex: number) => void;
   onFormSubmit: () => void;
+  handleSaveAsTemplate: (templateName: string) => Promise<void>;
   loadTemplate: (template: RoutineTemplate) => void;
 };
 
@@ -271,6 +272,48 @@ export function CoachRoutineCreator() {
   });
 
 
+  const handleSaveAsTemplate = async (templateName: string) => {
+    if (!user || !activeMembership?.gymId) {
+      toast({ variant: 'destructive', title: 'Not Authenticated' });
+      return;
+    }
+
+    const values = getValues();
+    const selectedRoutineType = routineTypes.find((rt) => rt.id === values.routineTypeId);
+
+    if (!selectedRoutineType) {
+      toast({ variant: 'destructive', title: 'Invalid Routine Type', description: 'Please select a type for the template.' });
+      return;
+    }
+
+    const dataToSave = {
+      templateName,
+      routineTypeId: values.routineTypeId,
+      routineTypeName: selectedRoutineType.name,
+      blocks: values.blocks.map(block => ({
+        ...block,
+        exercises: block.exercises.map(ex => {
+          const cleanedEx: Partial<ExerciseFormValues> = { ...ex };
+          if (cleanedEx.repType === 'reps') delete cleanedEx.duration;
+          else delete cleanedEx.reps;
+          return cleanedEx;
+        })
+      })),
+      gymId: activeMembership.gymId,
+      createdAt: Timestamp.now(),
+    };
+
+    try {
+      await addDoc(collection(db, 'routineTemplates'), dataToSave);
+      toast({ title: 'Template Saved!', description: `"${templateName}" is now in your library.` });
+      router.push('/coach/templates');
+    } catch (error: any) {
+      console.error('Error saving template:', error);
+      toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
+    }
+  };
+
+
   useEffect(() => {
     if(authLoading || !activeMembership?.gymId) return;
 
@@ -371,6 +414,7 @@ export function CoachRoutineCreator() {
     removeExercise,
     onFormSubmit,
     loadTemplate,
+    handleSaveAsTemplate,
   };
   
   if (isDataLoading || authLoading) {
@@ -395,9 +439,10 @@ export function CoachRoutineCreator() {
                 <div className="flex-grow">
                     <RoutineCreatorForm />
                 </div>
-                <div className="flex justify-end pt-4 mt-auto gap-2">
+                <div className="flex flex-col sm:flex-row justify-end pt-4 mt-auto gap-2">
                     <TemplateLoader />
-                    <Button type="button" onClick={onFormSubmit} size="lg" className="w-auto" disabled={isSubmitting}>
+                    <SaveTemplateDialog />
+                    <Button type="button" onClick={onFormSubmit} size="lg" className="w-full sm:w-auto" disabled={isSubmitting}>
                         {isSubmitting ? 'Assigning...' : 'Assign to Member'}
                     </Button>
                 </div>
