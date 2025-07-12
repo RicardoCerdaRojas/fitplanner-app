@@ -35,13 +35,10 @@ export type ManagedRoutine = {
 
 type Props = {
     routines: ManagedRoutine[];
-    members: Member[];
-    routineTypes: RoutineType[];
     onEdit: (routine: ManagedRoutine) => void;
-    initialMemberId?: string | null;
 };
 
-export function CoachRoutineManagement({ routines, members, routineTypes, onEdit, initialMemberId }: Props) {
+export function CoachRoutineManagement({ routines, onEdit }: Props) {
     const { toast } = useToast();
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [searchFilter, setSearchFilter] = useState('');
@@ -117,7 +114,7 @@ export function CoachRoutineManagement({ routines, members, routineTypes, onEdit
                         {filteredRoutines.map((routine) => (
                             <AccordionItem value={routine.id} key={routine.id} className="border rounded-lg">
                                 <div className="flex items-center justify-between w-full px-4 py-3">
-                                    <AccordionTrigger className="p-0 flex-1 text-left hover:no-underline">
+                                    <AccordionTrigger className="flex-1 p-0 text-left hover:no-underline">
                                         <div className="flex flex-col items-start">
                                             <span className="font-semibold">{routine.routineTypeName || routine.routineName || 'Untitled Routine'}</span>
                                             <span className="text-sm text-muted-foreground font-normal">
