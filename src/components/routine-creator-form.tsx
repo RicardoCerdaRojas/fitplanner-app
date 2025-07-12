@@ -15,6 +15,7 @@ import { StepperInput } from './ui/stepper-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { MemberCombobox } from '@/components/ui/member-combobox';
 import { Separator } from './ui/separator';
+import { Switch } from '@/components/ui/switch';
 
 
 function RoutineDetailsForm() {
@@ -77,7 +78,7 @@ function BlockForm({ blockIndex }: { blockIndex: number }) {
 
     return (
         <Card className="bg-muted/30">
-            <CardHeader className="flex flex-row items-center justify-between pb-4">
+             <CardHeader className="flex flex-row items-center justify-between pb-4">
                  <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (
                     <FormItem className='flex-1'>
                         <FormLabel className="sr-only">Block Name</FormLabel>
@@ -93,15 +94,17 @@ function BlockForm({ blockIndex }: { blockIndex: number }) {
             </CardHeader>
             <Separator />
              <CardContent className="pt-6 space-y-6">
-                <FormField control={control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="font-semibold text-card-foreground">Sets</FormLabel>
-                        <FormControl>
-                            <StepperInput field={field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
+                 <div className="flex items-center justify-between">
+                    <FormLabel className="font-semibold text-card-foreground">Sets</FormLabel>
+                    <FormField control={control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (
+                        <FormItem>
+                            <FormControl>
+                                <StepperInput field={field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                </div>
                 <Separator />
                 <p className="text-sm text-muted-foreground text-center pt-4">
                     Select an exercise from the left panel to edit its details, or add a new one.
@@ -141,18 +144,23 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
                  <Button type="button" variant="ghost" size="icon" onClick={() => removeExercise(blockIndex, exerciseIndex)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="w-5 h-5"/></Button>
             </CardHeader>
             <CardContent className="space-y-6">
-                <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`} render={({ field }) => (
-                    <FormItem className="space-y-3">
-                        <FormLabel>Reps or Duration?</FormLabel>
-                        <FormControl>
-                            <div className="flex gap-2 p-1 bg-muted rounded-md">
-                                <Button type="button" variant={field.value === 'reps' ? 'default' : 'outline'} onClick={() => handleRepTypeChange('reps')} className="flex-1 shadow-sm h-9">Reps</Button>
-                                <Button type="button" variant={field.value === 'duration' ? 'default' : 'outline'} onClick={() => handleRepTypeChange('duration')} className="flex-1 shadow-sm h-9">Duration</Button>
-                            </div>
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
+                <Card className="p-4 bg-muted/30">
+                    <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`} render={({ field }) => (
+                        <FormItem className="flex items-center justify-between">
+                            <FormLabel className={cn("font-semibold", field.value !== 'reps' && "text-muted-foreground/70")}>Reps</FormLabel>
+                            <FormControl>
+                                <Switch
+                                    checked={field.value === 'duration'}
+                                    onCheckedChange={(checked) => {
+                                        const newType = checked ? 'duration' : 'reps';
+                                        handleRepTypeChange(newType);
+                                    }}
+                                />
+                            </FormControl>
+                            <FormLabel className={cn("font-semibold", field.value !== 'duration' && "text-muted-foreground/70")}>Duration</FormLabel>
+                        </FormItem>
+                    )} />
+                </Card>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`) === 'reps' ? (
                         <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`} render={({ field }) => (
@@ -210,5 +218,3 @@ export function RoutineCreatorForm() {
         </div>
     );
 }
-
-    
