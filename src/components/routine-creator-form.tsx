@@ -10,7 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useRoutineCreator, defaultExerciseValues } from './coach-routine-creator';
+import { useRoutineCreator } from './coach-routine-creator';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StepperInput } from './ui/stepper-input';
 import { useFieldArray } from 'react-hook-form';
@@ -128,11 +128,13 @@ export function RoutineCreatorForm() {
                             {isEditing && routineToEdit ? (
                                 <FormControl><Input value={routineToEdit.userName} disabled className="font-semibold" /></FormControl>
                             ) : (
-                                <MemberCombobox
-                                    members={members}
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                />
+                                <FormControl>
+                                    <MemberCombobox
+                                        members={members}
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                    />
+                                </FormControl>
                             )}
                             <FormMessage />
                         </FormItem>
@@ -170,7 +172,7 @@ export function RoutineCreatorForm() {
                 </CardContent>
             </Card>
             
-            {activeSelection.type === 'block' && (
+            {activeSelection.type === 'block' && activeSelection.exerciseIndex === undefined && (
                 <Card>
                     <CardHeader>
                         <div className='flex justify-between items-center'>
@@ -203,7 +205,7 @@ export function RoutineCreatorForm() {
                              ) : (
                                 <p className="text-sm text-muted-foreground p-2 text-center">No exercises in this block yet.</p>
                              )}
-                             <Button variant="outline" size="sm" className="w-full justify-center" onClick={onAddExercise}>
+                             <Button variant="outline" size="sm" className="w-full justify-center" onClick={() => onAddExercise(activeSelection.blockIndex)}>
                                 <Plus className="mr-2 h-4 w-4" /> Add another exercise
                             </Button>
                           </div>
