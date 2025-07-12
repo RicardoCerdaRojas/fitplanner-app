@@ -5,7 +5,6 @@ import { Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRoutineCreator, defaultExerciseValues } from './coach-routine-creator';
 import { useFieldArray } from 'react-hook-form';
-import { useEffect } from 'react';
 
 export function RoutineCreatorNav() {
   const { 
@@ -46,11 +45,6 @@ export function RoutineCreatorNav() {
         control,
         name: `blocks.${blockIndex}.exercises`
     });
-
-    useEffect(() => {
-        // This effect can be used for any logic when exercises for a specific block change.
-        // For now, it's just here to demonstrate the correct use of the hook.
-    }, [fields]);
     
     const handleAddExercise = (e: React.MouseEvent) => {
         e.stopPropagation();
