@@ -47,7 +47,7 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
-            <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`} render={({ field }) => (<FormItem><FormLabel>Exercise Name</FormLabel><FormControl><Input placeholder="e.g., Bench Press" {...field} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`} render={({ field }) => (<FormItem><FormLabel>Exercise Name</FormLabel><FormControl><Input placeholder="e.g., Bench Press" {...field} onFocus={e => e.target.select()} /></FormControl><FormMessage /></FormItem>)} />
             <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`} render={({ field }) => (
                 <FormItem className="space-y-2"><FormLabel>Repetitions or Duration?</FormLabel>
                 <FormControl><RadioGroup onValueChange={(value) => handleRepTypeChange(value as 'reps' | 'duration')} value={field.value} className="flex gap-4">
