@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -189,19 +190,34 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         return doc(db, "workoutSessions", sessionId);
     }, [sessionId]);
 
-    const activeCountRef = useMemo(() => {
-        if (!userProfile?.gymId) return null;
-        return ref(rtdb, `gyms/${userProfile.gymId}/activeSessions`);
+    // Effect for Realtime Database: Increment/decrement active user count
+    useEffect(() => {
+        if (!userProfile?.gymId) return;
+
+        const activeCountRef = ref(rtdb, `gyms/${userProfile.gymId}/activeSessions`);
+        
+        // Increment count when session starts
+        runTransaction(activeCountRef, (currentValue) => (currentValue || 0) + 1);
+
+        // Set up onDisconnect to decrement count if user leaves unexpectedly
+        const onDisconnectRef = onDisconnect(activeCountRef);
+        onDisconnectRef.set({'.sv': {'increment': -1}});
+
+        // Cleanup function for when the component unmounts (session ends)
+        return () => {
+            onDisconnectRef.cancel(); // Cancel the onDisconnect handler
+            // Decrement count when session ends cleanly
+            runTransaction(activeCountRef, (currentValue) => {
+                const newValue = (currentValue || 0) - 1;
+                return newValue < 0 ? 0 : newValue;
+            });
+        };
     }, [userProfile?.gymId]);
 
 
+    // Effect for Firestore: Update live session document for gym admin view
     useEffect(() => {
-        if (!sessionDocRef || !user || !userProfile?.gymId || !activeCountRef) return;
-        
-        // Go online
-        runTransaction(activeCountRef, (currentValue) => (currentValue || 0) + 1);
-        const onDisconnectRef = onDisconnect(activeCountRef);
-        onDisconnectRef.set({'.sv': {'increment': -1}});
+        if (!sessionDocRef || !user || !userProfile?.gymId) return;
 
         const updateSessionDocument = async () => {
              if (!sessionDocRef || !user || !userProfile?.gymId) return;
@@ -240,30 +256,16 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
         return () => {
             clearInterval(heartbeatInterval);
-            onDisconnectRef.cancel();
             if (sessionDocRef) {
                 deleteDoc(sessionDocRef);
             }
-             if (activeCountRef) {
-                runTransaction(activeCountRef, (currentValue) => {
-                    const newValue = (currentValue || 0) - 1;
-                    return newValue < 0 ? 0 : newValue;
-                });
-            }
         };
-    }, [sessionDocRef, user, userProfile, routine, sessionPlaylist, currentIndex, progress, activeCountRef]);
+    }, [sessionDocRef, user, userProfile, routine, sessionPlaylist, currentIndex, progress]);
 
 
-    const handleSessionEnd = async () => {
-        if (sessionDocRef) {
-            await deleteDoc(sessionDocRef);
-        }
-        if (activeCountRef) {
-            runTransaction(activeCountRef, (currentValue) => {
-                const newValue = (currentValue || 0) - 1;
-                return newValue < 0 ? 0 : newValue;
-            });
-        }
+    const handleSessionEnd = () => {
+        // The cleanup effect for RTDB will handle decrementing.
+        // The cleanup effect for Firestore will handle deleting the session doc.
         onSessionEnd();
     };
 
