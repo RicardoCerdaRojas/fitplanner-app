@@ -41,7 +41,7 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
             <CardHeader>
                 <div className="flex justify-between items-center">
                     <CardTitle>Editing Exercise</CardTitle>
-                    <Button variant="outline" size="sm" onClick={onAddExercise}>
+                    <Button variant="outline" size="sm" onClick={() => onAddExercise(blockIndex)}>
                         <Plus className="mr-2 h-4 w-4" />
                         Add Exercise
                     </Button>
@@ -157,13 +157,10 @@ const Step1RoutineDetails = () => {
 }
 
 export function RoutineCreatorForm() {
-    const { form, activeSelection, members, isSubmitting, step, setStep, setActiveSelection } = useRoutineCreator();
+    const { form, activeSelection, members, isSubmitting, step, setStep, setActiveSelection, onAddExercise } = useRoutineCreator();
     const { control, getValues } = form;
     
-    const { fields: exerciseFields, append: appendExercise } = useFieldArray({
-      control,
-      name: `blocks.${activeSelection.blockIndex}.exercises`,
-    });
+    const exerciseFields = getValues(`blocks.${activeSelection.blockIndex}.exercises`);
     
     useEffect(() => {
         // When block changes, reset exercise selection to avoid showing exercise form
@@ -176,9 +173,7 @@ export function RoutineCreatorForm() {
     const activeBlock = blockFields?.[activeSelection.blockIndex];
 
     const handleAddExerciseClick = () => {
-        const newIndex = exerciseFields.length;
-        appendExercise({ name: 'New Exercise', repType: 'reps', reps: '10', weight: '5' });
-        setActiveSelection(prev => ({ ...prev, type: 'exercise', exerciseIndex: newIndex }));
+        onAddExercise(activeSelection.blockIndex);
     };
 
     if (step === 1) {
@@ -224,9 +219,9 @@ export function RoutineCreatorForm() {
                         </div>
                          <div className="space-y-2 mt-4">
                             <h3 className="text-sm font-semibold text-muted-foreground">Exercises in this block</h3>
-                            {exerciseFields.length > 0 ? (
+                            {exerciseFields && exerciseFields.length > 0 ? (
                                 exerciseFields.map((field, index) => (
-                                    <div key={field.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50 text-sm">
+                                    <div key={index} className="flex items-center justify-between p-2 rounded-md bg-muted/50 text-sm">
                                         <span>{getValues(`blocks.${activeSelection.blockIndex}.exercises.${index}.name`) || 'Untitled Exercise'}</span>
                                         <Button
                                         variant="ghost"

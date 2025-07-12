@@ -19,9 +19,8 @@ import { RoutineCreatorNav } from './routine-creator-nav';
 import { RoutineCreatorForm } from './routine-creator-form';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
-import { PanelLeft, ArrowLeft, Check, ClipboardList, Calendar } from 'lucide-react';
+import { PanelLeft, ArrowLeft, ClipboardList, Calendar } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
-import { cn } from '@/lib/utils';
 import { Card, CardContent } from './ui/card';
 import { format } from 'date-fns';
 
@@ -60,6 +59,10 @@ export type ExerciseFormValues = z.infer<typeof exerciseSchema>;
 
 type RoutineCreatorContextType = {
   form: ReturnType<typeof useForm<RoutineFormValues>>;
+  blockFields: any[];
+  appendBlock: (block: BlockFormValues) => void;
+  removeBlock: (index: number) => void;
+  onAddExercise: (blockIndex: number) => void;
   activeSelection: { type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number };
   setActiveSelection: React.Dispatch<React.SetStateAction<{ type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number }>>;
   members: Member[];
@@ -67,7 +70,6 @@ type RoutineCreatorContextType = {
   isEditing: boolean;
   isSubmitting: boolean;
   onCloseNav?: () => void;
-  onAddExercise: () => void;
   step: number;
   setStep: (step: number) => void;
   canProceed: boolean;
@@ -135,8 +137,33 @@ export function CoachRoutineCreator() {
     mode: 'onBlur'
   });
 
-  const { control, watch, trigger, getValues } = form;
+  const { control, watch, getValues } = form;
   const formValues = watch();
+
+  const { fields: blockFields, append: appendBlock, remove: removeBlock } = useFieldArray({
+    control,
+    name: 'blocks',
+  });
+
+  const { fields: exerciseFields, append: appendExercise } = useFieldArray({
+    control,
+    name: `blocks.${activeSelection.blockIndex}.exercises`
+  });
+
+  const onAddExercise = (blockIndex: number) => {
+    const exercises = form.getValues(`blocks.${blockIndex}.exercises`);
+    const newExerciseIndex = exercises.length;
+    
+    // This is a bit of a hack, but we need to use a different useFieldArray instance
+    // for the block we're adding to. This is not ideal but works around react-hook-form limitations.
+    // A better solution would involve a more complex state management.
+    // For now, let's just append to the active block
+    if (blockIndex === activeSelection.blockIndex) {
+        appendExercise(defaultExerciseValues);
+        setActiveSelection({ type: 'exercise', blockIndex: blockIndex, exerciseIndex: newExerciseIndex });
+    }
+  };
+
 
   const canProceed = useMemo(() => {
       if (step === 1) {
@@ -213,24 +240,11 @@ export function CoachRoutineCreator() {
 
   }, [authLoading, activeMembership, editRoutineId, router, toast]);
 
-
-   const { append } = useFieldArray({
-      control,
-      name: `blocks.${activeSelection.blockIndex}.exercises`
-    });
-
   useEffect(() => {
       form.reset(defaultValues);
       setActiveSelection({ type: 'block', blockIndex: 0 });
   }, [routineToEdit, form, defaultValues]);
   
-  const handleAddExercise = () => {
-    const exercises = form.getValues(`blocks.${activeSelection.blockIndex}.exercises`);
-    const newExerciseIndex = exercises.length;
-    append(defaultExerciseValues);
-    setActiveSelection({ type: 'exercise', blockIndex: activeSelection.blockIndex, exerciseIndex: newExerciseIndex });
-  };
-
 
   async function onSubmit(values: RoutineFormValues) {
     if (!user) {
@@ -296,6 +310,10 @@ export function CoachRoutineCreator() {
 
   const contextValue: RoutineCreatorContextType = {
     form,
+    blockFields,
+    appendBlock,
+    removeBlock,
+    onAddExercise: onAddExercise,
     activeSelection,
     setActiveSelection,
     members,
@@ -303,7 +321,6 @@ export function CoachRoutineCreator() {
     isEditing,
     isSubmitting,
     onCloseNav: () => isMobile && setIsNavOpen(false),
-    onAddExercise: handleAddExercise,
     step,
     setStep,
     canProceed
@@ -321,7 +338,6 @@ export function CoachRoutineCreator() {
 
   const selectedRoutineTypeName = routineTypes.find(rt => rt.id === getValues('routineTypeId'))?.name;
   const routineDate = getValues('routineDate');
-
 
   return (
     <RoutineCreatorContext.Provider value={contextValue}>
