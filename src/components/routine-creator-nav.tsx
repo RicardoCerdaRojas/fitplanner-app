@@ -6,33 +6,35 @@ import { Button } from "./ui/button";
 import { ArrowLeft, GripVertical, ListChecks, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { Separator } from "./ui/separator";
 
 function ExercisesNavList({ blockIndex }: { blockIndex: number }) {
     const { form, activeSelection, setActiveSelection, appendExercise, removeExercise } = useRoutineCreator();
     const watchedExercises = form.watch(`blocks.${blockIndex}.exercises`);
 
     return (
-        <ul className="space-y-1 pl-4 border-l-2 ml-3 border-muted/50">
+        <ul className="space-y-1 pl-4 border-l-2 ml-[1.125rem] border-muted/50 py-1">
             {(watchedExercises || []).map((_, exIndex) => {
                 const isActive = activeSelection.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === exIndex;
                 return (
-                    <li key={exIndex} className="group/item">
+                    <li key={exIndex} className="group/item relative">
                         <Button 
                             type="button" 
                             variant="ghost" 
                             className={cn(
                                 "w-full justify-start h-9 px-2 text-muted-foreground hover:text-foreground",
-                                isActive && "text-accent-foreground"
+                                isActive && "font-semibold text-foreground"
                             )}
                             onClick={() => setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: exIndex })}
                         >
-                           <GripVertical className="mr-2 h-4 w-4" />
+                           <GripVertical className="mr-2 h-4 w-4 shrink-0" />
                            <span className="truncate">{watchedExercises?.[exIndex]?.name || `Exercise ${exIndex + 1}`}</span>
                         </Button>
                         <Button 
+                            type="button"
                             variant="ghost" 
                             size="icon" 
-                            className="absolute right-0 top-1 h-7 w-7 text-muted-foreground/50 opacity-0 group-hover/item:opacity-100 transition-opacity hover:text-destructive" 
+                            className="absolute right-0 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground/50 opacity-0 group-hover/item:opacity-100 transition-opacity hover:text-destructive" 
                             onClick={(e) => { e.stopPropagation(); removeExercise(blockIndex, exIndex); }}
                         >
                             <Trash2 className="h-4 w-4" />
@@ -41,7 +43,7 @@ function ExercisesNavList({ blockIndex }: { blockIndex: number }) {
                 );
             })}
              <li>
-                <Button type="button" variant="ghost" className="w-full justify-start h-9 px-2 text-sm text-accent hover:text-accent" onClick={() => appendExercise(blockIndex)}>
+                <Button type="button" variant="ghost" className="w-full justify-start h-9 px-2 text-sm text-accent hover:text-accent font-semibold" onClick={() => appendExercise(blockIndex)}>
                     <Plus className="mr-2 h-4 w-4" /> Add Exercise
                 </Button>
             </li>
@@ -55,26 +57,28 @@ export function RoutineCreatorNav() {
 
     return (
         <div className="space-y-4 flex flex-col h-full">
-             <Button variant="ghost" onClick={() => router.push('/coach')} className="w-full justify-start text-sm text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back to All Routines
-            </Button>
-            
-            <div className="px-3">
-                <h1 className="text-2xl font-bold font-headline">{isEditing ? 'Edit Routine' : 'Create New Routine'}</h1>
+            <div>
+                 <Button variant="ghost" onClick={() => router.push('/coach')} className="w-full justify-start text-sm text-muted-foreground hover:text-foreground -ml-2">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to All Routines
+                </Button>
+                <div className="px-1 mt-4">
+                    <h1 className="text-2xl font-bold font-headline">{isEditing ? 'Edit Routine' : 'Create New Routine'}</h1>
+                </div>
             </div>
-
-            <nav className="px-3 flex-grow">
+            
+            <nav className="flex-grow">
                 <ul className="space-y-1">
                     <li>
                         <Button 
                             type="button" 
-                            variant={activeSelection.type === 'details' ? 'default' : 'ghost'}
+                            variant="ghost"
                             className={cn(
-                                "w-full justify-start font-semibold",
-                                activeSelection.type === 'details' && "bg-accent text-accent-foreground hover:bg-accent/90 border-l-2 border-accent-foreground"
+                                "w-full justify-start font-semibold h-10 px-3 transition-colors relative",
+                                activeSelection.type === 'details' && "bg-accent text-accent-foreground hover:bg-accent/90"
                             )}
                             onClick={() => setActiveSelection({ type: 'details' })}
                         >
+                            {activeSelection.type === 'details' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-accent-foreground rounded-r-full"></div>}
                             <ListChecks className="mr-2 h-4 w-4" /> Routine Details
                         </Button>
                     </li>
@@ -84,16 +88,17 @@ export function RoutineCreatorNav() {
                         const isActive = isBlockActive || isChildExerciseActive;
                         
                         return (
-                            <li key={field.id} className={cn("rounded-md transition-colors", isActive && "bg-accent text-accent-foreground")}>
+                            <li key={field.id} className={cn("rounded-md transition-colors")}>
                                 <Button 
                                     type="button" 
                                     variant="ghost" 
                                     className={cn(
-                                        "w-full justify-start font-semibold",
-                                        isActive && "bg-accent text-accent-foreground hover:bg-accent/90 hover:text-accent-foreground border-l-2 border-accent-foreground"
+                                        "w-full justify-start font-semibold h-10 px-3 transition-colors relative",
+                                        isActive && "bg-accent text-accent-foreground hover:bg-accent/90"
                                     )}
                                     onClick={() => setActiveSelection({ type: 'block', index })}
                                 >
+                                    {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-accent-foreground rounded-r-full"></div>}
                                     <ListChecks className="mr-2 h-4 w-4" /> {form.watch(`blocks.${index}.name`)}
                                 </Button>
                                 {isActive && <ExercisesNavList blockIndex={index} />}
@@ -103,8 +108,8 @@ export function RoutineCreatorNav() {
                 </ul>
             </nav>
 
-            <div className="px-3 pt-4 mt-auto border-t">
-                 <Button type="button" variant="outline" className="w-full" onClick={() => appendBlock({ name: `Block ${blockFields.length + 1}`, sets: '3', exercises: []})}>
+            <div className="pt-4 mt-auto border-t">
+                 <Button type="button" variant="outline" className="w-full justify-center h-10" onClick={() => appendBlock({ name: `Block ${blockFields.length + 1}`, sets: '1', exercises: []})}>
                     <Plus className="mr-2 h-4 w-4" /> Add Block
                 </Button>
             </div>

@@ -75,16 +75,16 @@ function BlockForm({ blockIndex }: { blockIndex: number }) {
     const { control } = form;
     
     return (
-         <Card className="bg-card">
+        <Card className="bg-card shadow-none border">
             <CardHeader>
-                <div className="flex justify-between items-start gap-4">
-                     <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (<FormItem className="flex-1"><FormLabel className="sr-only">Block Name</FormLabel><FormControl><Input placeholder="e.g., Upper Body Focus" className="text-2xl font-bold border-none shadow-none -ml-3 p-0 focus-visible:ring-0 h-auto" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeBlock(blockIndex)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-5 h-5"/></Button>
+                <div className="flex justify-between items-center gap-4">
+                     <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (<FormItem className="flex-1"><FormLabel className="sr-only">Block Name</FormLabel><FormControl><Input placeholder="e.g., Upper Body Focus" className="text-lg font-semibold border-none shadow-none -ml-3 p-0 focus-visible:ring-0 h-auto" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removeBlock(blockIndex)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="w-5 h-5"/></Button>
                 </div>
-                 <FormField control={control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (<FormItem><FormLabel className="sr-only">Sets</FormLabel><FormControl><Input placeholder="e.g., 3 Sets" className="text-base text-muted-foreground border-none shadow-none -ml-3 p-0 h-auto focus-visible:ring-0" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                 <FormField control={control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (<FormItem><FormLabel className="sr-only">Sets</FormLabel><FormControl><Input placeholder="e.g., 3 Sets" className="text-sm text-muted-foreground border-none shadow-none -ml-3 p-0 h-auto focus-visible:ring-0" {...field} /></FormControl><FormMessage /></FormItem>)} />
             </CardHeader>
             <CardContent>
-                <p className="text-base text-muted-foreground">Select an exercise from the left panel to edit its details.</p>
+                <p className="text-sm text-muted-foreground">Select an exercise from the left panel to edit its details.</p>
             </CardContent>
         </Card>
     )
@@ -95,20 +95,19 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
     const { control, watch } = form;
     
     return (
-        <Card>
+        <Card className="bg-card shadow-none border">
             <CardHeader>
                 <div className="flex justify-between items-center">
-                    <CardTitle>Edit Exercise</CardTitle>
-                     <Button type="button" variant="ghost" size="icon" onClick={() => removeExercise(blockIndex, exerciseIndex)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-5 h-5"/></Button>
+                     <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`} render={({ field }) => (<FormItem className='flex-1'><FormLabel className="sr-only">Exercise Name</FormLabel><FormControl><Input placeholder="Exercise Name" className="text-lg font-semibold border-none shadow-none focus-visible:ring-0 p-0 h-auto" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                     <Button type="button" variant="ghost" size="icon" onClick={() => removeExercise(blockIndex, exerciseIndex)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="w-5 h-5"/></Button>
                 </div>
-                 <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`} render={({ field }) => (<FormItem><FormLabel className="sr-only">Exercise Name</FormLabel><FormControl><Input placeholder="Exercise Name" className="text-xl font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto pl-1" {...field} /></FormControl><FormMessage /></FormItem>)} />
             </CardHeader>
             <CardContent className="space-y-6">
                 <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`} render={({ field }) => (
                     <FormItem className="space-y-3"><FormLabel>Reps or Duration?</FormLabel>
                     <FormControl><div className="flex gap-2 p-1 bg-muted rounded-md">
-                        <Button type="button" variant={field.value === 'reps' ? 'default' : 'ghost'} onClick={() => { form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, 'reps');}} className="flex-1 shadow-sm">Reps</Button>
-                        <Button type="button" variant={field.value === 'duration' ? 'default' : 'ghost'} onClick={() => { form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, 'duration');}} className="flex-1 shadow-sm">Duration</Button>
+                        <Button type="button" variant={field.value === 'reps' ? 'secondary' : 'ghost'} onClick={() => { form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, 'reps');}} className="flex-1 shadow-sm h-9">Reps</Button>
+                        <Button type="button" variant={field.value === 'duration' ? 'secondary' : 'ghost'} onClick={() => { form.setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, 'duration');}} className="flex-1 shadow-sm h-9">Duration</Button>
                     </div></FormControl><FormMessage />
                     </FormItem>
                 )} />
@@ -127,21 +126,13 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
 }
 
 export function RoutineCreatorForm() {
-    const { activeSelection, onFormSubmit, isSubmitting, isEditing } = useRoutineCreator();
+    const { activeSelection } = useRoutineCreator();
     
     return (
-        <form onSubmit={(e) => { e.preventDefault(); onFormSubmit(); }} className="space-y-6 w-full h-full flex flex-col">
-            <div className="flex-grow">
-                {activeSelection.type === 'details' && <RoutineDetailsForm />}
-                {activeSelection.type === 'block' && <BlockForm blockIndex={activeSelection.index} />}
-                {activeSelection.type === 'exercise' && <ExerciseForm blockIndex={activeSelection.blockIndex} exerciseIndex={activeSelection.exerciseIndex} />}
-            </div>
-
-            <div className="flex justify-end pt-4 mt-auto border-t">
-                <Button type="submit" size="lg" className="w-auto" disabled={isSubmitting}>
-                    {isSubmitting ? 'Saving...' : (isEditing ? 'Update Routine' : 'Create Routine')}
-                </Button>
-            </div>
-        </form>
+        <div className="w-full h-full">
+            {activeSelection.type === 'details' && <RoutineDetailsForm />}
+            {activeSelection.type === 'block' && <BlockForm blockIndex={activeSelection.index} />}
+            {activeSelection.type === 'exercise' && <ExerciseForm blockIndex={activeSelection.blockIndex} exerciseIndex={activeSelection.exerciseIndex} />}
+        </div>
     );
 }

@@ -44,8 +44,9 @@ export function StepperInput({ field, step = 1, allowText }: StepperInputProps) 
       </Button>
       <Input
         {...field}
+        value={field.value ?? ''}
         onChange={handleChange}
-        className="text-center font-bold"
+        className="text-center font-semibold"
         placeholder={allowText}
       />
       <Button
