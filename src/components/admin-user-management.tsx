@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -34,6 +35,7 @@ import { User } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/auth-context';
 
 
 const formSchema = z.object({
@@ -153,14 +155,14 @@ function MemberForm({ gymId, gymName, onFormSubmitted, userToEdit }: { gymId: st
 
 export function AdminUserManagement({ gymId }: { gymId: string }) {
     const { toast } = useToast();
+    const { gymProfile } = useAuth();
     const [allUsers, setAllUsers] = useState<CombinedUser[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
     const [isFormModalOpen, setFormModalOpen] = useState(false);
     const [userToEdit, setUserToEdit] = useState<CombinedUser | null>(null);
-    const [gymName, setGymName] = useState('');
-
+    
     useEffect(() => {
         setIsLoading(true);
         const usersQuery = query(collection(db, 'users'), where('gymId', '==', gymId));
@@ -169,13 +171,11 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
         const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
             const fetchedUsers = snapshot.docs.map(doc => ({ id: doc.id, type: 'member' as const, ...doc.data() } as Member));
             setAllUsers(prev => [...fetchedUsers, ...prev.filter(p => p.type !== 'member')]);
-            if(fetchedUsers.length > 0) setGymName(fetchedUsers[0].gymName);
         });
 
         const unsubscribePending = onSnapshot(pendingQuery, (snapshot) => {
             const fetchedPending = snapshot.docs.map(doc => ({ id: doc.id, type: 'pending' as const, ...doc.data() } as PendingMembership));
             setAllUsers(prev => [...fetchedPending, ...prev.filter(p => p.type !== 'pending')]);
-            if(fetchedPending.length > 0) setGymName(fetchedPending[0].gymName);
         });
         
         const timer = setTimeout(() => setIsLoading(false), 1500);
@@ -382,7 +382,7 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                         {userToEdit ? `Update the role for ${userToEdit.name}.` : 'Create a new membership. The user can then sign up with this email to get access.'}
                     </DialogDescription>
                 </DialogHeader>
-                <MemberForm gymId={gymId} gymName={gymName} onFormSubmitted={() => setFormModalOpen(false)} userToEdit={userToEdit} />
+                <MemberForm gymId={gymId} gymName={gymProfile?.name ?? ''} onFormSubmitted={() => setFormModalOpen(false)} userToEdit={userToEdit} />
             </DialogContent>
         </Dialog>
     );
