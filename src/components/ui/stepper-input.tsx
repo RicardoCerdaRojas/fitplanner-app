@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Input } from '@/components/ui/input';
@@ -13,7 +14,7 @@ type StepperInputProps = {
 
 export function StepperInput({ field, step = 1, allowText }: StepperInputProps) {
   const currentValue = field.value || '0';
-  const isNumeric = !isNaN(parseFloat(currentValue)) && isFinite(currentValue);
+  const isNumeric = !isNaN(parseFloat(currentValue)) && isFinite(Number(currentValue));
 
   const handleStep = (direction: 'increment' | 'decrement') => {
     let numValue = isNumeric ? parseFloat(currentValue) : 0;
@@ -26,11 +27,7 @@ export function StepperInput({ field, step = 1, allowText }: StepperInputProps) 
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
-    // Allow empty string, specific text, or numbers
-    if (value === '' || (allowText && value.toLowerCase() === allowText.toLowerCase()) || !isNaN(Number(value))) {
-      field.onChange(value);
-    }
+    field.onChange(e.target.value);
   };
 
   return (
@@ -49,6 +46,7 @@ export function StepperInput({ field, step = 1, allowText }: StepperInputProps) 
         {...field}
         onChange={handleChange}
         className="text-center font-bold"
+        placeholder={allowText}
       />
       <Button
         type="button"
