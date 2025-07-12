@@ -16,7 +16,7 @@ import { useEffect, useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Avatar, AvatarFallback } from './ui/avatar';
-import { MemberCombobox } from './ui/member-combobox';
+import { MemberCombobox } from '@/components/ui/member-combobox';
 import { Input } from './ui/input';
 
 
@@ -225,7 +225,7 @@ export function RoutineCreatorForm() {
                              ) : (
                                 <p className="text-sm text-muted-foreground p-2 text-center">No exercises in this block yet.</p>
                              )}
-                             <Button variant="outline" size="sm" className="w-full justify-center" onClick={() => onAddExercise(activeSelection.blockIndex)}>
+                             <Button variant="outline" size="sm" className="w-full justify-center" onClick={() => onAddExercise()}>
                                 <Plus className="mr-2 h-4 w-4" /> Add another exercise
                             </Button>
                           </div>
