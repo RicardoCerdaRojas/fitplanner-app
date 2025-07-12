@@ -31,7 +31,7 @@ export function AppHeader() {
     const isGuestHomepage = !user && pathname === '/';
 
     return (
-        <header className="w-full flex items-center justify-between mb-10 relative max-w-7xl mx-auto py-4">
+        <header className="w-full flex items-center justify-between relative max-w-7xl mx-auto py-4">
             <Link href="/" className="flex items-center gap-4 group">
                 {gymProfile?.logoUrl && !isGuestHomepage ? (
                     <Image src={gymProfile.logoUrl} alt={gymProfile.name ? `${gymProfile.name} Logo` : 'Gym Logo'} width={100} height={50} className="object-contain h-12 w-auto" priority />

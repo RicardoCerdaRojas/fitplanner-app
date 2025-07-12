@@ -157,7 +157,7 @@ function CoachDashboard() {
     <div className="flex flex-col min-h-screen">
       <AppHeader />
       <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
-        <div className="w-full max-w-4xl">
+        <div className="w-full max-w-4xl pt-8">
           {activeMembership.role === 'gym-admin' ? (
               <>
                   <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
