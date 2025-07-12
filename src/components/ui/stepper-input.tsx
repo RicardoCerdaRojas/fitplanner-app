@@ -3,7 +3,8 @@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus } from 'lucide-react';
-import { ControllerRenderProps } from 'react-hook-form';
+import type { ControllerRenderProps } from 'react-hook-form';
+import { useState, useEffect } from 'react';
 
 type StepperInputProps = {
   field: ControllerRenderProps<any, string>;
@@ -12,21 +13,33 @@ type StepperInputProps = {
 };
 
 export function StepperInput({ field, step = 1, allowText = false }: StepperInputProps) {
-  const currentValue = field.value || '0';
-  const isNumeric = !isNaN(parseFloat(currentValue)) && isFinite(Number(currentValue));
+  // Use a local state to control the input value
+  const [inputValue, setInputValue] = useState(field.value ?? '');
+
+  // IMPORTANT: This effect syncs the local state with the form state from react-hook-form.
+  // When `setValue` is called externally, `field.value` changes, and this effect updates
+  // the `inputValue` to match, forcing a re-render of the input.
+  useEffect(() => {
+    setInputValue(field.value ?? '');
+  }, [field.value]);
+  
+  const isNumeric = !isNaN(parseFloat(inputValue)) && isFinite(Number(inputValue));
 
   const handleStep = (direction: 'increment' | 'decrement') => {
-    let numValue = isNumeric ? parseFloat(currentValue) : 0;
+    let numValue = isNumeric ? parseFloat(inputValue) : 0;
     if (direction === 'increment') {
       numValue += step;
     } else {
       numValue -= step;
     }
-    field.onChange(String(Math.max(0, numValue)));
+    const newValue = String(Math.max(0, numValue));
+    setInputValue(newValue);
+    field.onChange(newValue); // Notify react-hook-form
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    field.onChange(e.target.value);
+    setInputValue(e.target.value);
+    field.onChange(e.target.value); // Notify react-hook-form
   };
 
   return (
@@ -42,9 +55,8 @@ export function StepperInput({ field, step = 1, allowText = false }: StepperInpu
         <Minus className="h-4 w-4" />
       </Button>
       <Input
-        key={field.value}
-        {...field}
-        value={field.value ?? ''}
+        {...field} // Spread field props but override value and onChange
+        value={inputValue}
         onChange={handleChange}
         className="text-center font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         type={allowText ? 'text' : 'number'}

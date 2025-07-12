@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -134,7 +133,9 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
             setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, '');
         }
         
-        trigger(`blocks.${blockIndex}.exercises.${exerciseIndex}`);
+        trigger(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`);
+        trigger(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`);
+        trigger(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`);
     }
     
     return (
