@@ -26,6 +26,7 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AppHeader } from '@/components/app-header';
+import { AdminBottomNav } from '@/components/admin-bottom-nav';
 
 export type RoutineTemplate = {
     id: string;
@@ -132,19 +133,15 @@ export default function TemplatesPage() {
 
             <div className="flex flex-col min-h-screen">
                 <AppHeader />
-                <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
+                <main className="flex-grow flex flex-col items-center p-4 sm:p-8 pb-16 md:pb-8">
                     <div className="w-full max-w-5xl">
                          <div className="flex justify-between items-center mb-8">
                             <div>
-                                <h1 className="text-3xl font-bold font-headline">Routine Templates</h1>
+                                <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
                                 <p className="text-muted-foreground">Manage your reusable workout templates.</p>
                             </div>
-                            <Button asChild>
-                               <Link href="/coach">
-                                 <ClipboardList className="mr-2 h-4 w-4" /> Manage Routines
-                               </Link>
-                            </Button>
                          </div>
+                        <AdminBottomNav />
                         <Card>
                             <CardHeader>
                                 <div className="flex justify-between items-start">
