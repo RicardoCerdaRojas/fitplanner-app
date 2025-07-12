@@ -55,15 +55,22 @@ export function CoachRoutineManagement({ routines }: Props) {
     const handleSaveAsTemplate = async (routine: ManagedRoutine) => {
         const templateName = prompt("Enter a name for this new template:", routine.routineTypeName || "New Template");
         
-        if (templateName === null) return; // User cancelled
-        if (!templateName) {
-            toast({ variant: "destructive", title: "Invalid Name", description: "Template name cannot be empty." });
+        if (templateName === null || templateName.trim() === '') {
+            if (templateName !== null) { // Only show toast if user didn't cancel
+                toast({ variant: "destructive", title: "Invalid Name", description: "Template name cannot be empty." });
+            }
             return;
         }
 
         try {
             const { id, memberId, userName, routineDate, progress, createdAt, updatedAt, ...templateData } = routine;
-            const dataToSave = { ...templateData, templateName, createdAt: Timestamp.now() };
+            
+            const dataToSave = { 
+                ...templateData, 
+                templateName, 
+                createdAt: Timestamp.now() 
+            };
+
             await addDoc(collection(db, 'routineTemplates'), dataToSave);
             toast({ title: 'Template Saved!', description: `"${templateName}" has been added to your library.` });
         } catch (error) {
@@ -157,7 +164,7 @@ export function CoachRoutineManagement({ routines }: Props) {
                                             For {routine.userName} on {format(routine.routineDate, 'PPP')}
                                         </p>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1">
                                         <Button variant="ghost" size="icon" onClick={() => handleSaveAsTemplate(routine)}>
                                             <Copy className="h-4 w-4" />
                                         </Button>
