@@ -51,7 +51,6 @@ function CoachDashboard() {
     const membersQuery = query(
       collection(db, 'users'),
       where('gymId', '==', activeMembership.gymId),
-      where('role', '==', 'member')
     );
     const unsubscribeMembers = onSnapshot(membersQuery, (snapshot) => {
       const fetchedMembers = snapshot.docs.map(doc => {
@@ -183,10 +182,15 @@ function CoachDashboard() {
               )}
             </TabsContent>
             <TabsContent value="manage">
-              {isLoadingRoutines ? (
+              {isLoadingData || isLoadingRoutines ? (
                   <Skeleton className="h-96 w-full mt-4" />
               ) : (
-                  <CoachRoutineManagement routines={routines} onEdit={handleEditRoutine} initialMemberId={initialMemberId} />
+                  <CoachRoutineManagement 
+                    routines={routines} 
+                    members={members}
+                    routineTypes={routineTypes}
+                    onEdit={handleEditRoutine} 
+                    initialMemberId={initialMemberId} />
               )}
             </TabsContent>
           </Tabs>
