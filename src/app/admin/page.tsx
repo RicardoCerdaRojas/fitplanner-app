@@ -242,12 +242,12 @@ export default function AdminDashboardPage() {
                                         <BarChart data={ageDistribution} accessibilityLayer>
                                             <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
                                             <YAxis hide />
-                                            <Tooltip content={<ChartTooltipContent />} />
+                                            <Tooltip content={<ChartTooltipContent hideIndicator />} />
                                             <Bar dataKey="count" fill="var(--color-count)" radius={4}>
                                                 <LabelList 
-                                                    position="top" 
-                                                    offset={5} 
-                                                    className="fill-foreground" 
+                                                    position="insideTop"
+                                                    offset={10}
+                                                    className="fill-white"
                                                     fontSize={12} 
                                                 />
                                             </Bar>
