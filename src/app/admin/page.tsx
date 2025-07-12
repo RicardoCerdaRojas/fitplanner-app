@@ -9,7 +9,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, Timestamp, getCountFromServer } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Users, UserPlus, ClipboardList, Activity } from 'lucide-react';
-import { BarChart, ResponsiveContainer, Tooltip, Legend, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { BarChart, ResponsiveContainer, Tooltip, Legend, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import { ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
@@ -26,12 +26,19 @@ type Routine = {
 };
 
 const ageChartConfig: ChartConfig = {
+  members: { label: 'Members', color: 'hsl(var(--chart-1))' },
+};
+const genderChartConfig: ChartConfig = {
   male: { label: 'Male', color: 'hsl(var(--chart-2))' },
   female: { label: 'Female', color: 'hsl(var(--chart-1))' },
 };
 const routineChartConfig: ChartConfig = {
   count: { label: "Assignments", color: "hsl(var(--chart-2))" },
 }
+const GENDER_COLORS = [
+    'hsl(var(--chart-1))',
+    'hsl(var(--chart-2))',
+];
 
 const calculateAge = (dob: Date): number => {
     const today = new Date();
@@ -51,7 +58,8 @@ export default function AdminDashboardPage() {
     const [coachCount, setCoachCount] = useState(0);
     const [pendingCount, setPendingCount] = useState(0);
     const [routinesThisMonth, setRoutinesThisMonth] = useState(0);
-    const [ageDistribution, setAgeDistribution] = useState<{ name: string; male: number; female: number; }[]>([]);
+    const [ageDistribution, setAgeDistribution] = useState<{ name: string; members: number; }[]>([]);
+    const [genderDistribution, setGenderDistribution] = useState<{ name: string; value: number; fill: string; }[]>([]);
     const [topRoutines, setTopRoutines] = useState<{ name: string; count: number; }[]>([]);
     const [activeNow, setActiveNow] = useState(0);
 
@@ -76,28 +84,28 @@ export default function AdminDashboardPage() {
             setCoachCount(users.filter(u => u.role === 'coach').length);
 
             // Age and Gender distribution
-            const ageGroups: Record<string, { male: number; female: number }> = {
-                '<30': { male: 0, female: 0 },
-                '30-39': { male: 0, female: 0 },
-                '40-49': { male: 0, female: 0 },
-                '50+': { male: 0, female: 0 },
+            const ageGroups: Record<string, number> = {
+                '<30': 0, '30-39': 0, '40-49': 0, '50+': 0,
             };
+            const genderCounts: Record<string, number> = { male: 0, female: 0, other: 0 };
 
             users.forEach(user => {
-                if(user.dob && user.gender && (user.gender === 'male' || user.gender === 'female')) {
+                if(user.dob) {
                     const age = calculateAge(user.dob.toDate());
-                    let ageGroupKey: string;
-                    if (age < 30) ageGroupKey = '<30';
-                    else if (age >= 30 && age < 40) ageGroupKey = '30-39';
-                    else if (age >= 40 && age < 50) ageGroupKey = '40-49';
-                    else ageGroupKey = '50+';
-                    
-                    if (ageGroups[ageGroupKey]) {
-                        ageGroups[ageGroupKey][user.gender]++;
-                    }
+                    if (age < 30) ageGroups['<30']++;
+                    else if (age >= 30 && age < 40) ageGroups['30-39']++;
+                    else if (age >= 40 && age < 50) ageGroups['40-49']++;
+                    else ageGroups['50+']++;
+                }
+                if (user.gender && (user.gender === 'male' || user.gender === 'female' || user.gender === 'other')) {
+                    genderCounts[user.gender]++;
                 }
             });
-            setAgeDistribution(Object.entries(ageGroups).map(([name, counts]) => ({ name, ...counts })));
+            setAgeDistribution(Object.entries(ageGroups).map(([name, count]) => ({ name, members: count })));
+            setGenderDistribution([
+                { name: 'Female', value: genderCounts.female, fill: GENDER_COLORS[0]},
+                { name: 'Male', value: genderCounts.male, fill: GENDER_COLORS[1] }
+            ].filter(g => g.value > 0));
         });
 
         // Pending memberships
@@ -208,30 +216,61 @@ export default function AdminDashboardPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Member Demographics</CardTitle>
-                                <CardDescription>A breakdown of your members by age and gender.</CardDescription>
+                                <CardTitle>Gender Distribution</CardTitle>
+                                <CardDescription>A breakdown of your members by gender.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                {ageDistribution.some(d => d.male > 0 || d.female > 0) ? (
-                                    <ChartContainer config={ageChartConfig} className="h-[250px] w-full">
-                                        <BarChart data={ageDistribution} accessibilityLayer>
-                                            <CartesianGrid vertical={false} />
-                                            <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
-                                            <YAxis />
-                                            <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                                            <Legend content={<ChartLegendContent />} />
-                                            <Bar dataKey="female" fill="var(--color-female)" radius={4} />
-                                            <Bar dataKey="male" fill="var(--color-male)" radius={4} />
-                                        </BarChart>
+                                {genderDistribution.some(d => d.value > 0) ? (
+                                    <ChartContainer config={genderChartConfig} className="h-[250px] w-full flex items-center justify-center">
+                                        <PieChart>
+                                            <Tooltip content={<ChartTooltipContent />} />
+                                            <Pie
+                                                data={genderDistribution}
+                                                dataKey="value"
+                                                nameKey="name"
+                                                cx="50%"
+                                                cy="50%"
+                                                outerRadius={80}
+                                                label={({ name, value }) => `${name} (${value})`}
+                                            >
+                                                {genderDistribution.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                                                ))}
+                                            </Pie>
+                                            <Legend />
+                                        </PieChart>
                                     </ChartContainer>
                                 ) : (
                                     <div className="h-[250px] flex items-center justify-center">
-                                        <p className="text-muted-foreground">No member demographic data available.</p>
+                                        <p className="text-muted-foreground">No gender data available.</p>
                                     </div>
                                 )}
                             </CardContent>
                         </Card>
                          <Card>
+                            <CardHeader>
+                                <CardTitle>Age Distribution</CardTitle>
+                                <CardDescription>A breakdown of your members by age.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {ageDistribution.some(d => d.members > 0) ? (
+                                    <ChartContainer config={ageChartConfig} className="h-[250px] w-full">
+                                         <BarChart data={ageDistribution} accessibilityLayer>
+                                            <CartesianGrid vertical={false} />
+                                            <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
+                                            <YAxis />
+                                            <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                                            <Bar dataKey="members" fill="var(--color-members)" radius={4} />
+                                        </BarChart>
+                                    </ChartContainer>
+                                ) : (
+                                    <div className="h-[250px] flex items-center justify-center">
+                                        <p className="text-muted-foreground">No age data available.</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                        <Card className="lg:col-span-2">
                             <CardHeader>
                                 <CardTitle>Top Routine Types</CardTitle>
                                 <CardDescription>The most frequently assigned routine types.</CardDescription>
