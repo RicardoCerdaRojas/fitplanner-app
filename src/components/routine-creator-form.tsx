@@ -73,34 +73,31 @@ function RoutineDetailsForm() {
 
 function BlockForm({ blockIndex }: { blockIndex: number }) {
     const { form, removeBlock } = useRoutineCreator();
-    const { control, watch } = form;
-    const blockName = watch(`blocks.${blockIndex}.name`);
+    const { control } = form;
     
     return (
-        <Card className="bg-card">
+        <Card className="bg-muted/30">
              <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-6">
-                    <div>
-                        <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="sr-only">Block Name</FormLabel>
-                                <FormControl>
-                                    <Input 
-                                        placeholder="e.g., Warm-up" 
-                                        className="text-xl font-bold border-none shadow-none -ml-3 p-0 focus-visible:ring-0 h-auto bg-transparent focus:bg-muted/50 rounded-md px-2" 
-                                        {...field} 
-                                    />
-                                </FormControl>
-                                <FormMessage className="ml-2" />
-                            </FormItem>
-                        )} />
-                    </div>
+                    <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="sr-only">Block Name</FormLabel>
+                            <FormControl>
+                                <Input 
+                                    placeholder="e.g., Warm-up" 
+                                    className="text-xl font-bold border-none shadow-none -ml-3 p-0 focus-visible:ring-0 h-auto bg-transparent focus:bg-muted/50 rounded-md px-2" 
+                                    {...field} 
+                                />
+                            </FormControl>
+                            <FormMessage className="ml-2" />
+                        </FormItem>
+                    )} />
                     <Button type="button" variant="ghost" size="icon" onClick={() => removeBlock(blockIndex)} className="text-muted-foreground hover:text-destructive shrink-0">
                         <Trash2 className="w-5 h-5"/>
                     </Button>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-6">
                     <FormField control={control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (
                         <FormItem>
                             <FormLabel className="font-semibold text-card-foreground">Sets</FormLabel>
@@ -177,7 +174,7 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
                     )}
                     <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`} render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Weight (kg)</FormLabel>
+                            <FormLabel>Weight</FormLabel>
                             <FormControl>
                                 <Input placeholder="e.g. Bodyweight or 50" {...field} />
                             </FormControl>
