@@ -60,9 +60,11 @@ export type ExerciseFormValues = z.infer<typeof exerciseSchema>;
 type RoutineCreatorContextType = {
   form: ReturnType<typeof useForm<RoutineFormValues>>;
   blockFields: any[];
+  exerciseFields: (blockIndex: number) => any[];
   appendBlock: (block: BlockFormValues) => void;
   removeBlock: (index: number) => void;
-  onAddExercise: (blockIndex: number) => void;
+  appendExercise: (blockIndex: number, exercise: ExerciseFormValues) => void;
+  removeExercise: (blockIndex: number, exerciseIndex: number) => void;
   activeSelection: { type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number };
   setActiveSelection: React.Dispatch<React.SetStateAction<{ type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number }>>;
   members: Member[];
@@ -145,23 +147,31 @@ export function CoachRoutineCreator() {
     name: 'blocks',
   });
 
-  const { fields: exerciseFields, append: appendExercise } = useFieldArray({
-    control,
-    name: `blocks.${activeSelection.blockIndex}.exercises`
+  const exerciseFieldArrayHooks = blockFields.map((_, index) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    return useFieldArray({
+      control,
+      name: `blocks.${index}.exercises`
+    });
   });
 
+  const appendExercise = (blockIndex: number, exercise: ExerciseFormValues) => {
+    exerciseFieldArrayHooks[blockIndex].append(exercise);
+  };
+  
+  const removeExercise = (blockIndex: number, exerciseIndex: number) => {
+    exerciseFieldArrayHooks[blockIndex].remove(exerciseIndex);
+  };
+
+  const exerciseFields = (blockIndex: number) => {
+    return exerciseFieldArrayHooks[blockIndex].fields;
+  };
+
   const onAddExercise = (blockIndex: number) => {
-    const exercises = form.getValues(`blocks.${blockIndex}.exercises`);
+    const exercises = getValues(`blocks.${blockIndex}.exercises`);
     const newExerciseIndex = exercises.length;
-    
-    // This is a bit of a hack, but we need to use a different useFieldArray instance
-    // for the block we're adding to. This is not ideal but works around react-hook-form limitations.
-    // A better solution would involve a more complex state management.
-    // For now, let's just append to the active block
-    if (blockIndex === activeSelection.blockIndex) {
-        appendExercise(defaultExerciseValues);
-        setActiveSelection({ type: 'exercise', blockIndex: blockIndex, exerciseIndex: newExerciseIndex });
-    }
+    appendExercise(blockIndex, defaultExerciseValues);
+    setActiveSelection({ type: 'exercise', blockIndex: blockIndex, exerciseIndex: newExerciseIndex });
   };
 
 
@@ -311,9 +321,11 @@ export function CoachRoutineCreator() {
   const contextValue: RoutineCreatorContextType = {
     form,
     blockFields,
+    exerciseFields,
     appendBlock,
     removeBlock,
-    onAddExercise: onAddExercise,
+    appendExercise,
+    removeExercise,
     activeSelection,
     setActiveSelection,
     members,
@@ -323,7 +335,7 @@ export function CoachRoutineCreator() {
     onCloseNav: () => isMobile && setIsNavOpen(false),
     step,
     setStep,
-    canProceed
+    canProceed,
   };
   
   if (isDataLoading || authLoading) {
@@ -366,40 +378,34 @@ export function CoachRoutineCreator() {
             </Card>
         )}
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {step === 2 ? (
-                <div className="flex flex-col md:flex-row gap-4 md:gap-8">
-                {isMobile ? (
-                    <Sheet open={isNavOpen} onOpenChange={setIsNavOpen}>
-                    <SheetTrigger asChild>
-                        <Button variant="outline" className="md:hidden flex items-center gap-2 font-semibold">
-                            <PanelLeft />
-                            Routine Navigation
-                        </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-[300px] p-0">
-                        <SheetHeader className="p-4 border-b">
-                        <SheetTitle>Routine Structure</SheetTitle>
-                        </SheetHeader>
-                        <RoutineCreatorNav />
-                    </SheetContent>
-                    </Sheet>
-                ) : (
-                    <div className="w-full md:w-1/3 lg:w-1/4">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-8">
+            {step === 2 && (isMobile ? (
+                <Sheet open={isNavOpen} onOpenChange={setIsNavOpen}>
+                <SheetTrigger asChild>
+                    <Button variant="outline" className="md:hidden flex items-center gap-2 font-semibold">
+                        <PanelLeft />
+                        Routine Navigation
+                    </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[300px] p-0">
+                    <SheetHeader className="p-4 border-b">
+                    <SheetTitle>Routine Structure</SheetTitle>
+                    </SheetHeader>
                     <RoutineCreatorNav />
-                    </div>
-                )}
-                
-                <div className="flex-1">
-                    <RoutineCreatorForm />
-                </div>
-                </div>
+                </SheetContent>
+                </Sheet>
             ) : (
-                <RoutineCreatorForm />
-            )}
-          </form>
-        </Form>
+                <div className="w-full md:w-1/3 lg:w-1/4">
+                <RoutineCreatorNav />
+                </div>
+            ))}
+            
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex-1">
+                    <RoutineCreatorForm />
+                </form>
+            </Form>
+        </div>
       </div>
     </RoutineCreatorContext.Provider>
   );

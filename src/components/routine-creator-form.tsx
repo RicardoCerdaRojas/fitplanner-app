@@ -9,16 +9,15 @@ import { Input } from '@/components/ui/input';
 import { Calendar as CalendarIcon, Plus, ArrowRight, Library, FilePlus, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useRoutineCreator } from './coach-routine-creator';
+import { useRoutineCreator, defaultExerciseValues } from './coach-routine-creator';
 import { StepperInput } from './ui/stepper-input';
-import { useFieldArray } from 'react-hook-form';
 import { useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { MemberCombobox } from '@/components/ui/member-combobox';
 
 
 const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerciseIndex: number }) => {
-    const { form, onAddExercise } = useRoutineCreator();
+    const { form, appendExercise } = useRoutineCreator();
     const { control, setValue, watch } = form;
     
     const repType = watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`);
@@ -41,7 +40,7 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
             <CardHeader>
                 <div className="flex justify-between items-center">
                     <CardTitle>Editing Exercise</CardTitle>
-                    <Button variant="outline" size="sm" onClick={() => onAddExercise(blockIndex)}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => appendExercise(blockIndex, defaultExerciseValues)}>
                         <Plus className="mr-2 h-4 w-4" />
                         Add Exercise
                     </Button>
@@ -91,7 +90,7 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
 
 
 const Step1RoutineDetails = () => {
-    const { form, routineTypes, setStep, canProceed } = useRoutineCreator();
+    const { form, routineTypes, setStep, canProceed, members } = useRoutineCreator();
     const { control } = form;
 
     return (
@@ -101,19 +100,15 @@ const Step1RoutineDetails = () => {
                 <CardDescription>Select the type of routine and the date it should be performed.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Placeholder for routine library selection */}
-                    <Card className="flex flex-col items-center justify-center p-6 text-center border-dashed border-2 hover:border-primary transition-colors cursor-not-allowed opacity-50">
-                        <Library className="h-8 w-8 text-muted-foreground mb-2" />
-                        <h3 className="font-semibold">From Library</h3>
-                        <p className="text-sm text-muted-foreground">Coming Soon</p>
-                    </Card>
-                    <Card className="flex flex-col items-center justify-center p-6 text-center border-dashed border-2 hover:border-primary transition-colors cursor-pointer border-primary">
-                        <FilePlus className="h-8 w-8 text-primary mb-2" />
-                        <h3 className="font-semibold">Create New</h3>
-                        <p className="text-sm text-muted-foreground">Build a custom routine</p>
-                    </Card>
-                </div>
+                 <FormField
+                    control={control}
+                    name="memberId"
+                    render={({ field }) => (
+                        <FormItem>
+                             <MemberCombobox members={members} value={field.value} onChange={field.onChange} />
+                             <FormMessage/>
+                        </FormItem>
+                 )} />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <FormField control={control} name="routineTypeId" render={({ field }) => (
@@ -148,7 +143,7 @@ const Step1RoutineDetails = () => {
                 </div>
             </CardContent>
              <CardFooter className="flex justify-end">
-                <Button onClick={() => setStep(2)} disabled={!canProceed}>
+                <Button type="button" onClick={() => setStep(2)} disabled={!canProceed}>
                     Next: Build Routine <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
             </CardFooter>
@@ -157,10 +152,12 @@ const Step1RoutineDetails = () => {
 }
 
 export function RoutineCreatorForm() {
-    const { form, activeSelection, members, isSubmitting, step, setStep, setActiveSelection, onAddExercise } = useRoutineCreator();
+    const { form, activeSelection, isSubmitting, step, setStep, setActiveSelection, appendExercise, members } = useRoutineCreator();
     const { control, getValues } = form;
     
-    const exerciseFields = getValues(`blocks.${activeSelection.blockIndex}.exercises`);
+    const allBlocks = getValues('blocks');
+    const activeBlock = allBlocks?.[activeSelection.blockIndex];
+    const exerciseFields = activeBlock?.exercises || [];
     
     useEffect(() => {
         // When block changes, reset exercise selection to avoid showing exercise form
@@ -169,11 +166,9 @@ export function RoutineCreatorForm() {
         }
     }, [activeSelection.blockIndex, activeSelection.type, setActiveSelection]);
 
-    const blockFields = getValues('blocks');
-    const activeBlock = blockFields?.[activeSelection.blockIndex];
 
     const handleAddExerciseClick = () => {
-        onAddExercise(activeSelection.blockIndex);
+        appendExercise(activeSelection.blockIndex, defaultExerciseValues);
     };
 
     if (step === 1) {
@@ -187,20 +182,6 @@ export function RoutineCreatorForm() {
 
     return (
         <div className="space-y-6">
-            <Card>
-                <CardContent className="p-4">
-                     <FormField
-                        control={control}
-                        name="memberId"
-                        render={({ field }) => (
-                            <FormItem>
-                                 <MemberCombobox members={members} value={field.value} onChange={field.onChange} />
-                                 <FormMessage/>
-                            </FormItem>
-                     )} />
-                </CardContent>
-            </Card>
-
             
             {activeSelection.type === 'block' && activeSelection.exerciseIndex === undefined && (
                 <Card>
@@ -224,6 +205,7 @@ export function RoutineCreatorForm() {
                                     <div key={index} className="flex items-center justify-between p-2 rounded-md bg-muted/50 text-sm">
                                         <span>{getValues(`blocks.${activeSelection.blockIndex}.exercises.${index}.name`) || 'Untitled Exercise'}</span>
                                         <Button
+                                        type="button"
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => setActiveSelection({ type: 'exercise', blockIndex: activeSelection.blockIndex, exerciseIndex: index})}
@@ -235,7 +217,7 @@ export function RoutineCreatorForm() {
                              ) : (
                                 <p className="text-sm text-muted-foreground p-2 text-center">No exercises in this block yet.</p>
                              )}
-                             <Button variant="outline" size="sm" className="w-full justify-center" onClick={handleAddExerciseClick}>
+                             <Button type="button" variant="outline" size="sm" className="w-full justify-center" onClick={handleAddExerciseClick}>
                                 <Plus className="mr-2 h-4 w-4" /> Add another exercise
                             </Button>
                           </div>
