@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm, useFieldArray, FormProvider } from 'react-hook-form';
@@ -127,7 +128,7 @@ export function CoachRoutineCreator() {
     mode: 'onBlur'
   });
 
-  const { control, getValues, setValue, handleSubmit } = form;
+  const { control, getValues, setValue, handleSubmit, reset } = form;
 
   const { fields: blockFields, append: appendBlock, remove: removeBlock } = useFieldArray({
     control,
@@ -135,7 +136,7 @@ export function CoachRoutineCreator() {
   });
 
   const appendExercise = useCallback((blockIndex: number) => {
-    const currentExercises = getValues(`blocks.${blockIndex}.exercises`);
+    const currentExercises = getValues(`blocks.${blockIndex}.exercises`) || [];
     const newExerciseName = `Exercise ${currentExercises.length + 1}`;
     const newExercise = { name: newExerciseName, ...defaultExerciseValues };
     setValue(`blocks.${blockIndex}.exercises`, [...currentExercises, newExercise], { shouldValidate: true });
@@ -146,7 +147,13 @@ export function CoachRoutineCreator() {
     const currentExercises = getValues(`blocks.${blockIndex}.exercises`);
     const newExercises = currentExercises.filter((_, i) => i !== exerciseIndex);
     setValue(`blocks.${blockIndex}.exercises`, newExercises, { shouldValidate: true });
-    setActiveSelection({ type: 'block', index: blockIndex });
+    
+    // After removing, set focus back to the block or the previous exercise if available
+    if (newExercises.length > 0) {
+        setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: Math.max(0, exerciseIndex - 1) });
+    } else {
+        setActiveSelection({ type: 'block', index: blockIndex });
+    }
   }, [getValues, setValue]);
   
   const onFormSubmit = handleSubmit(async (values) => {
@@ -283,8 +290,8 @@ export function CoachRoutineCreator() {
   }, [authLoading, activeMembership, editRoutineId, router, toast]);
 
   useEffect(() => {
-      form.reset(defaultValues);
-  }, [routineToEdit, form, defaultValues]);
+      reset(defaultValues);
+  }, [routineToEdit, reset, defaultValues]);
   
 
   const contextValue: RoutineCreatorContextType = {
@@ -318,9 +325,8 @@ export function CoachRoutineCreator() {
         <RoutineCreatorLayout
           sidebar={<Skeleton className="h-full w-full" />}
         >
-          <div className="space-y-4">
-             <Skeleton className="h-48 w-full" />
-             <Skeleton className="h-12 w-32 self-end" />
+          <div className="space-y-4 h-full">
+             <Skeleton className="h-full w-full" />
           </div>
         </RoutineCreatorLayout>
       )

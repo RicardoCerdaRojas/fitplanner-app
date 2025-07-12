@@ -101,7 +101,7 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
                     <CardTitle>Edit Exercise</CardTitle>
                      <Button type="button" variant="ghost" size="icon" onClick={() => removeExercise(blockIndex, exerciseIndex)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-5 h-5"/></Button>
                 </div>
-                 <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`} render={({ field }) => (<FormItem><FormLabel className="sr-only">Exercise Name</FormLabel><FormControl><Input placeholder="Exercise Name" className="text-xl font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                 <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`} render={({ field }) => (<FormItem><FormLabel className="sr-only">Exercise Name</FormLabel><FormControl><Input placeholder="Exercise Name" className="text-xl font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto pl-1" {...field} /></FormControl><FormMessage /></FormItem>)} />
             </CardHeader>
             <CardContent className="space-y-6">
                 <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`} render={({ field }) => (
@@ -130,12 +130,14 @@ export function RoutineCreatorForm() {
     const { activeSelection, onFormSubmit, isSubmitting, isEditing } = useRoutineCreator();
     
     return (
-        <form onSubmit={(e) => { e.preventDefault(); onFormSubmit(); }} className="space-y-6 w-full">
-            {activeSelection.type === 'details' && <RoutineDetailsForm />}
-            {activeSelection.type === 'block' && <BlockForm blockIndex={activeSelection.index} />}
-            {activeSelection.type === 'exercise' && <ExerciseForm blockIndex={activeSelection.blockIndex} exerciseIndex={activeSelection.exerciseIndex} />}
+        <form onSubmit={(e) => { e.preventDefault(); onFormSubmit(); }} className="space-y-6 w-full h-full flex flex-col">
+            <div className="flex-grow">
+                {activeSelection.type === 'details' && <RoutineDetailsForm />}
+                {activeSelection.type === 'block' && <BlockForm blockIndex={activeSelection.index} />}
+                {activeSelection.type === 'exercise' && <ExerciseForm blockIndex={activeSelection.blockIndex} exerciseIndex={activeSelection.exerciseIndex} />}
+            </div>
 
-            <div className="flex justify-end pt-4 mt-6 border-t">
+            <div className="flex justify-end pt-4 mt-auto border-t">
                 <Button type="submit" size="lg" className="w-auto" disabled={isSubmitting}>
                     {isSubmitting ? 'Saving...' : (isEditing ? 'Update Routine' : 'Create Routine')}
                 </Button>
