@@ -3,7 +3,7 @@
 
 import { useRoutineCreator } from "./coach-routine-creator";
 import { Button } from "./ui/button";
-import { ArrowLeft, GripVertical, ListChecks, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ListChecks, Plus, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Separator } from "./ui/separator";
@@ -13,22 +13,22 @@ function ExercisesNavList({ blockIndex }: { blockIndex: number }) {
     const watchedExercises = form.watch(`blocks.${blockIndex}.exercises`);
 
     return (
-        <ul className="pl-4 border-l-2 ml-[1.3rem] border-primary/10 py-2 space-y-1">
+        <ul className="pl-6 border-l-2 ml-4 border-muted py-2 space-y-1">
             {(watchedExercises || []).map((_, exIndex) => {
                 const isActive = activeSelection.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === exIndex;
                 return (
                     <li key={exIndex} className="list-none">
-                        <Button 
-                            type="button" 
-                            variant="ghost" 
+                        <Button
+                            type="button"
+                            variant="ghost"
                             className={cn(
-                                "w-full justify-start h-9 px-2 text-muted-foreground hover:text-foreground",
-                                isActive && "font-semibold bg-primary/10 text-primary"
+                                "w-full justify-start h-9 px-2 text-muted-foreground hover:text-primary",
+                                isActive && "font-semibold bg-primary/10 text-primary hover:text-primary"
                             )}
                             onClick={() => setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: exIndex })}
                         >
-                           <GripVertical className="mr-2 h-4 w-4 shrink-0" />
-                           <span className="truncate">{watchedExercises?.[exIndex]?.name || `Exercise ${exIndex + 1}`}</span>
+                            <GripVertical className="mr-2 h-4 w-4 shrink-0" />
+                            <span className="truncate">{watchedExercises?.[exIndex]?.name || `Exercise ${exIndex + 1}`}</span>
                         </Button>
                     </li>
                 );
@@ -42,6 +42,7 @@ function ExercisesNavList({ blockIndex }: { blockIndex: number }) {
     );
 }
 
+
 export function RoutineCreatorNav() {
     const { isEditing, activeSelection, setActiveSelection, blockFields, appendBlock, form } = useRoutineCreator();
     const router = useRouter();
@@ -49,7 +50,7 @@ export function RoutineCreatorNav() {
     return (
         <div className="space-y-4 flex flex-col h-full p-1">
             <div>
-                 <Button variant="ghost" onClick={() => router.push('/coach')} className="w-full justify-start text-sm text-muted-foreground hover:text-foreground -ml-2 mb-4">
+                 <Button variant="ghost" onClick={() => router.push('/coach')} className="w-full justify-start text-sm text-muted-foreground hover:text-foreground mb-4">
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back to All Routines
                 </Button>
                 <div className="px-1">
@@ -73,8 +74,8 @@ export function RoutineCreatorNav() {
                         </Button>
                     </li>
                     {blockFields.map((field, index) => {
-                        const isChildExerciseActive = (activeSelection.type === 'exercise' && activeSelection.blockIndex === index);
-                        const isActive = (activeSelection.type === 'block' && activeSelection.index === index) || isChildExerciseActive;
+                        const isActive = (activeSelection.type === 'block' && activeSelection.index === index) || 
+                                       (activeSelection.type === 'exercise' && activeSelection.blockIndex === index);
                         
                         return (
                             <li key={field.id} className="list-none">
@@ -83,8 +84,7 @@ export function RoutineCreatorNav() {
                                     variant={'ghost'}
                                     className={cn(
                                         "w-full justify-start font-semibold h-10 px-3",
-                                        isActive && activeSelection.type === 'block' && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
-                                        isChildExerciseActive && "bg-primary/10 text-primary"
+                                        isActive && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
                                     )}
                                     onClick={() => setActiveSelection({ type: 'block', index })}
                                 >
@@ -107,3 +107,5 @@ export function RoutineCreatorNav() {
         </div>
     )
 }
+
+    

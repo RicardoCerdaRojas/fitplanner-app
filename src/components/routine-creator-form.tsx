@@ -7,7 +7,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/comp
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
-import { Calendar as CalendarIcon, Trash2, Edit } from 'lucide-react';
+import { Calendar as CalendarIcon, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useRoutineCreator } from './coach-routine-creator';
@@ -74,46 +74,32 @@ function RoutineDetailsForm() {
 function BlockForm({ blockIndex }: { blockIndex: number }) {
     const { form, removeBlock } = useRoutineCreator();
     const { control } = form;
-    
+    const blockName = form.watch(`blocks.${blockIndex}.name`);
+
     return (
-        <Card className="bg-muted/30">
-             <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-6">
-                    <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="sr-only">Block Name</FormLabel>
-                            <FormControl>
-                                <Input 
-                                    placeholder="e.g., Warm-up" 
-                                    className="text-xl font-bold border-none shadow-none -ml-3 p-0 focus-visible:ring-0 h-auto bg-transparent focus:bg-muted/50 rounded-md px-2" 
-                                    {...field} 
-                                />
-                            </FormControl>
-                            <FormMessage className="ml-2" />
-                        </FormItem>
-                    )} />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeBlock(blockIndex)} className="text-muted-foreground hover:text-destructive shrink-0">
-                        <Trash2 className="w-5 h-5"/>
-                    </Button>
-                </div>
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                 <CardTitle className="text-xl font-bold">{blockName}</CardTitle>
+                 <Button type="button" variant="ghost" size="icon" onClick={() => removeBlock(blockIndex)} className="text-muted-foreground hover:text-destructive shrink-0">
+                    <Trash2 className="w-5 h-5"/>
+                </Button>
+            </CardHeader>
+             <CardContent className="space-y-6">
+                <FormField control={control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="font-semibold text-card-foreground">Sets</FormLabel>
+                        <FormControl>
+                            <StepperInput field={field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
 
-                <div className="space-y-6">
-                    <FormField control={control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="font-semibold text-card-foreground">Sets</FormLabel>
-                            <FormControl>
-                                <StepperInput field={field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
+                <Separator className="my-6" />
 
-                    <Separator className="my-6" />
-
-                    <p className="text-sm text-muted-foreground text-center">
-                        Select an exercise from the left panel to edit its details.
-                    </p>
-                </div>
+                <p className="text-sm text-muted-foreground text-center">
+                    Select an exercise from the left panel to edit its details.
+                </p>
             </CardContent>
         </Card>
     )
@@ -130,7 +116,7 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
                     <FormItem className='flex-1'>
                         <FormLabel className="sr-only">Exercise Name</FormLabel>
                         <FormControl>
-                            <Input placeholder="Exercise Name" className="text-xl font-bold border-none shadow-none focus-visible:ring-0 pl-2 pr-2 h-auto bg-transparent focus:bg-muted/50 rounded-md" {...field} />
+                            <Input placeholder="Exercise Name" className="text-xl font-bold border-none shadow-none focus-visible:ring-0 -ml-2 h-auto bg-transparent focus:bg-muted/50 rounded-md" {...field} />
                         </FormControl>
                         <FormMessage className="pl-2" />
                     </FormItem>
@@ -176,7 +162,7 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
                         <FormItem>
                             <FormLabel>Weight</FormLabel>
                             <FormControl>
-                                <Input placeholder="e.g. Bodyweight or 50" {...field} />
+                                <StepperInput field={field} allowText={true} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -207,3 +193,5 @@ export function RoutineCreatorForm() {
         </div>
     );
 }
+
+    

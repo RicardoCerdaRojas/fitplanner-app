@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useForm, FormProvider, useFieldArray } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState, useMemo, useEffect, createContext, useContext, useCallback } from 'react';
@@ -9,7 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { addDoc, collection, Timestamp, doc, updateDoc, onSnapshot, getDoc, query, where, orderBy } from 'firebase/firestore';
+import { addDoc, collection, Timestamp, doc, updateDoc, onSnapshot, getDoc, query, where, orderBy, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Member } from '@/app/coach/page';
 import type { ManagedRoutine } from './coach-routine-management';
@@ -19,6 +19,7 @@ import { RoutineCreatorForm } from './routine-creator-form';
 import { RoutineCreatorNav } from './routine-creator-nav';
 import { Button } from './ui/button';
 import { RoutineCreatorLayout } from './routine-creator-layout';
+import { useFieldArray } from 'react-hook-form';
 
 
 const exerciseSchema = z.object({
@@ -64,7 +65,7 @@ type RoutineCreatorContextType = {
   isSubmitting: boolean;
   activeSelection: ActiveSelection;
   setActiveSelection: React.Dispatch<React.SetStateAction<ActiveSelection>>;
-  blockFields: ReturnType<typeof useForm<RoutineFormValues>>['getValues']['blocks'];
+  blockFields: ReturnType<typeof useFieldArray>['fields'];
   appendBlock: (block: Partial<BlockFormValues>) => void;
   removeBlock: (index: number) => void;
   appendExercise: (blockIndex: number) => void;
@@ -131,7 +132,7 @@ export function CoachRoutineCreator() {
 
   const { control, getValues, setValue, handleSubmit, reset } = form;
 
-  const { fields: blockFields, append, remove } = useFieldArray({
+  const { fields: blockFields, append, remove, update } = useFieldArray({
     control,
     name: 'blocks',
   });
@@ -143,32 +144,43 @@ export function CoachRoutineCreator() {
 
   const removeBlock = useCallback((index: number) => {
     remove(index);
-    if (activeSelection.type === 'block' && activeSelection.index === index) {
-      setActiveSelection({ type: 'details' });
-    } else if (activeSelection.type === 'exercise' && activeSelection.blockIndex === index) {
-      setActiveSelection({ type: 'details' });
+    if ((activeSelection.type === 'block' && activeSelection.index === index) || (activeSelection.type === 'exercise' && activeSelection.blockIndex === index)) {
+        setActiveSelection({ type: 'details' });
+    } else if ((activeSelection.type === 'block' && activeSelection.index > index) || (activeSelection.type === 'exercise' && activeSelection.blockIndex > index)) {
+        // Adjust active selection if it's after the removed block
+        if (activeSelection.type === 'block') {
+            setActiveSelection({ type: 'block', index: activeSelection.index - 1 });
+        }
+        if (activeSelection.type === 'exercise') {
+            setActiveSelection({ type: 'exercise', blockIndex: activeSelection.blockIndex - 1, exerciseIndex: activeSelection.exerciseIndex });
+        }
     }
   }, [remove, activeSelection]);
   
   const appendExercise = useCallback((blockIndex: number) => {
-    const currentExercises = getValues(`blocks.${blockIndex}.exercises`) || [];
-    const newExerciseName = `Exercise ${currentExercises.length + 1}`;
-    const newExercise = { name: newExerciseName, ...defaultExerciseValues };
-    setValue(`blocks.${blockIndex}.exercises`, [...currentExercises, newExercise], { shouldValidate: true });
-    setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: currentExercises.length });
-  }, [getValues, setValue]);
+    const currentBlock = getValues(`blocks.${blockIndex}`);
+    const newExerciseName = `Exercise ${currentBlock.exercises.length + 1}`;
+    const newExercise: ExerciseFormValues = { name: newExerciseName, ...defaultExerciseValues };
+    
+    const updatedExercises = [...currentBlock.exercises, newExercise];
+    const updatedBlock = { ...currentBlock, exercises: updatedExercises };
+    update(blockIndex, updatedBlock);
+
+    setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: currentBlock.exercises.length });
+  }, [getValues, update]);
 
   const removeExercise = useCallback((blockIndex: number, exerciseIndex: number) => {
-    const currentExercises = getValues(`blocks.${blockIndex}.exercises`);
-    const newExercises = currentExercises.filter((_, i) => i !== exerciseIndex);
-    setValue(`blocks.${blockIndex}.exercises`, newExercises, { shouldValidate: true });
+    const currentBlock = getValues(`blocks.${blockIndex}`);
+    const newExercises = currentBlock.exercises.filter((_, i) => i !== exerciseIndex);
+    const updatedBlock = { ...currentBlock, exercises: newExercises };
+    update(blockIndex, updatedBlock);
     
     if (newExercises.length > 0) {
         setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: Math.max(0, exerciseIndex - 1) });
     } else {
         setActiveSelection({ type: 'block', index: blockIndex });
     }
-  }, [getValues, setValue]);
+  }, [getValues, update]);
   
   const onFormSubmit = handleSubmit(async (values) => {
     if (!user) {
@@ -357,3 +369,5 @@ export function CoachRoutineCreator() {
     </RoutineCreatorContext.Provider>
   );
 }
+
+    
