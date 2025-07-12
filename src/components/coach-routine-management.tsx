@@ -85,14 +85,16 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
     const [templateName, setTemplateName] = useState('');
     
     const handleOpenTemplateDialog = (routine: ManagedRoutine) => {
-        setTemplateName(routine.routineTypeName || routine.routineName || 'New Template');
         setRoutineToTemplate(routine);
     };
 
     const handleSaveAsTemplate = async () => {
         if (!routineToTemplate) return;
-        if (!templateName || templateName.trim() === '') {
-            toast({ variant: 'destructive', title: 'Invalid Name', description: 'Template name cannot be empty.' });
+        
+        const name = prompt('Enter a name for the new template:', routineToTemplate.routineTypeName || 'New Template');
+        
+        if (!name || name.trim() === '') {
+            toast({ variant: 'destructive', title: 'Cancelled', description: 'Template name cannot be empty.' });
             return;
         }
 
@@ -102,18 +104,17 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                 
                 const dataToSave = {
                     ...templateData,
-                    templateName,
+                    templateName: name,
                     createdAt: Timestamp.now(),
                 };
                 
                 await addDoc(collection(db, 'routineTemplates'), dataToSave);
-                toast({ title: 'Template Saved!', description: `"${templateName}" has been added to your library.` });
+                toast({ title: 'Template Saved!', description: `"${name}" has been added to your library.` });
             } catch (error) {
                 console.error("Error saving template:", error);
                 toast({ variant: "destructive", title: "Error", description: "Could not save the routine as a template." });
             } finally {
                 setRoutineToTemplate(null);
-                setTemplateName('');
             }
         });
     };
@@ -202,7 +203,7 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                          </DialogDescription>
                      </DialogHeader>
                      <ScrollArea className="max-h-[70vh]">
-                        <div className="space-y-4 p-1 pr-4">
+                        <div className="space-y-6 p-1 pr-4">
                             {routineToView?.blocks.map((block, blockIndex) => (
                                 <div key={blockIndex} className="p-4 rounded-lg bg-muted/50">
                                     <div className="flex justify-between items-center w-full mb-4">
@@ -212,11 +213,11 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                                             <span>{block.sets.match(/\d+/)?.[0] || block.sets}</span>
                                         </Badge>
                                     </div>
-                                    <div className="space-y-3">
+                                    <div className="space-y-4">
                                         {block.exercises.map((exercise, exIndex) => (
-                                            <div key={exIndex} className="p-3 rounded-md bg-background">
+                                            <div key={exIndex} className="flex items-center justify-between p-3 rounded-md bg-background">
                                                 <p className="font-bold text-sm uppercase text-card-foreground tracking-wider">{exercise.name}</p>
-                                                <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-muted-foreground mt-2">
+                                                <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
                                                     {exercise.repType === 'reps' && exercise.reps && (
                                                         <div className="flex items-center gap-1.5 font-medium text-foreground"><Repeat className="w-4 h-4 text-primary" /><span>{exercise.reps} reps</span></div>
                                                     )}
@@ -401,5 +402,6 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
         </>
     );
 }
+
 
 
