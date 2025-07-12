@@ -1,26 +1,28 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRoutineCreator, defaultExerciseValues } from './coach-routine-creator';
-import { useFieldArray, type Control, type UseFormGetValues } from 'react-hook-form';
+import { useFieldArray, type Control, type UseFormGetValues, type UseFormReturn } from 'react-hook-form';
 import type { RoutineFormValues } from './coach-routine-creator';
 
 type ExercisesNavListProps = {
     blockIndex: number;
-    control: Control<RoutineFormValues>;
-    getValues: UseFormGetValues<RoutineFormValues>;
+    form: UseFormReturn<RoutineFormValues>;
     setActiveSelection: React.Dispatch<React.SetStateAction<{ type: 'block' | 'exercise'; blockIndex: number; exerciseIndex?: number; }>>;
     onCloseNav?: () => void;
 };
 
-const ExercisesNavList = ({ blockIndex, control, getValues, setActiveSelection, onCloseNav }: ExercisesNavListProps) => {
+const ExercisesNavList = ({ blockIndex, form, setActiveSelection, onCloseNav }: ExercisesNavListProps) => {
+    const { control, watch } = form;
     const { fields, append, remove } = useFieldArray({
         control,
         name: `blocks.${blockIndex}.exercises`
     });
+
+    // Watch the exercises for this block to trigger re-renders
+    const watchedExercises = watch(`blocks.${blockIndex}.exercises`);
 
     const handleAddExercise = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -42,14 +44,15 @@ const ExercisesNavList = ({ blockIndex, control, getValues, setActiveSelection, 
         <ul className="pl-6 pr-2 py-1 space-y-1 mt-1 border-l-2 ml-4">
             {fields.map((exercise, eIndex) => {
                  const isExerciseActive = activeSelection.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === eIndex;
+                 const exerciseName = watchedExercises?.[eIndex]?.name || 'Untitled Exercise';
                  return (
                     <li key={exercise.id} className="flex items-center group/item">
                         <Button
                             variant={isExerciseActive ? 'secondary' : 'ghost'}
-                            className="w-full justify-start text-left h-auto py-1.5 px-2 text-sm font-normal flex-1"
+                            className="w-full justify-start text-left h-auto py-1.5 px-2 text-sm font-normal flex-1 truncate"
                             onClick={() => setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: eIndex })}
                         >
-                            {getValues(`blocks.${blockIndex}.exercises.${eIndex}.name`) || 'Untitled Exercise'}
+                            {exerciseName}
                         </Button>
                         <Button
                             variant="ghost"
@@ -75,16 +78,20 @@ const ExercisesNavList = ({ blockIndex, control, getValues, setActiveSelection, 
 type BlockNavItemProps = {
     blockIndex: number;
     blockId: string;
-    control: Control<RoutineFormValues>;
-    getValues: UseFormGetValues<RoutineFormValues>;
+    form: UseFormReturn<RoutineFormValues>;
     canBeRemoved: boolean;
     onRemove: (index: number) => void;
 }
 
-const BlockNavItem = ({ blockIndex, blockId, control, getValues, canBeRemoved, onRemove }: BlockNavItemProps) => {
+const BlockNavItem = ({ blockIndex, blockId, form, canBeRemoved, onRemove }: BlockNavItemProps) => {
     const { activeSelection, setActiveSelection, onCloseNav } = useRoutineCreator();
+    const { watch } = form;
+    
+    const blockName = watch(`blocks.${blockIndex}.name`);
+    const blockSets = watch(`blocks.${blockIndex}.sets`);
+    const exercises = watch(`blocks.${blockIndex}.exercises`);
+    
     const isBlockActive = activeSelection.blockIndex === blockIndex;
-    const exercises = getValues(`blocks.${blockIndex}.exercises`) || [];
 
     const handleSelect = () => {
         setActiveSelection({ type: 'block', blockIndex });
@@ -107,8 +114,8 @@ const BlockNavItem = ({ blockIndex, blockId, control, getValues, canBeRemoved, o
                     onClick={handleSelect}
                 >
                     <div className="flex-1">
-                        <p className="font-semibold">{getValues(`blocks.${blockIndex}.name`) || 'Untitled Block'}</p>
-                        <p className="text-xs text-muted-foreground">{getValues(`blocks.${blockIndex}.sets`)} sets &bull; {exercises.length || 0} exercises</p>
+                        <p className="font-semibold">{blockName || 'Untitled Block'}</p>
+                        <p className="text-xs text-muted-foreground">{blockSets} sets &bull; {exercises?.length || 0} exercises</p>
                     </div>
                 </div>
                 {canBeRemoved && (
@@ -125,8 +132,7 @@ const BlockNavItem = ({ blockIndex, blockId, control, getValues, canBeRemoved, o
             {isBlockActive && (
                 <ExercisesNavList 
                     blockIndex={blockIndex} 
-                    control={control}
-                    getValues={getValues}
+                    form={form}
                     setActiveSelection={setActiveSelection} 
                     onCloseNav={onCloseNav}
                 />
@@ -138,11 +144,13 @@ const BlockNavItem = ({ blockIndex, blockId, control, getValues, canBeRemoved, o
 
 export function RoutineCreatorNav() {
   const { 
-    form: { control, getValues },
+    form,
     activeSelection, 
     setActiveSelection, 
     onCloseNav, 
   } = useRoutineCreator();
+
+  const { control } = form;
   
   const { fields: blockFields, append: appendBlock, remove: removeBlock } = useFieldArray({
     control,
@@ -172,8 +180,7 @@ export function RoutineCreatorNav() {
                 key={block.id}
                 blockIndex={bIndex}
                 blockId={block.id}
-                control={control}
-                getValues={getValues}
+                form={form}
                 canBeRemoved={blockFields.length > 1}
                 onRemove={handleRemoveBlock}
             />
