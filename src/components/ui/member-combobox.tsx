@@ -44,64 +44,56 @@ export function MemberCombobox({ members = [], value, onChange }: MemberCombobox
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-        <div className="flex items-center gap-4">
-            <div className="flex-1 flex flex-col gap-1.5">
-                <label className="text-sm font-medium">Member</label>
-                <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-background">
-                    {selectedMember ? (
-                        <div className="flex items-center gap-2 truncate">
-                            <Avatar className="h-6 w-6"><AvatarFallback>{selectedMember.name.charAt(0)}</AvatarFallback></Avatar>
-                            <span className="font-semibold truncate">{selectedMember.name}</span>
-                        </div>
-                    ) : (
-                        <span className="text-muted-foreground">Select member...</span>
-                    )}
-                </div>
-            </div>
-            <div className="self-end">
-                <DialogTrigger asChild>
-                    <Button variant="outline">Select</Button>
-                </DialogTrigger>
-            </div>
-        </div>
-
-        <DialogContent className="p-0 gap-0">
-            <DialogHeader className="p-4 pb-2 border-b">
-                <DialogTitle>Select a Member</DialogTitle>
-            </DialogHeader>
-            <div className="p-4">
-                <Input 
-                    placeholder="Search member name or email..." 
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                />
-            </div>
-            <div className="border-t">
-                <ScrollArea className="h-72">
-                    <div className="p-2 space-y-1">
-                        {filteredMembers.length > 0 ? filteredMembers.map((member) => (
-                             <div
-                                key={member.uid}
-                                className="w-full text-left h-auto p-2 rounded-md transition-colors hover:bg-muted cursor-pointer"
-                                onClick={() => handleSelect(member.uid)}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <Avatar className="h-8 w-8">
-                                        <AvatarFallback>{member.name ? member.name.charAt(0).toUpperCase() : <User />}</AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <p className="font-semibold">{member.name}</p>
-                                        <p className="text-xs text-muted-foreground">{member.email}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )) : (
-                            <p className="text-center text-sm text-muted-foreground py-4">No members found.</p>
-                        )}
-                    </div>
-                </ScrollArea>
-            </div>
-      </DialogContent>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between h-10"
+        >
+          {selectedMember
+            ? <div className="flex items-center gap-2"><Avatar className="h-6 w-6"><AvatarFallback>{selectedMember.name.charAt(0)}</AvatarFallback></Avatar> {selectedMember.name}</div>
+            : "Select member..."}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="p-0 gap-0">
+          <DialogHeader className="p-4 pb-2 border-b">
+              <DialogTitle>Select a Member</DialogTitle>
+          </DialogHeader>
+          <div className="p-4">
+              <Input 
+                  placeholder="Search member name or email..." 
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+              />
+          </div>
+          <div className="border-t">
+              <ScrollArea className="h-72">
+                  <div className="p-2 space-y-1">
+                      {filteredMembers.length > 0 ? filteredMembers.map((member) => (
+                           <div
+                              key={member.uid}
+                              className="w-full text-left h-auto p-2 rounded-md transition-colors hover:bg-muted cursor-pointer"
+                              onClick={() => handleSelect(member.uid)}
+                          >
+                              <div className="flex items-center gap-3">
+                                  <Avatar className="h-8 w-8">
+                                      <AvatarFallback>{member.name ? member.name.charAt(0).toUpperCase() : <User />}</AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                      <p className="font-semibold">{member.name}</p>
+                                      <p className="text-xs text-muted-foreground">{member.email}</p>
+                                  </div>
+                              </div>
+                          </div>
+                      )) : (
+                          <p className="text-center text-sm text-muted-foreground py-4">No members found.</p>
+                      )}
+                  </div>
+              </ScrollArea>
+          </div>
+    </DialogContent>
     </Dialog>
   )
 }

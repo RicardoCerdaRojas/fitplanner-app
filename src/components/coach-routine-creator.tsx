@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState, useMemo, useEffect, createContext, useContext, useCallback } from 'react';
@@ -15,11 +15,10 @@ import { db } from '@/lib/firebase';
 import type { Member } from '@/app/coach/page';
 import type { ManagedRoutine } from './coach-routine-management';
 import type { RoutineType } from '@/app/admin/routine-types/page';
-import { RoutineCreatorNav } from './routine-creator-nav';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Library, FilePlus, Dumbbell } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { RoutineCreatorForm } from './routine-creator-form';
-import { RoutineCreatorLayout } from './routine-creator-layout';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 const exerciseSchema = z.object({
@@ -57,13 +56,11 @@ export type ExerciseFormValues = z.infer<typeof exerciseSchema>;
 
 type RoutineCreatorContextType = {
   form: ReturnType<typeof useForm<RoutineFormValues>>;
-  blockFields: any[];
-  appendBlock: (block: BlockFormValues) => void;
+  blockFields: ReturnType<typeof useFieldArray<RoutineFormValues, "blocks", "id">>['fields'];
+  appendBlock: (block: Partial<BlockFormValues>) => void;
   removeBlock: (index: number) => void;
   appendExercise: (blockIndex: number) => void;
   removeExercise: (blockIndex: number, exerciseIndex: number) => void;
-  activeSelection: { type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number } | null;
-  setActiveSelection: React.Dispatch<React.SetStateAction<{ type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number } | null>>;
   members: Member[];
   routineTypes: RoutineType[];
   isEditing: boolean;
@@ -84,7 +81,7 @@ export const defaultExerciseValues: Omit<ExerciseFormValues, 'name'> = {
   repType: 'reps' as const, 
   reps: '10', 
   duration: undefined,
-  weight: '5', 
+  weight: '5kg', 
   videoUrl: '' 
 };
 
@@ -98,11 +95,8 @@ export function CoachRoutineCreator() {
   const [routineTypes, setRoutineTypes] = useState<RoutineType[]>([]);
   const [routineToEdit, setRoutineToEdit] = useState<ManagedRoutine | null>(null);
   const [isDataLoading, setIsDataLoading] = useState(true);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const [activeSelection, setActiveSelection] = useState<{ type: 'block' | 'exercise', blockIndex: number, exerciseIndex?: number } | null>(null);
-
   const editRoutineId = searchParams.get('edit');
   const isEditing = !!editRoutineId;
 
@@ -136,24 +130,17 @@ export function CoachRoutineCreator() {
   });
 
   const appendExercise = useCallback((blockIndex: number) => {
-    const newExerciseName = `Exercise ${getValues(`blocks.${blockIndex}.exercises`).length + 1}`;
-    const newExercise = { name: newExerciseName, ...defaultExerciseValues };
-    
     const currentExercises = getValues(`blocks.${blockIndex}.exercises`);
+    const newExerciseName = `Exercise ${currentExercises.length + 1}`;
+    const newExercise = { name: newExerciseName, ...defaultExerciseValues };
     setValue(`blocks.${blockIndex}.exercises`, [...currentExercises, newExercise], { shouldValidate: true });
-    
-    setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: currentExercises.length });
   }, [getValues, setValue]);
 
   const removeExercise = useCallback((blockIndex: number, exerciseIndex: number) => {
     const currentExercises = getValues(`blocks.${blockIndex}.exercises`);
     const newExercises = currentExercises.filter((_, i) => i !== exerciseIndex);
     setValue(`blocks.${blockIndex}.exercises`, newExercises, { shouldValidate: true });
-    
-    if (activeSelection?.type === 'exercise' && activeSelection.blockIndex === blockIndex && activeSelection.exerciseIndex === exerciseIndex) {
-      setActiveSelection({ type: 'block', blockIndex });
-    }
-  }, [getValues, setValue, activeSelection]);
+  }, [getValues, setValue]);
 
 
   useEffect(() => {
@@ -228,7 +215,6 @@ export function CoachRoutineCreator() {
 
   useEffect(() => {
       form.reset(defaultValues);
-      setActiveSelection({ type: 'block', blockIndex: 0 });
   }, [routineToEdit, form, defaultValues]);
   
 
@@ -297,12 +283,10 @@ export function CoachRoutineCreator() {
   const contextValue: RoutineCreatorContextType = {
     form,
     blockFields,
-    appendBlock,
+    appendBlock: (block) => appendBlock(block),
     removeBlock,
     appendExercise,
     removeExercise,
-    activeSelection,
-    setActiveSelection,
     members,
     routineTypes,
     isEditing,
@@ -321,21 +305,17 @@ export function CoachRoutineCreator() {
 
   return (
     <RoutineCreatorContext.Provider value={contextValue}>
-      <div>
-        <Button variant="ghost" onClick={() => router.push('/coach')} className="mb-4">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to All Routines
-        </Button>
-        
-        <RoutineCreatorLayout
-          navigation={<RoutineCreatorNav />}
-        >
-          <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <RoutineCreatorForm />
-              </form>
-          </Form>
-        </RoutineCreatorLayout>
-      </div>
+      <FormProvider {...form}>
+        <div className="space-y-6">
+           <Button variant="ghost" onClick={() => router.push('/coach')} className="mb-2">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back to All Routines
+            </Button>
+            <h1 className="text-3xl font-bold font-headline">{isEditing ? 'Edit Routine' : 'Create New Routine'}</h1>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <RoutineCreatorForm />
+            </form>
+        </div>
+      </FormProvider>
     </RoutineCreatorContext.Provider>
   );
 }
