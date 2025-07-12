@@ -74,12 +74,18 @@ function RoutineDetailsForm() {
 function BlockForm({ blockIndex }: { blockIndex: number }) {
     const { form, removeBlock } = useRoutineCreator();
     const { control } = form;
-    const blockName = form.watch(`blocks.${blockIndex}.name`);
 
     return (
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-                 <CardTitle className="text-xl font-bold">{blockName}</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+                 <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (
+                    <FormItem className='flex-1'>
+                        <FormControl>
+                            <Input placeholder="Block Name" className="text-xl font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
                  <Button type="button" variant="ghost" size="icon" onClick={() => removeBlock(blockIndex)} className="text-muted-foreground hover:text-destructive shrink-0">
                     <Trash2 className="w-5 h-5"/>
                 </Button>
@@ -116,7 +122,7 @@ function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerc
                     <FormItem className='flex-1'>
                         <FormLabel className="sr-only">Exercise Name</FormLabel>
                         <FormControl>
-                            <Input placeholder="Exercise Name" className="text-xl font-bold border-none shadow-none focus-visible:ring-0 -ml-2 h-auto bg-transparent focus:bg-muted/50 rounded-md" {...field} />
+                            <Input placeholder="Exercise Name" className="text-xl font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent" {...field} />
                         </FormControl>
                         <FormMessage className="pl-2" />
                     </FormItem>
