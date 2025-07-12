@@ -45,18 +45,18 @@ export function MemberCombobox({ members, value, onChange }: MemberComboboxProps
   return (
     <Dialog open={open} onOpenChange={setOpen}>
         <div className="flex items-center gap-2">
-            <div className="flex-1 min-w-0 h-10 px-3 py-2 border rounded-md text-sm flex items-center">
+            <div className="flex-1 min-w-0 h-10 px-3 py-2 border rounded-md text-sm flex items-center bg-muted/50">
                  {selectedMember ? (
                     <div className="flex items-center gap-2 truncate">
                         <Avatar className="h-6 w-6"><AvatarFallback>{selectedMember.name.charAt(0)}</AvatarFallback></Avatar>
-                        <span className="font-medium truncate">{selectedMember.name}</span>
+                        <span className="font-semibold truncate">{selectedMember.name}</span>
                     </div>
                 ) : (
-                    <span className="text-muted-foreground">No member selected</span>
+                    <span className="text-muted-foreground">Select Member</span>
                 )}
             </div>
             <DialogTrigger asChild>
-                <Button variant="outline">Select</Button>
+                <Button variant="outline">Change</Button>
             </DialogTrigger>
         </div>
 
@@ -81,14 +81,13 @@ export function MemberCombobox({ members, value, onChange }: MemberComboboxProps
                                 className="w-full justify-start h-auto py-2"
                                 onClick={() => handleSelect(member.uid)}
                             >
-                                <Check className={cn("mr-2 h-4 w-4", value === member.uid ? "opacity-100" : "opacity-0")} />
                                 <div className="flex items-center gap-3">
                                     <Avatar className="h-8 w-8">
                                         <AvatarFallback>{member.name ? member.name.charAt(0).toUpperCase() : <User />}</AvatarFallback>
                                     </Avatar>
                                     <div>
                                         <p className="font-semibold text-left">{member.name}</p>
-                                        <p className="text-xs text-muted-foreground text-left">{member.uid}</p>
+                                        <p className="text-xs text-muted-foreground text-left">{member.email}</p>
                                     </div>
                                 </div>
                             </Button>

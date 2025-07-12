@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Plus, User, ChevronsUpDown, CheckCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, User, ChevronsUpDown, CheckCircle, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useRoutineCreator } from './coach-routine-creator';
@@ -92,6 +92,78 @@ const ExerciseForm = ({ blockIndex, exerciseIndex }: { blockIndex: number; exerc
     );
 };
 
+const CreationToolbar = () => {
+    const { form, members, routineTypes, routineToEdit, isEditing } = useRoutineCreator();
+    const { control, watch } = form;
+
+    const selectedMemberId = watch('memberId');
+    const selectedMember = members.find(m => m.uid === selectedMemberId);
+
+    return (
+        <Card>
+            <CardContent className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+                    {/* Member Selection */}
+                    <div className="flex flex-col gap-1.5">
+                         <FormLabel className={cn(!selectedMember && "text-destructive")}>Member</FormLabel>
+                         <FormField control={control} name="memberId" render={({ field }) => (
+                            <FormItem>
+                                {isEditing && routineToEdit ? (
+                                    <div className='flex items-center gap-2 h-10 px-3 border rounded-md bg-muted'>
+                                        <Avatar className="h-6 w-6"><AvatarFallback>{routineToEdit.userName.charAt(0)}</AvatarFallback></Avatar>
+                                        <span className='font-semibold text-muted-foreground'>{routineToEdit.userName}</span>
+                                    </div>
+                                ) : (
+                                    <MemberCombobox members={members} value={field.value} onChange={field.onChange} />
+                                )}
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    </div>
+
+                    {/* Routine Type Selection */}
+                    <div className="flex flex-col gap-1.5">
+                        <FormLabel>Routine Type</FormLabel>
+                        <FormField control={control} name="routineTypeId" render={({ field }) => (
+                            <FormItem>
+                                <Select onValueChange={field.onChange} value={field.value || ''}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                    {routineTypes.map(rt => (<SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    </div>
+                    
+                    {/* Date Selection */}
+                    <div className="flex flex-col gap-1.5">
+                        <FormLabel>Date</FormLabel>
+                        <FormField control={control} name="routineDate" render={({ field }) => (
+                            <FormItem>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                    </Button>
+                                </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                            </FormItem>
+                        )} />
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
+
 export function RoutineCreatorForm() {
     const { form, activeSelection, members, routineTypes, routineToEdit, isEditing, isSubmitting, onCancel, setActiveSelection, onAddExercise } = useRoutineCreator();
     const { control, getValues, watch } = form;
@@ -109,88 +181,13 @@ export function RoutineCreatorForm() {
     const blockFields = getValues('blocks');
     const activeBlock = blockFields?.[activeSelection.blockIndex];
     
-    const [accordionValue, setAccordionValue] = useState<string>('routine-details');
-
-    const selectedMemberId = watch('memberId');
-    const selectedRoutineTypeId = watch('routineTypeId');
-    const selectedDate = watch('routineDate');
-
-    const selectedMember = members.find(m => m.uid === selectedMemberId);
-    const selectedRoutineType = routineTypes.find(rt => rt.id === selectedRoutineTypeId);
-
     if (!activeBlock) {
         return null;
     }
 
-    const isRoutineDetailsComplete = selectedMemberId && selectedRoutineTypeId && selectedDate;
-
     return (
         <div className="space-y-6">
-            <Accordion type="single" collapsible value={accordionValue} onValueChange={setAccordionValue} className="w-full">
-                <AccordionItem value="routine-details" className="border rounded-lg">
-                    <AccordionTrigger className={cn("p-4 hover:no-underline text-lg font-semibold", !isRoutineDetailsComplete && 'text-destructive')}>
-                        <div className="flex items-center gap-4 w-full">
-                            {isRoutineDetailsComplete ? <CheckCircle className="h-6 w-6 text-green-500"/> : <ChevronsUpDown className="h-6 w-6"/>}
-                             <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 text-sm font-normal text-left">
-                                {selectedMember ? (
-                                    <div className="flex items-center gap-2">
-                                        <Avatar className="h-6 w-6"><AvatarFallback>{selectedMember.name.charAt(0)}</AvatarFallback></Avatar>
-                                        <span className="font-semibold">{selectedMember.name}</span>
-                                    </div>
-                                ) : <span className="text-muted-foreground">Select Member</span>}
-                                {selectedRoutineType && <div className="hidden sm:block w-[1px] h-4 bg-border"></div>}
-                                {selectedRoutineType ? <span className="font-semibold">{selectedRoutineType.name}</span> : <span className="text-muted-foreground">Select Type</span>}
-                                 {selectedDate && <div className="hidden sm:block w-[1px] h-4 bg-border"></div>}
-                                {selectedDate ? <span className="font-semibold">{format(selectedDate, "PPP")}</span> : <span className="text-muted-foreground">Select Date</span>}
-                            </div>
-                        </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="p-6 pt-2 border-t">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <FormField control={control} name="memberId" render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                    <FormLabel>Member</FormLabel>
-                                    {isEditing && routineToEdit ? (
-                                        <Input value={routineToEdit.userName} disabled className="font-semibold" />
-                                    ) : (
-                                        <MemberCombobox members={members} value={field.value} onChange={field.onChange} />
-                                    )}
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={control} name="routineTypeId" render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Routine Type</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value || ''}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                    {routineTypes.map(rt => (<SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={control} name="routineDate" render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Date</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                    <FormControl>
-                                        <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                        </Button>
-                                    </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
-                                </Popover>
-                                <FormMessage />
-                                </FormItem>
-                            )} />
-                        </div>
-                    </AccordionContent>
-                </AccordionItem>
-            </Accordion>
+            <CreationToolbar />
             
             {activeSelection.type === 'block' && activeSelection.exerciseIndex === undefined && (
                 <Card>
