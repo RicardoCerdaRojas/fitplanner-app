@@ -65,68 +65,70 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
+    <div className="flex flex-col min-h-screen bg-background">
        <AppHeader />
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader className="text-center">
-            <div className="flex justify-center items-center gap-3 mb-2">
-                <LogIn className="w-8 h-8 text-primary" />
-                <CardTitle className="text-3xl font-headline">Login</CardTitle>
-            </div>
-          <CardDescription>Access your Fitness Flow account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="email" 
-                        placeholder="you@example.com" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="password" 
-                        placeholder="••••••••" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? 'Logging in...' : 'Login'}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-        <CardFooter className="text-center text-sm">
-            <p className="w-full text-muted-foreground">
-                Don't have an account?{' '}
-                <Link href="/signup" className="text-primary hover:underline">
-                    Sign up
-                </Link>
-            </p>
-        </CardFooter>
-      </Card>
+       <main className="flex-grow flex items-center justify-center p-4">
+          <Card className="w-full max-w-md mx-auto">
+            <CardHeader className="text-center">
+                <div className="flex justify-center items-center gap-3 mb-2">
+                    <LogIn className="w-8 h-8 text-primary" />
+                    <CardTitle className="text-3xl font-headline">Login</CardTitle>
+                </div>
+              <CardDescription>Access your Fitness Flow account</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="email" 
+                            placeholder="you@example.com" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="password" 
+                            placeholder="••••••••" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                    {form.formState.isSubmitting ? 'Logging in...' : 'Login'}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+            <CardFooter className="text-center text-sm">
+                <p className="w-full text-muted-foreground">
+                    Don't have an account?{' '}
+                    <Link href="/signup" className="text-primary hover:underline">
+                        Sign up
+                    </Link>
+                </p>
+            </CardFooter>
+          </Card>
+      </main>
     </div>
   );
 }
