@@ -56,8 +56,9 @@ export function MemberCombobox({ members, value, onChange }: MemberComboboxProps
                     <CommandItem
                         key={member.uid}
                         value={member.name}
-                        onSelect={() => {
-                            onChange(member.uid)
+                        onSelect={(currentValue) => {
+                            const selectedUid = members.find(m => m.name.toLowerCase() === currentValue.toLowerCase())?.uid || "";
+                            onChange(selectedUid)
                             setOpen(false)
                         }}
                     >
