@@ -89,7 +89,7 @@ export const defaultExerciseValues = {
   name: 'Untitled Exercise', 
   repType: 'reps' as const, 
   reps: '10', 
-  duration: '1', 
+  duration: undefined,
   weight: '5', 
   videoUrl: '' 
 };
@@ -152,8 +152,23 @@ export function CoachRoutineCreator({ members, routineTypes, gymId, routineToEdi
     
     setIsSubmitting(true);
     try {
+        // Clean up undefined values before submitting to Firestore
+        const cleanedBlocks = values.blocks.map(block => ({
+            ...block,
+            exercises: block.exercises.map(exercise => {
+                const cleanedExercise: Partial<ExerciseFormValues> = { ...exercise };
+                if (cleanedExercise.repType === 'reps') {
+                    delete cleanedExercise.duration;
+                } else if (cleanedExercise.repType === 'duration') {
+                    delete cleanedExercise.reps;
+                }
+                return cleanedExercise as ExerciseFormValues;
+            })
+        }));
+
         const routineData = {
             ...values,
+            blocks: cleanedBlocks,
             routineTypeName: selectedRoutineType.name,
             userName: isEditing && routineToEdit ? routineToEdit.userName : selectedMember!.name,
             coachId: user.uid,
