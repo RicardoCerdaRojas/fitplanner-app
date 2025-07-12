@@ -35,13 +35,10 @@ export type ManagedRoutine = {
 
 type Props = {
     routines: ManagedRoutine[];
-    members: Member[];
-    routineTypes: RoutineType[];
     onEdit: (routine: ManagedRoutine) => void;
-    initialMemberId?: string | null;
 };
 
-export function CoachRoutineManagement({ routines, members, routineTypes, onEdit, initialMemberId }: Props) {
+export function CoachRoutineManagement({ routines, onEdit }: Props) {
     const { toast } = useToast();
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [searchFilter, setSearchFilter] = useState('');
@@ -126,14 +123,14 @@ export function CoachRoutineManagement({ routines, members, routineTypes, onEdit
                                         </div>
                                     </AccordionTrigger>
                                     <div className="flex items-center gap-2 pr-2">
-                                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onEdit(routine)}>
+                                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onEdit(routine); }}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
                                         <Button
                                             variant="destructive"
                                             size="icon"
                                             className="h-8 w-8"
-                                            onClick={() => handleDelete(routine.id)}
+                                            onClick={(e) => { e.stopPropagation(); handleDelete(routine.id); }}
                                             disabled={isDeleting === routine.id}
                                         >
                                             {isDeleting === routine.id ? (
