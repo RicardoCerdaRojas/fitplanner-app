@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { Trash2, Edit, ClipboardList, Search, FilterX, Plus, Copy, Calendar as CalendarIcon, Dumbbell, Repeat, Clock, Copy as CopyIcon } from 'lucide-react';
+import { Trash2, Edit, ClipboardList, Search, FilterX, Plus, Copy, Calendar as CalendarIcon, Dumbbell, Repeat, Clock, Copy as CopyIcon, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Block, ExerciseProgress } from './athlete-routine-list'; 
 import type { Timestamp as FirestoreTimestamp } from 'firebase/firestore';
@@ -85,16 +85,15 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
     const [templateName, setTemplateName] = useState('');
     
     const handleOpenTemplateDialog = (routine: ManagedRoutine) => {
+        setTemplateName(routine.routineTypeName || '');
         setRoutineToTemplate(routine);
     };
 
     const handleSaveAsTemplate = async () => {
         if (!routineToTemplate) return;
         
-        const name = prompt('Enter a name for the new template:', routineToTemplate.routineTypeName || 'New Template');
-        
-        if (!name || name.trim() === '') {
-            toast({ variant: 'destructive', title: 'Cancelled', description: 'Template name cannot be empty.' });
+        if (!templateName || templateName.trim() === '') {
+            toast({ variant: 'destructive', title: 'Name Required', description: 'Template name cannot be empty.' });
             return;
         }
 
@@ -104,17 +103,18 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                 
                 const dataToSave = {
                     ...templateData,
-                    templateName: name,
+                    templateName: templateName,
                     createdAt: Timestamp.now(),
                 };
                 
                 await addDoc(collection(db, 'routineTemplates'), dataToSave);
-                toast({ title: 'Template Saved!', description: `"${name}" has been added to your library.` });
+                toast({ title: 'Template Saved!', description: `"${templateName}" has been added to your library.` });
             } catch (error) {
                 console.error("Error saving template:", error);
                 toast({ variant: "destructive", title: "Error", description: "Could not save the routine as a template." });
             } finally {
                 setRoutineToTemplate(null);
+                setTemplateName('');
             }
         });
     };
@@ -242,7 +242,7 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                  </DialogContent>
             </Dialog>
 
-            <Dialog open={!!routineToTemplate} onOpenChange={(isOpen) => !isOpen && setRoutineToTemplate(null)}>
+            <Dialog open={!!routineToTemplate} onOpenChange={(isOpen) => { if (!isOpen) setRoutineToTemplate(null); }}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Save Routine as Template</DialogTitle>
@@ -260,12 +260,12 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                         />
                     </div>
                     <DialogFooter>
-                        <DialogClose asChild>
-                            <Button type="button" variant="outline">Cancel</Button>
-                        </DialogClose>
                         <Button onClick={handleSaveAsTemplate} disabled={isPending}>
                             {isPending ? 'Saving...' : 'Save Template'}
                         </Button>
+                         <DialogClose asChild>
+                            <Button type="button" variant="outline">Cancel</Button>
+                        </DialogClose>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -352,10 +352,9 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                             filteredRoutines.map((routine) => (
                                 <div 
                                     key={routine.id} 
-                                    className="flex items-center p-4 border rounded-lg hover:bg-muted/50 cursor-pointer"
-                                    onClick={() => setRoutineToView(routine)}
+                                    className="flex items-center p-4 border rounded-lg hover:bg-muted/50"
                                 >
-                                    <div className="flex-1">
+                                    <div className="flex-1 cursor-pointer" onClick={() => setRoutineToView(routine)}>
                                         <p className="font-semibold text-lg">{routine.routineTypeName || routine.routineName || 'Untitled Routine'}</p>
                                         <p className="text-sm text-muted-foreground">
                                             For {routine.userName} on {format(routine.routineDate, 'PPP')}
@@ -367,6 +366,9 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1 pl-4">
+                                        <Button variant="ghost" size="icon" onClick={() => setRoutineToView(routine)}>
+                                            <Eye className="h-4 w-4" />
+                                        </Button>
                                         <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleOpenTemplateDialog(routine); }}>
                                             <Copy className="h-4 w-4" />
                                         </Button>
@@ -402,6 +404,3 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
         </>
     );
 }
-
-
-
