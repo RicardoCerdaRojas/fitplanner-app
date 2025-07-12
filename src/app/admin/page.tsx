@@ -30,7 +30,7 @@ const ageChartConfig: ChartConfig = {
   female: { label: 'Female', color: 'hsl(var(--chart-2))' },
 };
 const routineChartConfig: ChartConfig = {
-  count: { label: "Assignments", color: "hsl(var(--chart-2))" },
+  count: { label: "Assignments", color: "hsl(var(--chart-1))" },
 }
 
 const calculateAge = (dob: Date): number => {
@@ -84,7 +84,7 @@ export default function AdminDashboardPage() {
                 '40-49': { male: 0, female: 0 },
                 '50+': { male: 0, female: 0 },
             };
-            members.forEach(user => {
+            users.forEach(user => {
                 if(user.dob && user.gender && (user.gender === 'male' || user.gender === 'female')) {
                     const age = calculateAge(user.dob.toDate());
                     let ageGroupKey: string;
@@ -221,8 +221,8 @@ export default function AdminDashboardPage() {
                                             <YAxis />
                                             <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                                             <Legend content={<ChartLegendContent />} />
-                                            <Bar dataKey="male" fill="var(--color-male)" radius={4} />
                                             <Bar dataKey="female" fill="var(--color-female)" radius={4} />
+                                            <Bar dataKey="male" fill="var(--color-male)" radius={4} />
                                         </BarChart>
                                     </ChartContainer>
                                 ) : (
@@ -264,3 +264,5 @@ export default function AdminDashboardPage() {
         </div>
     );
 }
+
+    
