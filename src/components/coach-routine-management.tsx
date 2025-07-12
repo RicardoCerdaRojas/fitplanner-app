@@ -149,9 +149,9 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
             block.exercises.forEach(ex => {
                 text += `  - ${ex.name}`;
                 const details = [];
-                if (ex.repType === 'reps' && ex.reps) details.push(`🔁 ${ex.reps} reps`);
+                if (ex.repType === 'reps' && ex.reps) details.push(`${ex.reps} reps`);
                 if (ex.repType === 'duration' && ex.duration) details.push(`⏱️ ${ex.duration}`);
-                if (ex.weight) details.push(`🏋️ ${ex.weight} kg`);
+                if (ex.weight) details.push(`${ex.weight} kg`);
                 if (details.length > 0) {
                     text += `: ${details.join(' / ')}`;
                 }
