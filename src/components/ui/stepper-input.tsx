@@ -13,12 +13,8 @@ type StepperInputProps = {
 };
 
 export function StepperInput({ field, step = 1, allowText = false }: StepperInputProps) {
-  // Use a local state to control the input value
   const [inputValue, setInputValue] = useState(field.value ?? '');
 
-  // IMPORTANT: This effect syncs the local state with the form state from react-hook-form.
-  // When `setValue` is called externally, `field.value` changes, and this effect updates
-  // the `inputValue` to match, forcing a re-render of the input.
   useEffect(() => {
     setInputValue(field.value ?? '');
   }, [field.value]);
@@ -34,12 +30,12 @@ export function StepperInput({ field, step = 1, allowText = false }: StepperInpu
     }
     const newValue = String(Math.max(0, numValue));
     setInputValue(newValue);
-    field.onChange(newValue); // Notify react-hook-form
+    field.onChange(newValue);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
-    field.onChange(e.target.value); // Notify react-hook-form
+    field.onChange(e.target.value);
   };
 
   return (
@@ -55,7 +51,7 @@ export function StepperInput({ field, step = 1, allowText = false }: StepperInpu
         <Minus className="h-4 w-4" />
       </Button>
       <Input
-        {...field} // Spread field props but override value and onChange
+        {...field}
         value={inputValue}
         onChange={handleChange}
         className="text-center font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
