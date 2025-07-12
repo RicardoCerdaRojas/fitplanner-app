@@ -123,14 +123,14 @@ export function CoachRoutineManagement({ routines, onEdit }: Props) {
                                         </div>
                                     </AccordionTrigger>
                                     <div className="flex items-center gap-2 pr-2">
-                                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onEdit(routine); }}>
+                                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onEdit(routine)}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
                                         <Button
                                             variant="destructive"
                                             size="icon"
                                             className="h-8 w-8"
-                                            onClick={(e) => { e.stopPropagation(); handleDelete(routine.id); }}
+                                            onClick={() => handleDelete(routine.id)}
                                             disabled={isDeleting === routine.id}
                                         >
                                             {isDeleting === routine.id ? (
