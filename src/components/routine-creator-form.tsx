@@ -7,7 +7,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/comp
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
-import { Calendar as CalendarIcon, Plus, ArrowRight, Library, FilePlus } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, ArrowRight, Library, FilePlus, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useRoutineCreator } from './coach-routine-creator';
@@ -158,7 +158,7 @@ const Step1RoutineDetails = () => {
 }
 
 export function RoutineCreatorForm() {
-    const { form, activeSelection, members, isSubmitting, step, setActiveSelection } = useRoutineCreator();
+    const { form, activeSelection, members, isSubmitting, step, setStep, setActiveSelection } = useRoutineCreator();
     const { control, getValues } = form;
     
     const { fields: exerciseFields, append: appendExercise } = useFieldArray({
@@ -200,7 +200,7 @@ export function RoutineCreatorForm() {
                         name="memberId"
                         render={({ field }) => (
                             <FormItem>
-                                 <MemberCombobox members={members} value={field.value} onChange={field.onChange} />
+                                 <MemberCombobox value={field.value} onChange={field.onChange} />
                                  <FormMessage/>
                             </FormItem>
                      )} />
@@ -257,7 +257,11 @@ export function RoutineCreatorForm() {
                 />
             ) : null}
 
-            <div className="flex justify-end items-center gap-4 pt-4 border-t">
+            <div className="flex justify-between items-center gap-4 pt-4 border-t">
+                <Button type="button" variant="outline" onClick={() => setStep(1)}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Previous
+                </Button>
                 <Button type="submit" size="lg" className="w-auto" disabled={isSubmitting}>
                     {isSubmitting ? 'Saving...' : (useRoutineCreator().isEditing ? 'Update Routine' : 'Create Routine')}
                 </Button>

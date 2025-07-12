@@ -20,8 +20,11 @@ import { RoutineCreatorNav } from './routine-creator-nav';
 import { RoutineCreatorForm } from './routine-creator-form';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
-import { PanelLeft, ArrowLeft } from 'lucide-react';
+import { PanelLeft, ArrowLeft, Check, ClipboardList, Calendar } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
+import { cn } from '@/lib/utils';
+import { Card, CardContent } from './ui/card';
+import { format } from 'date-fns';
 
 const exerciseSchema = z.object({
   name: z.string().min(2, 'Exercise name is required.'),
@@ -46,7 +49,7 @@ const blockSchema = z.object({
 });
 
 export const routineSchema = z.object({
-  routineTypeId: z.string({ required_error: "Please select a routine type." }),
+  routineTypeId: z.string({ required_error: "Please select a routine type." }).min(1, 'Please select a routine type.'),
   memberId: z.string({ required_error: "Please select a member." }).min(1, 'Please select a member.'),
   routineDate: z.date({ required_error: "A date for the routine is required." }),
   blocks: z.array(blockSchema).min(1, 'Please add at least one block.'),
@@ -89,6 +92,11 @@ export const defaultExerciseValues = {
   weight: '5', 
   videoUrl: '' 
 };
+
+const stepsConfig = [
+    { id: 1, name: 'Details' },
+    { id: 2, name: 'Build Routine' },
+]
 
 export function CoachRoutineCreator() {
   const router = useRouter();
@@ -133,7 +141,7 @@ export function CoachRoutineCreator() {
     mode: 'onBlur'
   });
 
-  const { control, watch, trigger } = form;
+  const { control, watch, trigger, getValues } = form;
   const formValues = watch();
 
   const canProceed = useMemo(() => {
@@ -296,12 +304,62 @@ export function CoachRoutineCreator() {
       return <Skeleton className="h-[500px] w-full" />
   }
 
+  const handleStepClick = (clickedStep: number) => {
+    if (clickedStep < step) {
+        setStep(clickedStep);
+    }
+  }
+
+  const selectedRoutineTypeName = routineTypes.find(rt => rt.id === getValues('routineTypeId'))?.name;
+  const routineDate = getValues('routineDate');
+
+
   return (
     <RoutineCreatorContext.Provider value={contextValue}>
       <div>
         <Button variant="ghost" onClick={() => router.push('/coach')} className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to All Routines
         </Button>
+        
+        <div className="mb-8">
+            <ol className="flex items-center w-full">
+                {stepsConfig.map((s, index) => (
+                    <li key={s.id} className={cn(
+                        "flex w-full items-center",
+                        index !== stepsConfig.length - 1 && "after:content-[''] after:w-full after:h-1 after:border-b after:border-4 after:inline-block",
+                        s.id < step ? "after:border-primary" : "after:border-muted",
+                        s.id <= step ? "cursor-pointer" : "cursor-not-allowed"
+                    )} onClick={() => handleStepClick(s.id)}>
+                        <span className={cn(
+                            "flex items-center justify-center w-10 h-10 rounded-full lg:h-12 lg:w-12 shrink-0",
+                            s.id === step ? "bg-primary text-primary-foreground" : (s.id < step ? "bg-primary/80 text-primary-foreground" : "bg-muted text-muted-foreground")
+                        )}>
+                            {s.id < step ? <Check className="w-5 h-5" /> : s.id}
+                        </span>
+                    </li>
+                ))}
+            </ol>
+        </div>
+
+        {step === 2 && (
+            <Card className="mb-6 bg-muted/30">
+                <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-4 justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 text-sm">
+                            <ClipboardList className="w-5 h-5 text-primary" />
+                            <span className="font-semibold text-muted-foreground">Type:</span>
+                            <span className="font-bold">{selectedRoutineTypeName || 'Not set'}</span>
+                        </div>
+                         <div className="flex items-center gap-2 text-sm">
+                            <Calendar className="w-5 h-5 text-primary" />
+                            <span className="font-semibold text-muted-foreground">Date:</span>
+                            <span className="font-bold">{routineDate ? format(routineDate, 'PPP') : 'Not set'}</span>
+                        </div>
+                    </div>
+                     <Button variant="outline" size="sm" onClick={() => setStep(1)}>Change Details</Button>
+                </CardContent>
+            </Card>
+        )}
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -341,3 +399,4 @@ export function CoachRoutineCreator() {
     </RoutineCreatorContext.Provider>
   );
 }
+
