@@ -18,7 +18,7 @@ import {
 } from 'firebase/firestore';
 import { AuthProviderClient } from '@/components/auth-provider-client';
 
-type UserProfile = {
+export type UserProfile = {
   name: string;
   email: string;
   createdAt: Timestamp;

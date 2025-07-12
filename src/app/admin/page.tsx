@@ -13,6 +13,10 @@ import { BarChart, ResponsiveContainer, Tooltip, Legend, Bar, XAxis, YAxis, Cart
 import { ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
+import { Button } from '@/components/ui/button';
+import { backfillUserGenders } from './actions';
+import { useToast } from '@/hooks/use-toast';
+
 
 type UserProfile = {
   dob?: Timestamp;
@@ -45,6 +49,7 @@ const calculateAge = (dob: Date): number => {
 export default function AdminDashboardPage() {
     const { activeMembership, loading } = useAuth();
     const router = useRouter();
+    const { toast } = useToast();
 
     const [memberCount, setMemberCount] = useState(0);
     const [coachCount, setCoachCount] = useState(0);
@@ -62,7 +67,9 @@ export default function AdminDashboardPage() {
         // Active Users (Firestore Snapshot)
         const activeSessionsQuery = query(collection(db, 'workoutSessions'), where('gymId', '==', gymId), where('status', '==', 'active'));
         const unsubscribeActive = onSnapshot(activeSessionsQuery, (snapshot) => {
-            setActiveNow(snapshot.size);
+             getCountFromServer(snapshot.query).then(countSnapshot => {
+                setActiveNow(countSnapshot.data().count);
+            });
         });
         
         // Users collection for members, coaches, and age distribution
@@ -75,7 +82,7 @@ export default function AdminDashboardPage() {
             setCoachCount(coaches.length);
 
             // Age and Gender distribution
-            const ageGroups = {
+            const ageGroups: Record<string, { male: number; female: number }> = {
                 '<30': { male: 0, female: 0 },
                 '30-39': { male: 0, female: 0 },
                 '40-49': { male: 0, female: 0 },
@@ -84,10 +91,15 @@ export default function AdminDashboardPage() {
             members.forEach(user => {
                 if(user.dob && user.gender && (user.gender === 'male' || user.gender === 'female')) {
                     const age = calculateAge(user.dob.toDate());
-                    if (age < 30) ageGroups['<30'][user.gender]++;
-                    else if (age >= 30 && age < 40) ageGroups['30-39'][user.gender]++;
-                    else if (age >= 40 && age < 50) ageGroups['40-49'][user.gender]++;
-                    else ageGroups['50+'][user.gender]++;
+                    let ageGroupKey: string;
+                    if (age < 30) ageGroupKey = '<30';
+                    else if (age >= 30 && age < 40) ageGroupKey = '30-39';
+                    else if (age >= 40 && age < 50) ageGroupKey = '40-49';
+                    else ageGroupKey = '50+';
+                    
+                    if (ageGroups[ageGroupKey]) {
+                        ageGroups[ageGroupKey][user.gender]++;
+                    }
                 }
             });
             setAgeDistribution(Object.entries(ageGroups).map(([name, counts]) => ({ name, ...counts })));
@@ -133,6 +145,20 @@ export default function AdminDashboardPage() {
         };
 
     }, [loading, activeMembership]);
+
+    const handleBackfill = async () => {
+        try {
+            const result = await backfillUserGenders();
+            if (result.success) {
+                toast({ title: "Success!", description: `${result.updatedCount} users have been updated.` });
+            } else {
+                toast({ variant: 'destructive', title: "Error", description: result.error });
+            }
+        } catch(e) {
+            toast({ variant: 'destructive', title: "Error", description: "An unexpected error occurred." });
+        }
+    };
+
 
     if (loading || !activeMembership || activeMembership.role !== 'gym-admin') {
         return (
@@ -245,6 +271,20 @@ export default function AdminDashboardPage() {
                                         <p className="text-muted-foreground">No routine data available.</p>
                                     </div>
                                 )}
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="mt-8">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>One-Time Data Migration</CardTitle>
+                                <CardDescription>This tool will update existing user profiles that are missing the 'gender' field. It will set 'gender' to 'male' for them. Use this once to populate data for the demographics chart.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Button onClick={handleBackfill}>
+                                    Backfill Genders
+                                </Button>
                             </CardContent>
                         </Card>
                     </div>
