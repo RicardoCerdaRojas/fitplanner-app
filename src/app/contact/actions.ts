@@ -33,6 +33,7 @@ export async function sendContactEmail(prevState: any, formData: FormData) {
 
   // 2. Verify environment variables are loaded
   if (!process.env.ZOHO_EMAIL || !process.env.ZOHO_APP_PASSWORD || !process.env.RECIPIENT_EMAIL) {
+    console.error('Email environment variables are not set.');
     return {
       errors: null,
       message: 'Error de configuración: Las variables de entorno del correo no están configuradas en el servidor.',
@@ -57,9 +58,9 @@ export async function sendContactEmail(prevState: any, formData: FormData) {
 
     // 5. Send the email
     await transporter.sendMail({
-      from: `"${name}" <${process.env.ZOHO_EMAIL}>`,
+      from: `"${name}" <${process.env.ZOHO_EMAIL}>`, // Send FROM your authenticated address
       to: process.env.RECIPIENT_EMAIL,
-      replyTo: email,
+      replyTo: email, // Set the user's email as the Reply-To address
       subject: `Nuevo Mensaje de Contacto de ${name}`,
       html: `
         <h1>Nuevo mensaje desde el formulario de contacto de Fit Planner</h1>
@@ -73,6 +74,7 @@ export async function sendContactEmail(prevState: any, formData: FormData) {
 
     return { success: true, message: '¡Gracias! Tu mensaje ha sido enviado.' };
   } catch (error: any) {
+    console.error('Failed to send email:', error);
     // Return the actual error message to the client for debugging
     return {
       errors: null,
