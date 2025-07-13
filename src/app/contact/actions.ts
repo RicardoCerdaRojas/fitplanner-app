@@ -49,14 +49,14 @@ export async function sendContactEmail(prevState: any, formData: FormData) {
     });
 
     await transporter.sendMail({
-      from: `"${name}" <${process.env.ZOHO_EMAIL}>`,
+      from: `"${name}" <${process.env.ZOHO_EMAIL}>`, // Send FROM your authenticated email address
       to: process.env.RECIPIENT_EMAIL,
-      replyTo: email,
+      replyTo: email, // Set the user's email as the reply-to address
       subject: `Nuevo Mensaje de Contacto de ${name}`,
       html: `
         <h1>Nuevo mensaje desde el formulario de contacto de Fit Planner</h1>
         <p><strong>Nombre:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Email (para responder):</strong> ${email}</p>
         <hr>
         <h2>Mensaje:</h2>
         <p>${message.replace(/\n/g, '<br>')}</p>
