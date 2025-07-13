@@ -128,7 +128,7 @@ export function GuestHomepage() {
             <section id="about" className="py-20 px-4 sm:px-6 lg:px-8 bg-[#1C2129]">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                     <div className="rounded-lg overflow-hidden">
-                        <Image src="https://placehold.co/600x700.png" data-ai-hint="gym teamwork" alt="Equipo de coaches colaborando" width={600} height={700} className="w-full h-full object-cover" />
+                        <Image src="/admin-001.png" alt="Dashboard de Fit Planner" width={600} height={700} className="w-full h-full object-cover" />
                     </div>
                     <div>
                         <h2 className="text-4xl font-bold mb-4">Potencia tu Negocio</h2>
