@@ -1,14 +1,19 @@
 
+'use client';
+
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
 import { AppHeader } from './app-header';
 import { Dumbbell, Users, BarChart2, Heart, BrainCircuit, Waves, GitBranch } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from './ui/carousel';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
+import Autoplay from "embla-carousel-autoplay";
+import * as React from 'react';
+
 
 const features = [
     {
@@ -60,6 +65,10 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
 );
 
 export function GuestHomepage() {
+    const plugin = React.useRef(
+      Autoplay({ delay: 4000, stopOnInteraction: true })
+    );
+
     return (
         <div className="w-full bg-[#0B0C10] text-white overflow-hidden">
             {/* Hero Section */}
@@ -145,7 +154,13 @@ export function GuestHomepage() {
                         </ul>
                     </div>
                     <div className="rounded-lg overflow-hidden">
-                         <Carousel opts={{ loop: true }} className="w-full max-w-sm mx-auto">
+                         <Carousel 
+                            opts={{ loop: true }} 
+                            plugins={[plugin.current]}
+                            onMouseEnter={plugin.current.stop}
+                            onMouseLeave={plugin.current.reset}
+                            className="w-full max-w-sm mx-auto"
+                         >
                             <CarouselContent>
                                 <CarouselItem>
                                     <Image src="/member-001.png" data-ai-hint="mobile app workout" alt="App mostrando lista de ejercicios" width={600} height={700} className="w-full h-full object-contain" />
