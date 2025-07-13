@@ -36,24 +36,21 @@ const features = [
 const testimonials = [
     {
         quote: "Fit Planner revolucionó la forma en que gestiono mi centro de Pilates. Mis clientas aman la app y yo puedo seguir su progreso en tiempo real. ¡Es un antes y un después!",
-        avatar: "https://placehold.co/100x100.png",
+        avatar: "/testimonial-sarah-johnson.png",
         name: "Valentina Rojas",
         role: "Dueña de 'Pilates Studio Chile'",
-        aiHint: "woman pilates instructor",
     },
     {
         quote: "Como coach, esta herramienta me permite entregar un servicio de elite. La biblioteca de rutinas y el dashboard de estadísticas son mis funciones favoritas. Mis clientes están más motivados que nunca.",
-        avatar: "https://placehold.co/100x100.png",
+        avatar: "/testimonial-david-chen.png",
         name: "Matías Soto",
         role: "Coach de Fitness",
-        aiHint: "man personal trainer",
     },
     {
         quote: "¡Mi gimnasio ahora se siente del futuro! La app es increíblemente fácil de usar, el temporizador integrado es genial y me encanta poder generar rutinas con IA cuando quiero un desafío extra.",
-        avatar: "https://placehold.co/100x100.png",
+        avatar: "/testimonial-jessica-miller.png",
         name: "Javiera Diaz",
         role: "Miembro de 'Power Gym'",
-        aiHint: "woman portrait gym",
     },
 ];
 
@@ -189,7 +186,7 @@ export function GuestHomepage() {
                                                 <p className="text-lg italic text-gray-300">"{testimonial.quote}"</p>
                                                 <div className="flex flex-col items-center">
                                                     <Avatar className="w-20 h-20 mb-4">
-                                                        <AvatarImage src={testimonial.avatar} alt={testimonial.name} data-ai-hint={testimonial.aiHint} />
+                                                        <AvatarImage src={testimonial.avatar} alt={testimonial.name} />
                                                         <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
                                                     </Avatar>
                                                     <h4 className="text-xl font-bold text-white">{testimonial.name}</h4>
