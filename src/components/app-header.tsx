@@ -70,7 +70,7 @@ export function AppHeader() {
                     <nav className="hidden md:flex items-center gap-8 flex-1">
                         <Link href="#features" className="text-white hover:text-gray-300 transition-colors text-sm font-medium">Para Quién</Link>
                         <Link href="#about" className="text-white hover:text-gray-300 transition-colors text-sm font-medium">Funcionalidades</Link>
-                        <Link href="#contact" className="text-white hover:text-gray-300 transition-colors text-sm font-medium">Contacto</Link>
+                        <Link href="mailto:ricardo@fitplanner.cl" className="text-white hover:text-gray-300 transition-colors text-sm font-medium">Contacto</Link>
                     </nav>
                 )}
 

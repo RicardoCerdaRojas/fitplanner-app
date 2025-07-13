@@ -15,7 +15,6 @@ import Autoplay from "embla-carousel-autoplay";
 import * as React from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { sendContactEmail } from '@/app/contact/actions';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -64,58 +63,6 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
         <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-20 h-1 bg-blue-400"></span>
     </h2>
 );
-
-function SubmitButton() {
-    const { pending } = useFormStatus();
-
-    return (
-        <Button type="submit" size="lg" className="w-full bg-blue-500 hover:bg-blue-600 h-12" disabled={pending}>
-            {pending ? 'Enviando Mensaje...' : 'Enviar Mensaje'}
-        </Button>
-    );
-}
-
-function ContactForm() {
-    const { toast } = useToast();
-    const formRef = React.useRef<HTMLFormElement>(null);
-    const [state, formAction] = useActionState(sendContactEmail, {
-        message: '',
-        errors: undefined,
-        success: false
-    });
-
-    React.useEffect(() => {
-        if (state.message) {
-            toast({
-                title: state.success ? '¡Éxito!' : 'Error',
-                description: state.message,
-                variant: state.success ? 'default' : 'destructive',
-            });
-        }
-        if (state.success) {
-            formRef.current?.reset();
-        }
-    }, [state, toast]);
-
-    return (
-        <form ref={formRef} action={formAction} className="space-y-6">
-            <div>
-                <Input name="name" type="text" placeholder="Nombre Completo" className="bg-[#2a313c] border-gray-600 h-12 text-white placeholder:text-gray-400" required />
-                {state.errors?.name && <p className="text-red-500 text-sm mt-1">{state.errors.name[0]}</p>}
-            </div>
-             <div>
-                <Input name="email" type="email" placeholder="Correo Electrónico" className="bg-[#2a313c] border-gray-600 h-12 text-white placeholder:text-gray-400" required />
-                {state.errors?.email && <p className="text-red-500 text-sm mt-1">{state.errors.email[0]}</p>}
-            </div>
-            <div>
-                <Textarea name="message" placeholder="Tu Mensaje" className="bg-[#2a313c] border-gray-600 min-h-[150px] text-white placeholder:text-gray-400" required />
-                {state.errors?.message && <p className="text-red-500 text-sm mt-1">{state.errors.message[0]}</p>}
-            </div>
-            <SubmitButton />
-        </form>
-    );
-}
-
 
 export function GuestHomepage() {
     const plugin = React.useRef(
@@ -257,15 +204,6 @@ export function GuestHomepage() {
                         <CarouselPrevious className="text-white bg-transparent border-white/50 hover:bg-white/10 hover:text-white" />
                         <CarouselNext className="text-white bg-transparent border-white/50 hover:bg-white/10 hover:text-white" />
                     </Carousel>
-                </div>
-            </section>
-
-             {/* Contact Section */}
-            <section id="contact" className="py-20 px-4 sm:px-6 lg:px-8">
-                <div className="max-w-3xl mx-auto text-center">
-                    <SectionTitle>Contáctanos</SectionTitle>
-                    <p className="mb-8 text-gray-300">¿Tienes preguntas o quieres agendar una demostración? Escríbenos y te responderemos a la brevedad.</p>
-                    <ContactForm />
                 </div>
             </section>
 
