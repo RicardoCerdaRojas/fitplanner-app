@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -24,13 +24,50 @@ import { AppHeader } from '@/components/app-header';
 
 // --- Sub-components for better structure ---
 
-const Section = ({ id, className, children }: { id?: string; className?: string; children: React.ReactNode }) => (
-    <section id={id} className={cn("py-16 md:py-24", className)}>
-        <div className="container mx-auto px-4">
-            {children}
-        </div>
-    </section>
-);
+const Section = ({ id, className, children }: { id?: string; className?: string; children: React.ReactNode }) => {
+    const ref = useRef<HTMLDivElement>(null);
+    const [isVisible, setIsVisible] = useState(false);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsVisible(true);
+                    observer.unobserve(entry.target);
+                }
+            },
+            {
+                threshold: 0.1,
+            }
+        );
+
+        if (ref.current) {
+            observer.observe(ref.current);
+        }
+
+        return () => {
+            if (ref.current) {
+                observer.unobserve(ref.current);
+            }
+        };
+    }, []);
+
+    return (
+        <section
+            id={id}
+            ref={ref}
+            className={cn(
+                "py-16 md:py-24 transition-opacity duration-1000 ease-out",
+                isVisible ? "opacity-100 animate-fade-in-up" : "opacity-0",
+                className
+            )}
+        >
+            <div className="container mx-auto px-4">
+                {children}
+            </div>
+        </section>
+    );
+};
 
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
     <h2 className="text-3xl md:text-4xl font-bold text-center tracking-tight text-white mb-12 relative">
@@ -129,19 +166,19 @@ export default function V2LandingPage() {
                 </video>
                 <div className="absolute inset-0 bg-black opacity-60 z-10"></div>
                 <div className="relative z-20 text-center px-4">
-                    <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight mb-4">
+                    <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight mb-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                         Deja de gestionar ausencias.
                         <br/>
                         <span className="text-green-400">Empieza a crear lealtad.</span>
                     </h1>
-                    <p className="max-w-3xl mx-auto text-base md:text-xl text-gray-300 mb-8">
+                    <p className="max-w-3xl mx-auto text-base md:text-xl text-gray-300 mb-8 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
                         Fit Planner es el motor de entrenamiento inteligente para los negocios de fitness en Chile que se obsesionan con los resultados. Reduce el abandono de clientes con rutinas personalizadas, seguimiento de clase mundial y el poder de la inteligencia artificial.
                     </p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Button size="lg" className="bg-green-400 text-black font-bold hover:bg-green-500 text-lg py-7 px-8">
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+                        <Button size="lg" className="bg-green-400 text-black font-bold hover:bg-green-500 text-lg py-7 px-8 transform hover:scale-105 transition-transform">
                             Prueba 14 Días Gratis
                         </Button>
-                        <Button size="lg" variant="outline" className="border-gray-400 text-white hover:bg-white/10 text-lg py-7 px-8">
+                        <Button size="lg" variant="outline" className="border-gray-400 text-white hover:bg-white/10 text-lg py-7 px-8 transform hover:scale-105 transition-transform">
                             Ver una demo
                         </Button>
                     </div>
@@ -154,17 +191,17 @@ export default function V2LandingPage() {
                     En un mercado competitivo, <span className="text-green-400">retener es el nuevo crecer.</span>
                 </h2>
                 <div className="grid md:grid-cols-3 gap-8 text-center">
-                    <div className="p-6">
+                    <div className="p-6 bg-gray-800/50 rounded-lg border border-transparent hover:border-green-400/50 transition-all transform hover:-translate-y-2">
                         <TrendingDown className="w-12 h-12 text-green-400 mx-auto mb-4"/>
                         <h3 className="text-xl font-bold mb-2">La Fuga Silenciosa de Clientes</h3>
                         <p className="text-gray-400">Cada mes, miembros valiosos se van por rutinas monótonas o falta de progreso visible. La presión económica y el IVA hacen que cada abandono duela más que nunca.</p>
                     </div>
-                    <div className="p-6">
+                    <div className="p-6 bg-gray-800/50 rounded-lg border border-transparent hover:border-green-400/50 transition-all transform hover:-translate-y-2">
                         <FileText className="w-12 h-12 text-green-400 mx-auto mb-4"/>
                         <h3 className="text-xl font-bold mb-2">El Caos de las Planillas Excel</h3>
                         <p className="text-gray-400">Pasas más tiempo administrando planillas y mensajes de WhatsApp que haciendo lo que amas: entrenar. La personalización a escala se siente imposible.</p>
                     </div>
-                    <div className="p-6">
+                    <div className="p-6 bg-gray-800/50 rounded-lg border border-transparent hover:border-green-400/50 transition-all transform hover:-translate-y-2">
                         <Users className="w-12 h-12 text-green-400 mx-auto mb-4"/>
                         <h3 className="text-xl font-bold mb-2">La Competencia de las Grandes Cadenas</h3>
                         <p className="text-gray-400">Las grandes cadenas compiten por precio. Tu única arma es ofrecer una experiencia de entrenamiento tan increíble que nadie quiera irse. Pero, ¿tienes las herramientas para hacerlo?</p>
@@ -192,7 +229,7 @@ export default function V2LandingPage() {
                         <button onClick={() => setActiveTab('gym')} className={cn("flex-1 text-center font-bold p-4 transition-colors", activeTab === 'gym' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-400 hover:text-white')}>Gimnasios</button>
                     </div>
                     
-                    <div className="grid md:grid-cols-2 gap-8 items-center">
+                    <div className="grid md:grid-cols-2 gap-8 items-center transition-opacity duration-500 animate-fade-in">
                         <div>
                             <h3 className="text-2xl font-bold mb-4">{solutionTabs[activeTab].title}</h3>
                             <p className="text-gray-300">{solutionTabs[activeTab].text}</p>
@@ -234,9 +271,9 @@ export default function V2LandingPage() {
             <Section id="testimonials" className="bg-[#111827]">
                 <SectionTitle>Líderes del Fitness en Chile ya están transformando su negocio.</SectionTitle>
                 <div className="grid md:grid-cols-3 gap-8">
-                    <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-                        <p className="italic text-gray-300 mb-4">"Fit Planner revolucionó cómo programo mis clases. Mis alumnas aman tener sus secuencias en la app y la retención ha subido un 40%. Dejé de ser una administradora para volver a ser una maestra."</p>
-                        <div className="flex items-center gap-4">
+                    <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 flex flex-col">
+                        <p className="italic text-gray-300 mb-4 flex-grow">"Fit Planner revolucionó cómo programo mis clases. Mis alumnas aman tener sus secuencias en la app y la retención ha subido un 40%. Dejé de ser una administradora para volver a ser una maestra."</p>
+                        <div className="flex items-center gap-4 mt-auto">
                             <Image src="/testimonial-sarah-johnson.png" alt="Sofía V." width={48} height={48} className="rounded-full" />
                             <div>
                                 <p className="font-bold">Sofía V.</p>
@@ -244,9 +281,9 @@ export default function V2LandingPage() {
                             </div>
                         </div>
                     </div>
-                     <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-                        <p className="italic text-gray-300 mb-4">"Pasé de un Excel caótico a una plataforma que grita profesionalismo. Mis clientes se sienten como atletas de élite y mi negocio ha crecido un 60% en 6 meses. Es la mejor inversión que he hecho."</p>
-                        <div className="flex items-center gap-4">
+                     <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 flex flex-col">
+                        <p className="italic text-gray-300 mb-4 flex-grow">"Pasé de un Excel caótico a una plataforma que grita profesionalismo. Mis clientes se sienten como atletas de élite y mi negocio ha crecido un 60% en 6 meses. Es la mejor inversión que he hecho."</p>
+                        <div className="flex items-center gap-4 mt-auto">
                             <Image src="/testimonial-david-chen.png" alt="Matías R." width={48} height={48} className="rounded-full" />
                             <div>
                                 <p className="font-bold">Matías R.</p>
@@ -254,9 +291,9 @@ export default function V2LandingPage() {
                             </div>
                         </div>
                     </div>
-                     <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-                        <p className="italic text-gray-300 mb-4">"Competir con Smart Fit es imposible en precio, pero con Fit Planner les ganamos en experiencia. Nuestros miembros se quedan porque ven resultados y se sienten cuidados. La IA es un cambio de juego."</p>
-                        <div className="flex items-center gap-4">
+                     <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 flex flex-col">
+                        <p className="italic text-gray-300 mb-4 flex-grow">"Competir con Smart Fit es imposible en precio, pero con Fit Planner les ganamos en experiencia. Nuestros miembros se quedan porque ven resultados y se sienten cuidados. La IA es un cambio de juego."</p>
+                        <div className="flex items-center gap-4 mt-auto">
                             <Image src="/testimonial-jessica-miller.png" alt="Carolina L." width={48} height={48} className="rounded-full" />
                             <div>
                                 <p className="font-bold">Carolina L.</p>
@@ -279,8 +316,8 @@ export default function V2LandingPage() {
 
                 <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-start">
                     {currentPlans.map((plan) => (
-                        <div key={plan.name} className={cn("bg-[#111827] rounded-2xl p-8 border border-gray-700", plan.popular && "border-green-400 border-2 relative")}>
-                             {plan.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-green-400 text-black font-bold text-sm px-4 py-1 rounded-full">MÁS POPULAR</div>}
+                        <div key={plan.name} className={cn("bg-[#111827] rounded-2xl p-8 border border-gray-700 transition-all transform hover:scale-105 hover:border-green-400/80", plan.popular && "border-green-400 border-2 scale-105 relative")}>
+                             {plan.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-green-400 text-black font-bold text-sm px-4 py-1 rounded-full uppercase tracking-wider">Más Popular</div>}
                             <h3 className="text-2xl font-bold text-center mb-2">{plan.name}</h3>
                             <p className="text-center text-gray-400 mb-6">Hasta {plan.members} miembros</p>
                             <p className="text-center text-5xl font-black mb-1">${plan.price}<span className="text-lg font-bold text-gray-400">/mes</span></p>
@@ -309,16 +346,23 @@ export default function V2LandingPage() {
                 <SectionTitle>Preguntas que quizás te estás haciendo...</SectionTitle>
                 <div className="max-w-3xl mx-auto space-y-4">
                     {faqItems.map((item, index) => (
-                        <div key={index} className="bg-gray-800 rounded-lg border border-gray-700">
+                        <div key={index} className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
                             <button onClick={() => toggleFaq(index)} className="w-full flex justify-between items-center p-6 text-left font-bold text-lg">
                                 <span>{item.q}</span>
                                 <ChevronDown className={cn("w-6 h-6 transition-transform", faqOpen === index && "rotate-180")} />
                             </button>
-                            {faqOpen === index && (
-                                <div className="px-6 pb-6 text-gray-300">
-                                    <p>{item.a}</p>
+                            <div
+                                className={cn(
+                                    "grid transition-all duration-300 ease-in-out",
+                                    faqOpen === index ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                                )}
+                            >
+                                <div className="overflow-hidden">
+                                     <div className="px-6 pb-6 text-gray-300">
+                                        <p>{item.a}</p>
+                                    </div>
                                 </div>
-                            )}
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -328,7 +372,7 @@ export default function V2LandingPage() {
             <Section id="final-cta" className="text-center">
                  <h2 className="text-3xl md:text-5xl font-bold mb-4">Es hora de construir un negocio de fitness <span className="text-green-400">a prueba de abandonos.</span></h2>
                 <p className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto">Únete a la nueva generación de líderes del fitness en Chile. Empieza tu transformación hoy.</p>
-                <Button size="lg" className="bg-green-400 text-black font-bold hover:bg-green-500 text-xl py-8 px-10">
+                <Button size="lg" className="bg-green-400 text-black font-bold hover:bg-green-500 text-xl py-8 px-10 transform hover:scale-105 transition-transform">
                     Comenzar mi Prueba Gratuita de 14 Días
                 </Button>
                 <p className="text-gray-500 mt-4 text-sm">Sin compromisos. Sin tarjeta de crédito. Solo resultados.</p>
