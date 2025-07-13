@@ -2,6 +2,9 @@
 
 import { z } from 'zod';
 import * as nodemailer from 'nodemailer';
+import { config } from 'dotenv';
+
+config(); // Explicitly load environment variables
 
 const contactSchema = z.object({
   name: z.string().min(2, 'El nombre es requerido.'),
