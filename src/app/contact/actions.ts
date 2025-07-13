@@ -36,6 +36,18 @@ export async function sendContactEmail(prevState: any, formData: FormData) {
   });
 
   try {
+    // Verify connection configuration
+    await new Promise((resolve, reject) => {
+        transporter.verify((error, success) => {
+            if (error) {
+                console.error("Nodemailer verification error:", error);
+                reject(error);
+            } else {
+                resolve(success);
+            }
+        });
+    });
+
     await transporter.sendMail({
       from: `"${name}" <${process.env.ZOHO_EMAIL}>`,
       to: process.env.RECIPIENT_EMAIL,
@@ -56,7 +68,7 @@ export async function sendContactEmail(prevState: any, formData: FormData) {
     console.error('Error al enviar el correo:', error);
     return {
       errors: null,
-      message: 'Error: No se pudo enviar el mensaje. Por favor, intenta más tarde.',
+      message: 'Error: No se pudo enviar el mensaje. Por favor, revisa la configuración del servidor o intenta más tarde.',
     };
   }
 }
