@@ -13,7 +13,8 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import Autoplay from "embla-carousel-autoplay";
 import * as React from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { sendContactEmail } from '@/app/contact/actions';
 import { useToast } from '@/hooks/use-toast';
 
@@ -77,7 +78,7 @@ function SubmitButton() {
 function ContactForm() {
     const { toast } = useToast();
     const formRef = React.useRef<HTMLFormElement>(null);
-    const [state, formAction] = useFormState(sendContactEmail, {
+    const [state, formAction] = useActionState(sendContactEmail, {
         message: '',
         errors: undefined,
         success: false
