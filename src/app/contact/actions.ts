@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -13,8 +14,6 @@ const contactSchema = z.object({
 });
 
 export async function sendContactEmail(prevState: any, formData: FormData) {
-  console.log('---[ sendContactEmail action started ]---');
-
   // 1. Validate form fields
   const validatedFields = contactSchema.safeParse({
     name: formData.get('name'),
@@ -23,33 +22,29 @@ export async function sendContactEmail(prevState: any, formData: FormData) {
   });
 
   if (!validatedFields.success) {
-    console.log('Validation failed:', validatedFields.error.flatten().fieldErrors);
     return {
       errors: validatedFields.error.flatten().fieldErrors,
       message: 'Por favor, corrige los errores en el formulario.',
+      success: false,
     };
   }
 
   const { name, email, message } = validatedFields.data;
-  console.log('Step 1: Form data validated successfully.', { name, email });
 
   // 2. Verify environment variables are loaded
-  console.log('Step 2: Checking environment variables...');
   if (!process.env.ZOHO_EMAIL || !process.env.ZOHO_APP_PASSWORD || !process.env.RECIPIENT_EMAIL) {
-    console.error('Error: Email environment variables are not set on the server.');
     return {
       errors: null,
-      message: 'Error: El servicio de correo no está configurado. Por favor, contacta al administrador.',
+      message: 'Error de configuración: Las variables de entorno del correo no están configuradas en el servidor.',
+      success: false,
     };
   }
-  console.log('Environment variables found.');
 
   // 3. Configure Nodemailer transporter
-  console.log('Step 3: Configuring Nodemailer transporter for Zoho...');
   const transporter = nodemailer.createTransport({
     host: 'smtp.zoho.com',
     port: 465,
-    secure: true, // true for 465, false for other ports
+    secure: true, // true for 465
     auth: {
       user: process.env.ZOHO_EMAIL,
       pass: process.env.ZOHO_APP_PASSWORD,
@@ -58,22 +53,10 @@ export async function sendContactEmail(prevState: any, formData: FormData) {
 
   try {
     // 4. Verify connection configuration
-    console.log('Step 4: Verifying connection with Zoho SMTP server...');
-    await new Promise((resolve, reject) => {
-        transporter.verify((error, success) => {
-            if (error) {
-                console.error("Nodemailer verification error:", error);
-                reject(error);
-            } else {
-                console.log('Connection to Zoho SMTP successful!');
-                resolve(success);
-            }
-        });
-    });
+    await transporter.verify();
 
     // 5. Send the email
-    console.log(`Step 5: Attempting to send email to ${process.env.RECIPIENT_EMAIL}...`);
-    const mailInfo = await transporter.sendMail({
+    await transporter.sendMail({
       from: `"${name}" <${process.env.ZOHO_EMAIL}>`,
       to: process.env.RECIPIENT_EMAIL,
       replyTo: email,
@@ -87,18 +70,14 @@ export async function sendContactEmail(prevState: any, formData: FormData) {
         <p>${message.replace(/\n/g, '<br>')}</p>
       `,
     });
-    
-    console.log('Email sent successfully! Zoho server response:', mailInfo);
-    console.log('---[ sendContactEmail action finished successfully ]---');
 
     return { success: true, message: '¡Gracias! Tu mensaje ha sido enviado.' };
-  } catch (error) {
-    console.error('---[ ERROR during email sending process ]---');
-    console.error(error);
-    console.log('---[ sendContactEmail action failed ]---');
+  } catch (error: any) {
+    // Return the actual error message to the client for debugging
     return {
       errors: null,
-      message: 'Error: No se pudo enviar el mensaje. Por favor, revisa los logs del servidor para más detalles.',
+      message: `Error al enviar el correo: ${error.message}`,
+      success: false,
     };
   }
 }
