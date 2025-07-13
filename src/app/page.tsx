@@ -60,8 +60,8 @@ function MemberDashboard() {
         <AppHeader />
         <div className="w-full max-w-4xl">
           <AthleteNav />
-          <h1 className="text-3xl font-bold font-headline mb-4">Your Routines</h1>
-          <p className="text-muted-foreground mb-6">Here are the upcoming and recent routines assigned by your coach.</p>
+          <h1 className="text-3xl font-bold font-headline mb-4">Tus Rutinas</h1>
+          <p className="text-muted-foreground mb-6">Estas son las rutinas recientes y futuras asignadas por tu coach.</p>
           {loading ? (
             <div className="space-y-4">
               <Skeleton className="h-24 w-full" />
@@ -74,7 +74,7 @@ function MemberDashboard() {
         </div>
       </main>
       <footer className="w-full text-center p-4 text-muted-foreground text-sm">
-        <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
+        <p>&copy; {new Date().getFullYear()} Fit Planner. Todos los derechos reservados.</p>
       </footer>
     </div>
   );
@@ -89,7 +89,7 @@ function LoadingScreen() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <p className="text-lg text-muted-foreground">Loading Your Dashboard...</p>
+                <p className="text-lg text-muted-foreground">Cargando tu Dashboard...</p>
             </div>
         </div>
     );

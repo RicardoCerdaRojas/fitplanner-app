@@ -5,8 +5,8 @@ import { AuthProvider } from '@/contexts/auth-context';
 import { ThemeProvider } from '@/contexts/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'Fitness Flow',
-  description: 'AI-powered workout routines tailored to you.',
+  title: 'Fit Planner',
+  description: 'La plataforma definitiva para coaches y centros fitness.',
 };
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

@@ -27,16 +27,20 @@ type Routine = {
 };
 
 const routineChartConfig: ChartConfig = {
-  count: { label: "Assignments" },
+  count: { label: "Asignaciones" },
 }
 
 const genderChartConfig: ChartConfig = {
-    male: { label: 'Male', color: 'hsl(var(--chart-2))' },
-    female: { label: 'Female', color: 'hsl(var(--chart-1))' },
+    male: { label: 'Hombres', color: 'hsl(var(--chart-2))' },
+    female: { label: 'Mujeres', color: 'hsl(var(--chart-1))' },
 };
 
 const ageChartConfig: ChartConfig = {
-    count: { label: 'Members' },
+    count: { label: 'Miembros' },
+    '<30': { color: 'hsl(var(--chart-1))' },
+    '30-39': { color: 'hsl(var(--chart-2))' },
+    '40-49': { color: 'hsl(var(--chart-3))' },
+    '50+': { color: 'hsl(var(--chart-4))' },
 }
 
 export default function AdminDashboardPage() {
@@ -88,8 +92,8 @@ export default function AdminDashboardPage() {
             });
             
             setGenderDistribution([
-                { name: 'Male', value: genderCounts.male, fill: 'var(--color-male)' },
-                { name: 'Female', value: genderCounts.female, fill: 'var(--color-female)' }
+                { name: 'Hombres', value: genderCounts.male, fill: 'hsl(var(--chart-2))' },
+                { name: 'Mujeres', value: genderCounts.female, fill: 'hsl(var(--chart-1))' }
             ].filter(item => item.value > 0));
 
             const ageColors = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
@@ -112,7 +116,7 @@ export default function AdminDashboardPage() {
             setRoutinesThisMonth(routinesInLastMonth);
 
             const routineTypeCounts = routines.reduce((acc, routine) => {
-                const typeName = routine.routineTypeName || 'Uncategorized';
+                const typeName = routine.routineTypeName || 'Sin Categoría';
                 acc[typeName] = (acc[typeName] || 0) + 1;
                 return acc;
             }, {} as Record<string, number>);
@@ -142,7 +146,7 @@ export default function AdminDashboardPage() {
                     <Skeleton className="h-16 w-full" />
                     <Skeleton className="h-96 w-full" />
                 </div>
-                 <p className='mt-8 text-lg text-muted-foreground'>Verifying admin access...</p>
+                 <p className='mt-8 text-lg text-muted-foreground'>Verificando acceso de administrador...</p>
             </div>
         );
     }
@@ -152,48 +156,48 @@ export default function AdminDashboardPage() {
             <AppHeader />
             <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-16 md:pb-8">
                 <div className="w-full max-w-6xl">
-                    <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
+                    <h1 className="text-3xl font-bold font-headline mb-4">Dashboard de Administración</h1>
                     <AdminBottomNav />
                 
                     <div className="grid gap-4 grid-cols-2 md:grid-cols-4 mb-8">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+                                <CardTitle className="text-sm font-medium">Total Miembros</CardTitle>
                                 <Users className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{memberCount + coachCount}</div>
-                                <p className="text-xs text-muted-foreground">{memberCount} Members, {coachCount} Coaches</p>
+                                <p className="text-xs text-muted-foreground">{memberCount} Miembros, {coachCount} Coaches</p>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Pending Signups</CardTitle>
+                                <CardTitle className="text-sm font-medium">Inscripciones Pendientes</CardTitle>
                                 <UserPlus className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">+{pendingCount}</div>
-                                <p className="text-xs text-muted-foreground">Waiting to join</p>
+                                <p className="text-xs text-muted-foreground">Esperando para unirse</p>
                             </CardContent>
                         </Card>
                          <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Active Now</CardTitle>
+                                <CardTitle className="text-sm font-medium">Activos Ahora</CardTitle>
                                 <Activity className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{activeNow}</div>
-                                <p className="text-xs text-muted-foreground">Members in a session</p>
+                                <p className="text-xs text-muted-foreground">Miembros en una sesión</p>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Routines This Month</CardTitle>
+                                <CardTitle className="text-sm font-medium">Rutinas (últ. 30 días)</CardTitle>
                                 <ClipboardList className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{routinesThisMonth}</div>
-                                <p className="text-xs text-muted-foreground">Assigned in last 30 days</p>
+                                <p className="text-xs text-muted-foreground">Asignadas en el último mes</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -201,8 +205,8 @@ export default function AdminDashboardPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Gender Distribution</CardTitle>
-                                <CardDescription>A breakdown of all gym members by gender.</CardDescription>
+                                <CardTitle>Distribución de Género</CardTitle>
+                                <CardDescription>Desglose de miembros por género.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 {genderDistribution.length > 0 ? (
@@ -228,15 +232,15 @@ export default function AdminDashboardPage() {
                                     </ChartContainer>
                                 ) : (
                                     <div className="h-[250px] flex items-center justify-center">
-                                        <p className="text-muted-foreground">No gender data available.</p>
+                                        <p className="text-muted-foreground">No hay datos de género.</p>
                                     </div>
                                 )}
                             </CardContent>
                         </Card>
                          <Card>
                             <CardHeader>
-                                <CardTitle>Age Distribution</CardTitle>
-                                <CardDescription>A breakdown of all gym members by age group.</CardDescription>
+                                <CardTitle>Distribución de Edad</CardTitle>
+                                <CardDescription>Desglose de miembros por rango de edad.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 {ageDistribution.some(d => d.count > 0) ? (
@@ -246,42 +250,39 @@ export default function AdminDashboardPage() {
                                             <YAxis hide />
                                             <Tooltip content={<ChartTooltipContent hideIndicator />} />
                                             <Bar dataKey="count" radius={4}>
-                                                {ageDistribution.map((entry) => (
-                                                    <Cell key={`cell-${entry.name}`} fill={entry.fill} />
-                                                ))}
                                                 <LabelList 
                                                     position="insideTop"
                                                     offset={10}
                                                     className="fill-white"
                                                     fontSize={12} 
                                                 />
+                                                {ageDistribution.map((entry, index) => (
+                                                    <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                                                ))}
                                             </Bar>
                                         </BarChart>
                                     </ChartContainer>
                                 ) : (
                                     <div className="h-[250px] flex items-center justify-center">
-                                        <p className="text-muted-foreground">No age data available.</p>
+                                        <p className="text-muted-foreground">No hay datos de edad.</p>
                                     </div>
                                 )}
                             </CardContent>
                         </Card>
                         <Card className="lg:col-span-2">
                             <CardHeader>
-                                <CardTitle>Top Routine Types</CardTitle>
-                                <CardDescription>The most frequently assigned routine types.</CardDescription>
+                                <CardTitle>Tipos de Rutina Más Asignados</CardTitle>
+                                <CardDescription>Los tipos de rutina que más se han asignado.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 {topRoutines.length > 0 ? (
                                     <ChartContainer config={routineChartConfig} className="h-[250px] w-full">
                                          <BarChart data={topRoutines} layout="vertical" accessibilityLayer margin={{ left: 10, right: 30 }}>
                                             <XAxis type="number" hide />
-                                            <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} width={80} />
+                                            <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} width={100} />
                                             <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                                             <Legend />
                                             <Bar dataKey="count" layout="vertical" radius={4}>
-                                                {topRoutines.map((entry) => (
-                                                    <Cell key={`cell-${entry.name}`} fill={entry.fill} />
-                                                ))}
                                                <LabelList 
                                                     dataKey="count" 
                                                     position="right" 
@@ -289,12 +290,15 @@ export default function AdminDashboardPage() {
                                                     className="fill-foreground" 
                                                     fontSize={12} 
                                                 />
+                                                {topRoutines.map((entry, index) => (
+                                                    <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                                                ))}
                                             </Bar>
                                         </BarChart>
                                     </ChartContainer>
                                 ) : (
                                     <div className="h-[250px] flex items-center justify-center">
-                                        <p className="text-muted-foreground">No routine data available.</p>
+                                        <p className="text-muted-foreground">No hay datos de rutinas.</p>
                                     </div>
                                 )}
                             </CardContent>
@@ -303,7 +307,7 @@ export default function AdminDashboardPage() {
                 </div>
             </main>
              <footer className="w-full text-center p-4 text-muted-foreground text-sm">
-                <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
+                <p>&copy; {new Date().getFullYear()} Fit Planner. Todos los derechos reservados.</p>
             </footer>
         </div>
     );

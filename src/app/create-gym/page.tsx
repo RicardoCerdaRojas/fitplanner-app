@@ -29,8 +29,8 @@ import { useEffect } from 'react';
 import { AppHeader } from '@/components/app-header';
 
 const formSchema = z.object({
-  gymName: z.string().min(3, { message: 'Gym name must be at least 3 characters.' }),
-  theme: z.string({ required_error: 'Please select a theme for your gym.' }),
+  gymName: z.string().min(3, { message: 'El nombre debe tener al menos 3 caracteres.' }),
+  theme: z.string({ required_error: 'Por favor, selecciona un tema.' }),
 });
 
 export default function CreateGymPage() {
@@ -55,13 +55,13 @@ export default function CreateGymPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user || !userProfile) {
-        toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to create a gym.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para crear un centro.' });
         return;
     }
     
     const selectedTheme = themes.find(t => t.id === values.theme);
     if (!selectedTheme) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Please select a valid theme.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona un tema válido.' });
         return;
     }
 
@@ -90,13 +90,13 @@ export default function CreateGymPage() {
 
         await batch.commit();
         
-        toast({ title: 'Success!', description: 'Your gym has been created. Redirecting...' });
+        toast({ title: '¡Éxito!', description: 'Tu centro ha sido creado. Redirigiendo...' });
         
         window.location.href = '/';
 
     } catch (error: any) {
       console.error("Error creating gym:", error);
-      toast({ variant: 'destructive', title: 'Error', description: error.message || "Could not create gym." });
+      toast({ variant: 'destructive', title: 'Error', description: error.message || "No se pudo crear el centro." });
     }
   }
   
@@ -109,7 +109,7 @@ export default function CreateGymPage() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <p className="text-lg text-muted-foreground">Verifying your account...</p>
+            <p className="text-lg text-muted-foreground">Verificando tu cuenta...</p>
         </div>
       </div>
     );
@@ -122,9 +122,9 @@ export default function CreateGymPage() {
         <CardHeader className="text-center">
             <div className="flex justify-center items-center gap-2 mb-2">
                 <Building className="w-8 h-8 text-primary" />
-                <CardTitle className="text-3xl font-headline">Set Up Your Gym</CardTitle>
+                <CardTitle className="text-3xl font-headline">Configura tu Centro</CardTitle>
             </div>
-          <CardDescription>Let's get your gym registered on Fitness Flow.</CardDescription>
+          <CardDescription>Vamos a registrar tu centro o negocio en Fit Planner.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -134,9 +134,9 @@ export default function CreateGymPage() {
                 name="gymName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Gym Name</FormLabel>
+                    <FormLabel>Nombre del Centro</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Downtown Fitness Club" {...field} />
+                      <Input placeholder="Ej: 'Gimnasio Power', 'Estudio Pilates Zen'" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -148,7 +148,7 @@ export default function CreateGymPage() {
                 name="theme"
                 render={({ field }) => (
                   <FormItem className="space-y-3">
-                    <FormLabel className="flex items-center gap-2"><Palette/> Select a Theme</FormLabel>
+                    <FormLabel className="flex items-center gap-2"><Palette/> Selecciona un Tema</FormLabel>
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
@@ -186,7 +186,7 @@ export default function CreateGymPage() {
               />
 
               <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? 'Creating Gym...' : 'Create Gym & Continue'}
+                {form.formState.isSubmitting ? 'Creando...' : 'Crear Centro y Continuar'}
               </Button>
             </form>
           </Form>

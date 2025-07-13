@@ -53,7 +53,7 @@ export function AppHeader() {
                             "font-headline font-bold",
                             isGuestHomepage ? "text-2xl text-white" : "text-2xl text-card-foreground"
                         )}>
-                            FITNESS FLOW
+                            FIT PLANNER
                         </h1>
                     )}
                     {!isGuestHomepage && gymProfile?.name && (
@@ -68,9 +68,9 @@ export function AppHeader() {
 
                 {isGuestHomepage && (
                     <nav className="hidden md:flex items-center gap-8 flex-1">
-                        <Link href="#features" className="text-white hover:text-gray-300 transition-colors text-sm font-medium">Features</Link>
-                        <Link href="#about" className="text-white hover:text-gray-300 transition-colors text-sm font-medium">About</Link>
-                        <Link href="#contact" className="text-white hover:text-gray-300 transition-colors text-sm font-medium">Contact</Link>
+                        <Link href="#features" className="text-white hover:text-gray-300 transition-colors text-sm font-medium">Para Quién</Link>
+                        <Link href="#about" className="text-white hover:text-gray-300 transition-colors text-sm font-medium">Funcionalidades</Link>
+                        <Link href="#contact" className="text-white hover:text-gray-300 transition-colors text-sm font-medium">Contacto</Link>
                     </nav>
                 )}
 
@@ -105,7 +105,7 @@ export function AppHeader() {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={handleLogout}>
                                     <LogOut className="mr-2 h-4 w-4" />
-                                    <span>Log out</span>
+                                    <span>Cerrar Sesión</span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -114,12 +114,12 @@ export function AppHeader() {
                         <div className='flex items-center gap-2'>
                             <Button asChild variant="secondary" className="bg-white text-gray-800 hover:bg-gray-200">
                                 <Link href="/login">
-                                    Login
+                                    Ingresar
                                 </Link>
                             </Button>
                             <Button asChild className="bg-[#3A7CFD] hover:bg-[#3a7cfd]/90 text-white">
                                 <Link href="/signup">
-                                    Sign Up
+                                    Registrarse
                                 </Link>
                             </Button>
                         </div>
