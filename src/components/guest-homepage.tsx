@@ -74,9 +74,8 @@ export function GuestHomepage() {
             {/* Hero Section */}
             <div className="relative min-h-screen w-full">
                 <Image
-                    src="https://placehold.co/1920x1080.png"
+                    src="/hero-background.jpg"
                     alt="Persona entrenando con determinación"
-                    data-ai-hint="fitness workout intense"
                     layout="fill"
                     objectFit="cover"
                     objectPosition="top"
