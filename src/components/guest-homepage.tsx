@@ -145,7 +145,18 @@ export function GuestHomepage() {
                         </ul>
                     </div>
                     <div className="rounded-lg overflow-hidden">
-                        <Image src="https://placehold.co/600x700.png" data-ai-hint="woman phone gym" alt="Miembro usando la app en el gimnasio" width={600} height={700} className="w-full h-full object-cover" />
+                         <Carousel opts={{ loop: true }} className="w-full max-w-sm mx-auto">
+                            <CarouselContent>
+                                <CarouselItem>
+                                    <Image src="/member-001.png" data-ai-hint="mobile app workout" alt="App mostrando lista de ejercicios" width={600} height={700} className="w-full h-full object-contain" />
+                                </CarouselItem>
+                                <CarouselItem>
+                                    <Image src="/member-002.png" data-ai-hint="mobile app timer" alt="App en modo workout con temporizador" width={600} height={700} className="w-full h-full object-contain" />
+                                </CarouselItem>
+                            </CarouselContent>
+                            <CarouselPrevious className="left-2 text-white bg-transparent border-white/50 hover:bg-white/10 hover:text-white" />
+                            <CarouselNext className="right-2 text-white bg-transparent border-white/50 hover:bg-white/10 hover:text-white" />
+                        </Carousel>
                     </div>
                 </div>
             </section>
