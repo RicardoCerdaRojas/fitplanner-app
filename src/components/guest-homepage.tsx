@@ -9,13 +9,8 @@ import { Dumbbell, Users, BarChart2, Heart, BrainCircuit, Waves, GitBranch } fro
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Input } from './ui/input';
-import { Textarea } from './ui/textarea';
 import Autoplay from "embla-carousel-autoplay";
 import * as React from 'react';
-import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
-import { useToast } from '@/hooks/use-toast';
 
 
 const features = [
@@ -128,7 +123,7 @@ export function GuestHomepage() {
             <section id="about" className="py-20 px-4 sm:px-6 lg:px-8 bg-[#1C2129]">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                     <div className="rounded-lg overflow-hidden">
-                        <Image src="/admin-001.png" alt="Dashboard de Fit Planner" width={600} height={700} className="w-full h-full object-cover" />
+                        <Image src="/admin-001.png" alt="Dashboard de Fit Planner" width={600} height={700} className="w-full h-full object-cover" data-ai-hint="dashboard admin" />
                     </div>
                     <div>
                         <h2 className="text-4xl font-bold mb-4">Potencia tu Negocio</h2>
