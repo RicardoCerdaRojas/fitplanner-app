@@ -29,12 +29,12 @@ export function AppDashboardIllustration(props: SVGProps<SVGSVGElement>) {
 
         {/* Chart Card */}
         <rect x="125" y="85" width="360" height="150" rx="5" fill="#374151" />
-        <path d="M 140 215 C 190 160, 240 190, 290 150 S 390 120, 440 160" stroke="#3b82f6" strokeWidth="3" fill="none" />
-        <circle cx="140" cy="215" r="3" fill="#3b82f6" />
-        <circle cx="215" cy="175" r="3" fill="#3b82f6" />
-        <circle cx="290" cy="150" r="3" fill="#3b82f6" />
-        <circle cx="365" cy="130" r="3" fill="#3b82f6" />
-        <circle cx="440" cy="160" r="3" fill="#3b82f6" />
+        <path d="M 140 215 C 190 160, 240 190, 290 150 S 390 120, 440 160" stroke="#34d399" strokeWidth="3" fill="none" />
+        <circle cx="140" cy="215" r="3" fill="#34d399" />
+        <circle cx="215" cy="175" r="3" fill="#34d399" />
+        <circle cx="290" cy="150" r="3" fill="#34d399" />
+        <circle cx="365" cy="130" r="3" fill="#34d399" />
+        <circle cx="440" cy="160" r="3" fill="#34d399" />
         <path d="M 140 220 L 460 220" stroke="#4b5563" strokeWidth="1" strokeDasharray="2" />
         <path d="M 140 180 L 460 180" stroke="#4b5563" strokeWidth="1" strokeDasharray="2" />
         <path d="M 140 140 L 460 140" stroke="#4b5563" strokeWidth="1" strokeDasharray="2" />

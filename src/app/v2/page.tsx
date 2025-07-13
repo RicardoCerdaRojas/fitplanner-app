@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { AppHeader } from '@/components/app-header';
+import { AppDashboardIllustration } from '@/components/ui/app-dashboard-illustration';
 
 // --- Sub-components for better structure ---
 
@@ -148,61 +148,79 @@ export default function V2LandingPage() {
 
 
     return (
-        <div className="bg-gray-900 text-white font-sans" style={{ fontFamily: "'Poppins', sans-serif" }}>
+        <div className="bg-[#0a0a0a] text-white font-sans" style={{ fontFamily: "'Poppins', sans-serif" }}>
            
             {/* --- HERO SECTION --- */}
-            <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
-                <video 
-                    autoPlay 
-                    loop 
-                    muted 
-                    playsInline
-                    className="absolute z-0 w-auto min-w-full min-h-full max-w-none"
-                    style={{ objectFit: 'cover', top: '50%', left: '50%', transform: 'translate(-50%, -50%)'}}
-                    data-ai-hint="platform action montage"
-                >
-                    <source src="https://placehold.co/1920x1080.mp4" type="video/mp4" />
-                    Your browser does not support the video tag.
-                </video>
-                <div className="absolute inset-0 bg-black opacity-60 z-10"></div>
-                <div className="relative z-20 text-center px-4">
-                    <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight mb-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-                        Deja de gestionar ausencias.
-                        <br/>
-                        <span className="text-green-400">Empieza a crear lealtad.</span>
-                    </h1>
-                    <p className="max-w-3xl mx-auto text-base md:text-xl text-gray-300 mb-8 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-                        Fit Planner es el motor de entrenamiento inteligente para los negocios de fitness en Chile que se obsesionan con los resultados. Reduce el abandono de clientes con rutinas personalizadas, seguimiento de clase mundial y el poder de la inteligencia artificial.
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
-                        <Button size="lg" className="bg-green-400 text-black font-bold hover:bg-green-500 text-lg py-7 px-8 transform hover:scale-105 transition-transform">
-                            Prueba 14 Días Gratis
-                        </Button>
-                        <Button size="lg" variant="outline" className="border-gray-400 text-white hover:bg-white/10 text-lg py-7 px-8 transform hover:scale-105 transition-transform">
-                            Ver una demo
-                        </Button>
+             <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden p-4">
+                {/* Animated Aurora Background */}
+                <div className="absolute inset-0 z-0 opacity-40">
+                    <div className="absolute bottom-0 left-[-20%] right-[-20%] top-[-10%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_farthest-side,rgba(16,185,129,0.8),rgba(255,255,255,0))] animate-aurora-1"></div>
+                    <div className="absolute bottom-[-40%] right-[-10%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_farthest-side,rgba(59,130,246,0.8),rgba(255,255,255,0))] animate-aurora-2"></div>
+                </div>
+
+                {/* Header */}
+                 <header className="absolute top-0 left-0 right-0 z-20 p-4">
+                    <div className="container mx-auto flex justify-between items-center">
+                        <span className="text-xl font-bold">Fit Planner</span>
+                        <div className="flex items-center gap-4">
+                            <Button variant="ghost" asChild><Link href="/login">Ingresar</Link></Button>
+                            <Button className="bg-white text-black hover:bg-gray-200 font-semibold" asChild><Link href="/signup">Comenzar Prueba</Link></Button>
+                        </div>
+                    </div>
+                </header>
+
+                <div className="relative z-10 grid md:grid-cols-2 items-center gap-8 container mx-auto">
+                    {/* Left Column: Text Content */}
+                    <div className="text-center md:text-left">
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-tight mb-6 animate-fade-in-up">
+                            Deja de gestionar ausencias.
+                            <br />
+                            <span className="text-emerald-400">Empieza a crear lealtad.</span>
+                        </h1>
+                        <p className="max-w-xl text-base md:text-lg text-gray-300 mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                            La plataforma inteligente que combate la principal causa del abandono de clientes: la monotonía en el entrenamiento.
+                        </p>
+                        <ul className="space-y-3 text-left mb-10 max-w-lg animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+                           <li className="flex items-center gap-3">
+                                <Check className="w-5 h-5 text-emerald-400 shrink-0"/>
+                                <span>Reduce la fuga de miembros con rutinas que evolucionan.</span>
+                           </li>
+                        </ul>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
+                            <Button size="lg" className="bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-lg py-7 px-8 transform hover:scale-105 transition-transform">
+                                Prueba 14 Días Gratis
+                            </Button>
+                            <Button size="lg" variant="outline" className="border-gray-600 text-white hover:bg-white/10 text-lg py-7 px-8">
+                                Ver una demo
+                            </Button>
+                        </div>
+                    </div>
+                    {/* Right Column: Visual */}
+                    <div className="relative hidden md:flex items-center justify-center animate-fade-in" style={{ animationDelay: '0.3s' }}>
+                        <div className="absolute w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-3xl -z-10"></div>
+                        <AppDashboardIllustration className="w-full max-w-2xl transform rotate-3 shadow-2xl shadow-emerald-900/40" />
                     </div>
                 </div>
             </div>
 
             {/* --- PROBLEM SECTION --- */}
-            <Section id="problem" className="bg-gray-900">
+            <Section id="problem" className="bg-[#0a0a0a]">
                 <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-                    En un mercado competitivo, <span className="text-green-400">retener es el nuevo crecer.</span>
+                    En un mercado competitivo, <span className="text-emerald-400">retener es el nuevo crecer.</span>
                 </h2>
                 <div className="grid md:grid-cols-3 gap-8 text-center">
-                    <div className="p-6 bg-gray-800/50 rounded-lg border border-transparent hover:border-green-400/50 transition-all transform hover:-translate-y-2">
-                        <TrendingDown className="w-12 h-12 text-green-400 mx-auto mb-4"/>
+                    <div className="p-6 bg-gray-900/50 rounded-lg border border-transparent hover:border-emerald-400/50 transition-all transform hover:-translate-y-2">
+                        <TrendingDown className="w-12 h-12 text-emerald-400 mx-auto mb-4"/>
                         <h3 className="text-xl font-bold mb-2">La Fuga Silenciosa de Clientes</h3>
                         <p className="text-gray-400">Cada mes, miembros valiosos se van por rutinas monótonas o falta de progreso visible. La presión económica y el IVA hacen que cada abandono duela más que nunca.</p>
                     </div>
-                    <div className="p-6 bg-gray-800/50 rounded-lg border border-transparent hover:border-green-400/50 transition-all transform hover:-translate-y-2">
-                        <FileText className="w-12 h-12 text-green-400 mx-auto mb-4"/>
+                    <div className="p-6 bg-gray-900/50 rounded-lg border border-transparent hover:border-emerald-400/50 transition-all transform hover:-translate-y-2">
+                        <FileText className="w-12 h-12 text-emerald-400 mx-auto mb-4"/>
                         <h3 className="text-xl font-bold mb-2">El Caos de las Planillas Excel</h3>
                         <p className="text-gray-400">Pasas más tiempo administrando planillas y mensajes de WhatsApp que haciendo lo que amas: entrenar. La personalización a escala se siente imposible.</p>
                     </div>
-                    <div className="p-6 bg-gray-800/50 rounded-lg border border-transparent hover:border-green-400/50 transition-all transform hover:-translate-y-2">
-                        <Users className="w-12 h-12 text-green-400 mx-auto mb-4"/>
+                    <div className="p-6 bg-gray-900/50 rounded-lg border border-transparent hover:border-emerald-400/50 transition-all transform hover:-translate-y-2">
+                        <Users className="w-12 h-12 text-emerald-400 mx-auto mb-4"/>
                         <h3 className="text-xl font-bold mb-2">La Competencia de las Grandes Cadenas</h3>
                         <p className="text-gray-400">Las grandes cadenas compiten por precio. Tu única arma es ofrecer una experiencia de entrenamiento tan increíble que nadie quiera irse. Pero, ¿tienes las herramientas para hacerlo?</p>
                     </div>
@@ -224,9 +242,9 @@ export default function V2LandingPage() {
                 
                 <div className="bg-gray-900 rounded-xl p-4 md:p-8 max-w-5xl mx-auto">
                     <div className="flex flex-col md:flex-row gap-2 md:gap-4 mb-8 border-b border-gray-700">
-                        <button onClick={() => setActiveTab('boutique')} className={cn("flex-1 text-center font-bold p-4 transition-colors", activeTab === 'boutique' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-400 hover:text-white')}>Estudios Boutique</button>
-                        <button onClick={() => setActiveTab('personal')} className={cn("flex-1 text-center font-bold p-4 transition-colors", activeTab === 'personal' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-400 hover:text-white')}>Entrenadores</button>
-                        <button onClick={() => setActiveTab('gym')} className={cn("flex-1 text-center font-bold p-4 transition-colors", activeTab === 'gym' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-400 hover:text-white')}>Gimnasios</button>
+                        <button onClick={() => setActiveTab('boutique')} className={cn("flex-1 text-center font-bold p-4 transition-colors", activeTab === 'boutique' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-gray-400 hover:text-white')}>Estudios Boutique</button>
+                        <button onClick={() => setActiveTab('personal')} className={cn("flex-1 text-center font-bold p-4 transition-colors", activeTab === 'personal' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-gray-400 hover:text-white')}>Entrenadores</button>
+                        <button onClick={() => setActiveTab('gym')} className={cn("flex-1 text-center font-bold p-4 transition-colors", activeTab === 'gym' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-gray-400 hover:text-white')}>Gimnasios</button>
                     </div>
                     
                     <div className="grid md:grid-cols-2 gap-8 items-center transition-opacity duration-500 animate-fade-in">
@@ -248,10 +266,10 @@ export default function V2LandingPage() {
             </Section>
             
             {/* --- WOW FACTOR SECTION --- */}
-            <Section id="wow-factor" className="bg-gray-900">
+            <Section id="wow-factor" className="bg-[#0a0a0a]">
                  <div className="text-center max-w-4xl mx-auto">
                     <h2 className="text-3xl md:text-4xl font-bold mb-4">Nuestro Generador de Entrenamientos con IA</h2>
-                    <p className="text-xl text-green-400 font-semibold mb-6">Creatividad Infinita, Cero Aburrimiento.</p>
+                    <p className="text-xl text-emerald-400 font-semibold mb-6">Creatividad Infinita, Cero Aburrimiento.</p>
                     <p className="text-gray-300 mb-8">
                       Imagina crear cientos de rutinas variadas, desafiantes y perfectamente estructuradas con un solo clic. Nuestra IA no solo ahorra horas de trabajo, sino que combate la principal causa de abandono: la monotonía. Es tu arma secreta para mantener a tus miembros enganchados y progresando.
                     </p>
@@ -277,7 +295,7 @@ export default function V2LandingPage() {
                             <Image src="/testimonial-sarah-johnson.png" alt="Sofía V." width={48} height={48} className="rounded-full" />
                             <div>
                                 <p className="font-bold">Sofía V.</p>
-                                <p className="text-sm text-green-400">Fundadora de "Estudio Alma Pilates"</p>
+                                <p className="text-sm text-emerald-400">Fundadora de "Estudio Alma Pilates"</p>
                             </div>
                         </div>
                     </div>
@@ -287,7 +305,7 @@ export default function V2LandingPage() {
                             <Image src="/testimonial-david-chen.png" alt="Matías R." width={48} height={48} className="rounded-full" />
                             <div>
                                 <p className="font-bold">Matías R.</p>
-                                <p className="text-sm text-green-400">Entrenador Personal</p>
+                                <p className="text-sm text-emerald-400">Entrenador Personal</p>
                             </div>
                         </div>
                     </div>
@@ -297,7 +315,7 @@ export default function V2LandingPage() {
                             <Image src="/testimonial-jessica-miller.png" alt="Carolina L." width={48} height={48} className="rounded-full" />
                             <div>
                                 <p className="font-bold">Carolina L.</p>
-                                <p className="text-sm text-green-400">Gerente de "Fuerza Austral Gym"</p>
+                                <p className="text-sm text-emerald-400">Gerente de "Fuerza Austral Gym"</p>
                             </div>
                         </div>
                     </div>
@@ -305,28 +323,28 @@ export default function V2LandingPage() {
             </Section>
             
             {/* --- PRICING SECTION --- */}
-            <Section id="pricing" className="bg-gray-900">
+            <Section id="pricing" className="bg-[#0a0a0a]">
                 <SectionTitle>Planes diseñados para tu crecimiento</SectionTitle>
                 <div className="flex items-center justify-center gap-4 mb-12">
                     <span className={cn(isYearly ? 'text-gray-400' : 'text-white font-bold')}>Mensual</span>
                     <Switch checked={isYearly} onCheckedChange={setIsYearly} />
                     <span className={cn(isYearly ? 'text-white font-bold' : 'text-gray-400')}>Anual</span>
-                    <span className="bg-green-400/20 text-green-300 text-xs font-bold px-2 py-1 rounded-full">AHORRA 20%</span>
+                    <span className="bg-emerald-400/20 text-emerald-300 text-xs font-bold px-2 py-1 rounded-full">AHORRA 20%</span>
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-start">
                     {currentPlans.map((plan) => (
-                        <div key={plan.name} className={cn("bg-[#111827] rounded-2xl p-8 border border-gray-700 transition-all transform hover:scale-105 hover:border-green-400/80", plan.popular && "border-green-400 border-2 scale-105 relative")}>
-                             {plan.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-green-400 text-black font-bold text-sm px-4 py-1 rounded-full uppercase tracking-wider">Más Popular</div>}
+                        <div key={plan.name} className={cn("bg-[#111827] rounded-2xl p-8 border border-gray-700 transition-all transform hover:scale-105 hover:border-emerald-400/80", plan.popular && "border-emerald-400 border-2 scale-105 relative")}>
+                             {plan.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-emerald-400 text-black font-bold text-sm px-4 py-1 rounded-full uppercase tracking-wider">Más Popular</div>}
                             <h3 className="text-2xl font-bold text-center mb-2">{plan.name}</h3>
                             <p className="text-center text-gray-400 mb-6">Hasta {plan.members} miembros</p>
                             <p className="text-center text-5xl font-black mb-1">${plan.price}<span className="text-lg font-bold text-gray-400">/mes</span></p>
                             <p className="text-center text-gray-500 mb-8 text-sm">{isYearly ? "Facturado anualmente" : "Cancela en cualquier momento"}</p>
-                            <Button size="lg" className={cn("w-full text-lg", plan.popular ? "bg-green-400 text-black hover:bg-green-500" : "bg-gray-700 text-white hover:bg-gray-600")}>Empezar con {plan.name}</Button>
+                            <Button size="lg" className={cn("w-full text-lg", plan.popular ? "bg-emerald-400 text-black hover:bg-emerald-500" : "bg-gray-700 text-white hover:bg-gray-600")}>Empezar con {plan.name}</Button>
                             <ul className="mt-8 space-y-4">
                                 {plan.features.map(feat => (
                                     <li key={feat} className="flex items-center gap-3">
-                                        <Check className="w-5 h-5 text-green-400 shrink-0"/>
+                                        <Check className="w-5 h-5 text-emerald-400 shrink-0"/>
                                         <span className="text-gray-300">{feat}</span>
                                     </li>
                                 ))}
@@ -370,16 +388,16 @@ export default function V2LandingPage() {
             
             {/* --- FINAL CTA --- */}
             <Section id="final-cta" className="text-center">
-                 <h2 className="text-3xl md:text-5xl font-bold mb-4">Es hora de construir un negocio de fitness <span className="text-green-400">a prueba de abandonos.</span></h2>
+                 <h2 className="text-3xl md:text-5xl font-bold mb-4">Es hora de construir un negocio de fitness <span className="text-emerald-400">a prueba de abandonos.</span></h2>
                 <p className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto">Únete a la nueva generación de líderes del fitness en Chile. Empieza tu transformación hoy.</p>
-                <Button size="lg" className="bg-green-400 text-black font-bold hover:bg-green-500 text-xl py-8 px-10 transform hover:scale-105 transition-transform">
+                <Button size="lg" className="bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-xl py-8 px-10 transform hover:scale-105 transition-transform">
                     Comenzar mi Prueba Gratuita de 14 Días
                 </Button>
                 <p className="text-gray-500 mt-4 text-sm">Sin compromisos. Sin tarjeta de crédito. Solo resultados.</p>
             </Section>
             
             {/* --- FOOTER --- */}
-            <footer className="bg-gray-900 border-t border-gray-800 py-12">
+            <footer className="bg-[#0a0a0a] border-t border-gray-800 py-12">
                 <div className="container mx-auto px-4 text-center text-gray-500">
                     <h3 className="text-2xl font-bold mb-4 text-white">Fit Planner</h3>
                      <div className="flex justify-center gap-6 mb-8">
