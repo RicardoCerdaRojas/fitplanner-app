@@ -10,6 +10,16 @@ const contactSchema = z.object({
 });
 
 export async function sendContactEmail(prevState: any, formData: FormData) {
+  // 1. Verify environment variables are loaded
+  if (!process.env.ZOHO_EMAIL || !process.env.ZOHO_APP_PASSWORD || !process.env.RECIPIENT_EMAIL) {
+    console.error('Error: Las variables de entorno para el correo no están configuradas en el servidor.');
+    return {
+      errors: null,
+      message: 'Error: El servicio de correo no está configurado. Por favor, contacta al administrador.',
+    };
+  }
+  
+  // 2. Validate form fields
   const validatedFields = contactSchema.safeParse({
     name: formData.get('name'),
     email: formData.get('email'),
@@ -25,6 +35,7 @@ export async function sendContactEmail(prevState: any, formData: FormData) {
 
   const { name, email, message } = validatedFields.data;
 
+  // 3. Configure Nodemailer transporter
   const transporter = nodemailer.createTransport({
     host: 'smtp.zoho.com',
     port: 465,
@@ -36,7 +47,7 @@ export async function sendContactEmail(prevState: any, formData: FormData) {
   });
 
   try {
-    // Verify connection configuration
+    // 4. Verify connection configuration
     await new Promise((resolve, reject) => {
         transporter.verify((error, success) => {
             if (error) {
@@ -48,10 +59,11 @@ export async function sendContactEmail(prevState: any, formData: FormData) {
         });
     });
 
+    // 5. Send the email
     await transporter.sendMail({
-      from: `"${name}" <${process.env.ZOHO_EMAIL}>`, // Send FROM your authenticated email address
+      from: `"${name}" <${process.env.ZOHO_EMAIL}>`,
       to: process.env.RECIPIENT_EMAIL,
-      replyTo: email, // Set the user's email as the reply-to address
+      replyTo: email,
       subject: `Nuevo Mensaje de Contacto de ${name}`,
       html: `
         <h1>Nuevo mensaje desde el formulario de contacto de Fit Planner</h1>
