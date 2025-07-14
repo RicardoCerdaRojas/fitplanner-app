@@ -36,6 +36,8 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Autoplay from 'embla-carousel-autoplay';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import ReactPlayer from 'react-player/lazy';
 
 
 // --- Sub-components for better structure ---
@@ -93,6 +95,7 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
 const HeroV2 = () => {
     const heroRef = useRef<HTMLDivElement>(null);
     const illustrationRef = useRef<HTMLDivElement>(null);
+    const [showDemoModal, setShowDemoModal] = useState(false);
 
     useEffect(() => {
         const hero = heroRef.current;
@@ -136,6 +139,20 @@ const HeroV2 = () => {
     }, []);
 
     return (
+        <>
+        <Dialog open={showDemoModal} onOpenChange={setShowDemoModal}>
+            <DialogContent className="max-w-3xl p-0 border-0">
+                <div className="aspect-video">
+                    <ReactPlayer
+                        url='https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+                        playing={showDemoModal}
+                        controls
+                        width="100%"
+                        height="100%"
+                    />
+                </div>
+            </DialogContent>
+        </Dialog>
         <div ref={heroRef} className="group relative min-h-screen flex flex-col items-center justify-center overflow-hidden p-4 isolate">
             <div className="absolute inset-0 -z-10 h-full w-full bg-black">
                 <div className="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px]"></div>
@@ -167,10 +184,12 @@ const HeroV2 = () => {
                         La plataforma inteligente que combate la principal causa del abandono: la monotonía. Reduce la fuga de miembros con rutinas que evolucionan.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Button size="lg" className="bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-lg py-7 px-8 transform hover:scale-105 transition-transform shadow-lg shadow-emerald-500/20">
-                            Prueba 14 Días Gratis <ArrowRight className="w-5 h-5 ml-2" />
+                        <Button size="lg" className="bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-lg py-7 px-8 transform hover:scale-105 transition-transform shadow-lg shadow-emerald-500/20" asChild>
+                            <Link href="/signup">
+                                Prueba 14 Días Gratis <ArrowRight className="w-5 h-5 ml-2" />
+                            </Link>
                         </Button>
-                        <Button size="lg" variant="outline" className="text-white bg-white/5 border-white/20 hover:bg-white/10 text-lg py-7 px-8 backdrop-blur-sm transition-all">
+                        <Button onClick={() => setShowDemoModal(true)} size="lg" variant="outline" className="text-white bg-white/5 border-white/20 hover:bg-white/10 text-lg py-7 px-8 backdrop-blur-sm transition-all">
                             Ver una demo <ArrowRight className="w-5 h-5 ml-2" />
                         </Button>
                     </div>
@@ -183,6 +202,7 @@ const HeroV2 = () => {
                 </div>
             </div>
         </div>
+        </>
     );
 };
 
@@ -322,69 +342,71 @@ const AIPoweredGeneratorSection = () => {
     const displayedRoutine = routines[activeRoutine];
 
     return (
-        <div className="relative w-full overflow-hidden bg-black">
-            <div className="absolute inset-0 -z-10 bg-grid-white/5"></div>
-            <div className="absolute inset-x-0 top-0 h-64 -z-10 bg-gradient-to-b from-black to-transparent"></div>
-            <div className="absolute inset-0 -z-20 animate-aurora-1 bg-[radial-gradient(ellipse_at_20%_80%,#34d39944,transparent_50%)]"></div>
-            <div className="absolute inset-0 -z-20 animate-aurora-2 bg-[radial-gradient(ellipse_at_80%_30%,#3b82f644,transparent_50%)]"></div>
-            
-             <div className="container mx-auto px-4 py-16 md:py-24">
-                <div className="text-center max-w-4xl mx-auto mb-12">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-4">La Monotonía es el Enemigo</h2>
-                    <p className="text-xl text-emerald-400 font-semibold mb-6">Genera rutinas personalizadas en segundos.</p>
-                    <p className="text-gray-300">
-                        Nuestra IA combate la principal causa de abandono. Ahorra horas de trabajo a tus coaches y entrega variedad infinita a tus miembros, manteniendo la motivación siempre al máximo.
-                    </p>
-                </div>
+        <div className="w-full bg-[#111827] overflow-hidden">
+            <div className="w-full relative">
+                <div className="absolute inset-0 -z-10 bg-grid-white/5"></div>
+                <div className="absolute inset-x-0 top-0 h-64 -z-10 bg-gradient-to-b from-black to-transparent"></div>
+                <div className="absolute inset-0 -z-20 animate-aurora-1 bg-[radial-gradient(ellipse_at_20%_80%,#34d39944,transparent_50%)]"></div>
+                <div className="absolute inset-0 -z-20 animate-aurora-2 bg-[radial-gradient(ellipse_at_80%_30%,#3b82f644,transparent_50%)]"></div>
                 
-                <div className="grid lg:grid-cols-12 gap-8 max-w-6xl mx-auto">
-                    {/* Left Panel: Controls */}
-                    <div className="lg:col-span-4">
-                        <div className="sticky top-24 bg-white/5 border border-white/10 p-6 rounded-2xl backdrop-blur-xl shadow-lg">
-                            <h3 className="font-bold text-lg mb-4">Elige un Objetivo</h3>
-                            <div className="space-y-3">
-                                <Button 
-                                    onClick={() => handleSelectRoutine('upper')} 
-                                    variant={activeRoutine === 'upper' ? 'default' : 'secondary'}
-                                    className={cn("w-full justify-start text-base py-6", activeRoutine === 'upper' ? "bg-emerald-500 hover:bg-emerald-600" : "")}
-                                >
-                                    <Dumbbell className="mr-3" /> Tren Superior
-                                </Button>
-                                <Button 
-                                    onClick={() => handleSelectRoutine('lower')} 
-                                    variant={activeRoutine === 'lower' ? 'default' : 'secondary'}
-                                    className={cn("w-full justify-start text-base py-6", activeRoutine === 'lower' ? "bg-emerald-500 hover:bg-emerald-600" : "")}
-                                >
-                                    <Dumbbell className="mr-3" /> Tren Inferior
-                                </Button>
-                                <Button 
-                                    onClick={() => handleSelectRoutine('cardio')} 
-                                    variant={activeRoutine === 'cardio' ? 'default' : 'secondary'}
-                                    className={cn("w-full justify-start text-base py-6", activeRoutine === 'cardio' ? "bg-emerald-500 hover:bg-emerald-600" : "")}
-                                >
-                                    <Flame className="mr-3" /> Cardio Explosivo
-                                </Button>
-                            </div>
-                            <p className="text-xs text-gray-400 mt-4 text-center">...o describe cualquier objetivo personalizado.</p>
-                        </div>
+                 <div className="container mx-auto px-4 py-16 md:py-24">
+                    <div className="text-center max-w-4xl mx-auto mb-12">
+                        <h2 className="text-3xl md:text-4xl font-bold mb-4">La Monotonía es el Enemigo</h2>
+                        <p className="text-xl text-emerald-400 font-semibold mb-6">Genera rutinas personalizadas en segundos.</p>
+                        <p className="text-gray-300">
+                            Nuestra IA combate la principal causa de abandono. Ahorra horas de trabajo a tus coaches y entrega variedad infinita a tus miembros, manteniendo la motivación siempre al máximo.
+                        </p>
                     </div>
+                    
+                    <div className="grid lg:grid-cols-12 gap-8 max-w-6xl mx-auto">
+                        {/* Left Panel: Controls */}
+                        <div className="lg:col-span-4">
+                            <div className="sticky top-24 bg-white/5 border border-white/10 p-6 rounded-2xl backdrop-blur-xl shadow-lg">
+                                <h3 className="font-bold text-lg mb-4">Elige un Objetivo</h3>
+                                <div className="space-y-3">
+                                    <Button 
+                                        onClick={() => handleSelectRoutine('upper')} 
+                                        variant={activeRoutine === 'upper' ? 'default' : 'secondary'}
+                                        className={cn("w-full justify-start text-base py-6", activeRoutine === 'upper' ? "bg-emerald-500 hover:bg-emerald-600" : "")}
+                                    >
+                                        <Dumbbell className="mr-3" /> Tren Superior
+                                    </Button>
+                                    <Button 
+                                        onClick={() => handleSelectRoutine('lower')} 
+                                        variant={activeRoutine === 'lower' ? 'default' : 'secondary'}
+                                        className={cn("w-full justify-start text-base py-6", activeRoutine === 'lower' ? "bg-emerald-500 hover:bg-emerald-600" : "")}
+                                    >
+                                        <Dumbbell className="mr-3" /> Tren Inferior
+                                    </Button>
+                                    <Button 
+                                        onClick={() => handleSelectRoutine('cardio')} 
+                                        variant={activeRoutine === 'cardio' ? 'default' : 'secondary'}
+                                        className={cn("w-full justify-start text-base py-6", activeRoutine === 'cardio' ? "bg-emerald-500 hover:bg-emerald-600" : "")}
+                                    >
+                                        <Flame className="mr-3" /> Cardio Explosivo
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-gray-400 mt-4 text-center">...o describe cualquier objetivo personalizado.</p>
+                            </div>
+                        </div>
 
-                    {/* Right Panel: Display */}
-                    <div className="lg:col-span-8">
-                        <div className={cn("bg-[#111827] rounded-2xl p-8 transition-opacity duration-300", isAnimating ? "opacity-0" : "opacity-100")}>
-                            <div key={routineKey.current} className="animate-fade-in">
-                                <h3 className="text-2xl font-bold mb-6 animate-stagger-in" style={{"--stagger-delay": "0.1s"} as React.CSSProperties}>{displayedRoutine.title}</h3>
-                                <div className="space-y-4">
-                                    {displayedRoutine.exercises.map((ex, i) => (
-                                        <div key={ex.name} className="bg-gray-800 p-4 rounded-lg flex justify-between items-center animate-stagger-in" style={{"--stagger-delay": `${(i + 2) * 0.1}s`} as React.CSSProperties}>
-                                            <p className="font-semibold text-gray-200">{ex.name}</p>
-                                            <div className="flex items-center gap-4 text-gray-400 text-sm">
-                                                <span className="flex items-center gap-1.5"><Repeat className="w-4 h-4 text-emerald-400" /> {ex.reps ? `${ex.reps} reps` : `${ex.duration}`}</span>
-                                                {ex.weight && <span className="flex items-center gap-1.5"><Dumbbell className="w-4 h-4 text-emerald-400" /> {ex.weight}</span>}
-                                                {ex.rest && <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-emerald-400" /> {ex.rest} rest</span>}
+                        {/* Right Panel: Display */}
+                        <div className="lg:col-span-8">
+                            <div className={cn("bg-[#111827] rounded-2xl p-8 transition-opacity duration-300", isAnimating ? "opacity-0" : "opacity-100")}>
+                                <div key={routineKey.current} className="animate-fade-in">
+                                    <h3 className="text-2xl font-bold mb-6 animate-stagger-in" style={{"--stagger-delay": "0.1s"} as React.CSSProperties}>{displayedRoutine.title}</h3>
+                                    <div className="space-y-4">
+                                        {displayedRoutine.exercises.map((ex, i) => (
+                                            <div key={ex.name} className="bg-gray-800 p-4 rounded-lg flex justify-between items-center animate-stagger-in" style={{"--stagger-delay": `${(i + 2) * 0.1}s`} as React.CSSProperties}>
+                                                <p className="font-semibold text-gray-200">{ex.name}</p>
+                                                <div className="flex items-center gap-4 text-gray-400 text-sm">
+                                                    <span className="flex items-center gap-1.5"><Repeat className="w-4 h-4 text-emerald-400" /> {ex.reps ? `${ex.reps} reps` : `${ex.duration}`}</span>
+                                                    {ex.weight && <span className="flex items-center gap-1.5"><Dumbbell className="w-4 h-4 text-emerald-400" /> {ex.weight}</span>}
+                                                    {ex.rest && <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-emerald-400" /> {ex.rest} rest</span>}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -587,9 +609,7 @@ export default function V2LandingPage() {
             </Section>
             
             <div id="wow-factor" className="w-full">
-              <div className="w-full bg-[#111827]">
                 <AIPoweredGeneratorSection />
-              </div>
             </div>
 
             <section id="testimonials" className="bg-[#111827] py-16 md:py-24">
@@ -703,8 +723,10 @@ export default function V2LandingPage() {
                 <div className="container mx-auto">
                      <h2 className="text-3xl md:text-5xl font-bold mb-4">Es hora de construir un negocio de fitness <span className="text-emerald-400">a prueba de abandonos.</span></h2>
                     <p className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto">Únete a la nueva generación de líderes del fitness en Chile. Empieza tu transformación hoy.</p>
-                    <Button size="lg" className="bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-xl py-8 px-10 transform hover:scale-105 transition-transform">
-                        Comenzar mi Prueba Gratuita de 14 Días
+                    <Button size="lg" className="bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-xl py-8 px-10 transform hover:scale-105 transition-transform" asChild>
+                        <Link href="/signup">
+                         Comenzar mi Prueba Gratuita de 14 Días
+                        </Link>
                     </Button>
                     <p className="text-gray-500 mt-4 text-sm">Sin compromisos. Sin tarjeta de crédito. Solo resultados.</p>
                 </div>
