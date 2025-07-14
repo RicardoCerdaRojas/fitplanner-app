@@ -1,26 +1,60 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
     function isSignedIn() {
       return request.auth != null;
     }
 
-    match /memberships/{docId} {
-      // Allow an unauthenticated user to check if a pending membership exists for them.
-      allow get: if true;
-      // Allow authenticated users to list/query and write to memberships.
-      allow read, write: if isSignedIn();
+    function isGymAdmin(gymId) {
+      return exists(/databases/$(database)/documents/memberships/$(request.auth.uid)_$(gymId)) &&
+             get(/databases/$(database)/documents/memberships/$(request.auth.uid)_$(gymId)).data.role == 'gym-admin';
+    }
+    
+    function isMemberOfGym(gymId) {
+       return exists(/databases/$(database)/documents/memberships/$(request.auth.uid)_$(gymId));
     }
 
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow create, update: if isSignedIn() && request.auth.uid == userId;
+      allow read, update: if isOwner(userId);
+      allow create: if isSignedIn();
+    }
+    
+    match /gyms/{gymId} {
+      allow read: if isMemberOfGym(gymId);
+      allow create: if isSignedIn();
+      allow update: if isGymAdmin(gymId) || get(/databases/$(database)/documents/gyms/$(gymId)).data.adminUid == request.auth.uid;
     }
 
-    match /{collection}/{docId} {
-      allow read, write: if isSignedIn();
+    match /memberships/{membershipId} {
+      allow read: if isSignedIn() && (request.auth.uid == resource.data.userId || isGymAdmin(resource.data.gymId));
+      allow create: if isSignedIn();
+      allow delete: if isGymAdmin(resource.data.gymId);
+    }
+    
+    match /routines/{routineId} {
+        allow read: if isSignedIn() && (isMemberOfGym(resource.data.gymId) || resource.data.memberId == request.auth.uid);
+        allow create: if isSignedIn() && isMemberOfGym(request.resource.data.gymId);
+        allow update: if isSignedIn() && (isMemberOfGym(resource.data.gymId) || isOwner(resource.data.memberId));
+        allow delete: if isSignedIn() && isMemberOfGym(resource.data.gymId);
+    }
+
+    match /routineTemplates/{templateId} {
+        allow read, create, delete: if isSignedIn() && isMemberOfGym(request.resource.data.gymId);
+    }
+
+    match /routineTypes/{typeId} {
+        allow read, create, update, delete: if isSignedIn() && isMemberOfGym(request.resource.data.gymId);
+    }
+    
+    match /workoutSessions/{sessionId} {
+      allow read, write, delete: if isOwner(sessionId) || isGymAdmin(request.resource.data.gymId);
     }
   }
 }
