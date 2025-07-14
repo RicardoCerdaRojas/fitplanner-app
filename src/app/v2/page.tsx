@@ -78,9 +78,7 @@ const Section = ({ id, className, children }: { id?: string; className?: string;
                 className
             )}
         >
-            <div className="container mx-auto px-4">
-                {children}
-            </div>
+            {children}
         </section>
     );
 };
@@ -499,97 +497,97 @@ export default function V2LandingPage() {
            
             <HeroV2 />
 
-            {/* --- PROBLEM SECTION --- */}
-            <Section id="problem" className="bg-[#0a0a0a]">
-                <div className="grid md:grid-cols-2 gap-12 items-center">
-                    <div className="text-left">
-                        <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                            ¿Tu centro <span className="text-gray-500">gestiona</span> o <span className="text-emerald-400">transforma</span>?
-                        </h2>
-                        <p className="text-lg text-gray-400 mb-8">
-                            Las herramientas genéricas te mantienen atrapado en la administración. Para crecer, necesitas un sistema que potencie la experiencia del cliente y te diferencie de la competencia.
-                        </p>
-                        <ul className="space-y-4">
-                            <li className="flex items-start gap-3">
-                                <Check className="w-6 h-6 text-emerald-400 mt-1 shrink-0" />
-                                <div>
-                                    <h3 className="font-bold text-lg">Reduce el abandono</h3>
-                                    <p className="text-gray-400">Combate la monotonía con rutinas que evolucionan, manteniendo a tus miembros enganchados y viendo resultados.</p>
-                                </div>
-                            </li>
-                             <li className="flex items-start gap-3">
-                                <Check className="w-6 h-6 text-emerald-400 mt-1 shrink-0" />
-                                <div>
-                                    <h3 className="font-bold text-lg">Eleva tu servicio</h3>
-                                    <p className="text-gray-400">Entrega una experiencia digital premium que justifica tus precios y construye una marca sólida y profesional.</p>
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-                    <div>
-                         <ImageComparisonSlider 
-                            before="/chaos-manual-management.png"
-                            after="/fit-planner-dashboard.png"
-                            beforeHint="messy paperwork spreadsheet"
-                            afterHint="clean dashboard interface"
-                        />
-                    </div>
-                </div>
-            </Section>
-            
-            {/* --- SOLUTION SECTION --- */}
-            <Section id="solution" className="bg-[#111827]">
-                <SectionTitle>Un ecosistema. Tres roles. Perfecta sincronía.</SectionTitle>
-                <div className="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
-                    <div className="order-2 lg:order-1">
-                        <div className="flex items-start gap-4 mb-4">
-                           <ActiveIcon className="w-10 h-10 text-emerald-400 mt-1 shrink-0"/>
-                           <div>
-                                <h3 className="text-2xl font-bold mb-2 transition-opacity duration-300 animate-fade-in">{solutionContent[activeSolution].title}</h3>
-                                <p className="text-gray-300 transition-opacity duration-300 animate-fade-in">{solutionContent[activeSolution].text}</p>
-                           </div>
+            <div id="problem" className="bg-[#0a0a0a]">
+                <Section>
+                    <div className="grid md:grid-cols-2 gap-12 items-center">
+                        <div className="text-left">
+                            <h2 className="text-3xl md:text-4xl font-bold mb-6">
+                                ¿Tu centro <span className="text-gray-500">gestiona</span> o <span className="text-emerald-400">transforma</span>?
+                            </h2>
+                            <p className="text-lg text-gray-400 mb-8">
+                                Las herramientas genéricas te mantienen atrapado en la administración. Para crecer, necesitas un sistema que potencie la experiencia del cliente y te diferencie de la competencia.
+                            </p>
+                            <ul className="space-y-4">
+                                <li className="flex items-start gap-3">
+                                    <Check className="w-6 h-6 text-emerald-400 mt-1 shrink-0" />
+                                    <div>
+                                        <h3 className="font-bold text-lg">Reduce el abandono</h3>
+                                        <p className="text-gray-400">Combate la monotonía con rutinas que evolucionan, manteniendo a tus miembros enganchados y viendo resultados.</p>
+                                    </div>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                    <Check className="w-6 h-6 text-emerald-400 mt-1 shrink-0" />
+                                    <div>
+                                        <h3 className="font-bold text-lg">Eleva tu servicio</h3>
+                                        <p className="text-gray-400">Entrega una experiencia digital premium que justifica tus precios y construye una marca sólida y profesional.</p>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                        <div>
+                            <ImageComparisonSlider 
+                                before="/chaos-manual-management.png"
+                                after="/fit-planner-dashboard.png"
+                                beforeHint="messy paperwork spreadsheet"
+                                afterHint="clean dashboard interface"
+                            />
                         </div>
                     </div>
-                    <div className="relative order-1 lg:order-2 flex items-center justify-center">
-                        <Image 
-                            src="/feedback-cycle-diagram.png"
-                            alt="Ecosistema Fit Planner conectando admin, coach y atleta"
-                            width={800} height={533}
-                            className="rounded-lg shadow-2xl w-full"
-                            data-ai-hint="fitness ecosystem diagram"
-                        />
-                         {/* Hotspots */}
-                        <button 
-                            onMouseEnter={() => setActiveSolution('admin')}
-                            className="absolute w-10 h-10 rounded-full bg-emerald-400/50 flex items-center justify-center backdrop-blur-sm"
-                            style={{ top: '65%', left: '46%' }}
-                        >
-                            <div className="w-4 h-4 rounded-full bg-emerald-400 animate-ping"></div>
-                        </button>
-                        <button 
-                            onMouseEnter={() => setActiveSolution('coach')}
-                            className="absolute w-10 h-10 rounded-full bg-emerald-400/50 flex items-center justify-center backdrop-blur-sm"
-                            style={{ top: '42%', left: '15%' }}
-                        >
-                             <div className="w-4 h-4 rounded-full bg-emerald-400 animate-ping"></div>
-                        </button>
-                        <button 
-                            onMouseEnter={() => setActiveSolution('athlete')}
-                            className="absolute w-10 h-10 rounded-full bg-emerald-400/50 flex items-center justify-center backdrop-blur-sm"
-                            style={{ top: '48%', left: '80%' }}
-                        >
-                             <div className="w-4 h-4 rounded-full bg-emerald-400 animate-ping"></div>
-                        </button>
+                </Section>
+            </div>
+            
+            <Section id="solution" className="bg-[#111827]">
+                <div className="container mx-auto">
+                    <SectionTitle>Un ecosistema. Tres roles. Perfecta sincronía.</SectionTitle>
+                    <div className="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
+                        <div className="order-2 lg:order-1">
+                            <div className="flex items-start gap-4 mb-4">
+                               <ActiveIcon className="w-10 h-10 text-emerald-400 mt-1 shrink-0"/>
+                               <div>
+                                    <h3 className="text-2xl font-bold mb-2 transition-opacity duration-300 animate-fade-in">{solutionContent[activeSolution].title}</h3>
+                                    <p className="text-gray-300 transition-opacity duration-300 animate-fade-in">{solutionContent[activeSolution].text}</p>
+                               </div>
+                            </div>
+                        </div>
+                        <div className="relative order-1 lg:order-2 flex items-center justify-center">
+                            <Image 
+                                src="/feedback-cycle-diagram.png"
+                                alt="Ecosistema Fit Planner conectando admin, coach y atleta"
+                                width={800} height={533}
+                                className="rounded-lg shadow-2xl w-full"
+                                data-ai-hint="fitness ecosystem diagram"
+                            />
+                             {/* Hotspots */}
+                            <button 
+                                onMouseEnter={() => setActiveSolution('admin')}
+                                className="absolute w-10 h-10 rounded-full bg-emerald-400/50 flex items-center justify-center backdrop-blur-sm"
+                                style={{ top: '65%', left: '46%' }}
+                            >
+                                <div className="w-4 h-4 rounded-full bg-emerald-400 animate-ping"></div>
+                            </button>
+                            <button 
+                                onMouseEnter={() => setActiveSolution('coach')}
+                                className="absolute w-10 h-10 rounded-full bg-emerald-400/50 flex items-center justify-center backdrop-blur-sm"
+                                style={{ top: '42%', left: '15%' }}
+                            >
+                                 <div className="w-4 h-4 rounded-full bg-emerald-400 animate-ping"></div>
+                            </button>
+                            <button 
+                                onMouseEnter={() => setActiveSolution('athlete')}
+                                className="absolute w-10 h-10 rounded-full bg-emerald-400/50 flex items-center justify-center backdrop-blur-sm"
+                                style={{ top: '48%', left: '80%' }}
+                            >
+                                 <div className="w-4 h-4 rounded-full bg-emerald-400 animate-ping"></div>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </Section>
 
-            {/* --- WOW FACTOR SECTION (AI GENERATOR) --- */}
             <div id="wow-factor" className="w-full">
                 <AIPoweredGeneratorSection />
             </div>
 
-            {/* --- SOCIAL PROOF SECTION --- */}
             <section id="testimonials" className="bg-[#111827] py-16 md:py-24">
                 <div className="container mx-auto px-4 max-w-5xl">
                     <SectionTitle>Líderes del Fitness en Chile ya están transformando su negocio.</SectionTitle>
@@ -629,78 +627,83 @@ export default function V2LandingPage() {
                 </div>
             </section>
             
-            {/* --- PRICING SECTION --- */}
             <Section id="pricing" className="bg-[#0a0a0a]">
-                <SectionTitle>Planes diseñados para tu crecimiento</SectionTitle>
-                <div className="flex items-center justify-center gap-4 mb-12">
-                    <span className={cn(isYearly ? 'text-gray-400' : 'text-white font-bold')}>Mensual</span>
-                    <Switch checked={isYearly} onCheckedChange={setIsYearly} />
-                    <span className={cn(isYearly ? 'text-white font-bold' : 'text-gray-400')}>Anual</span>
-                    <span className="bg-emerald-400/20 text-emerald-300 text-xs font-bold px-2 py-1 rounded-full">AHORRA 20%</span>
-                </div>
+                <div className="container mx-auto">
+                    <SectionTitle>Planes diseñados para tu crecimiento</SectionTitle>
+                    <div className="flex items-center justify-center gap-4 mb-12">
+                        <span className={cn(isYearly ? 'text-gray-400' : 'text-white font-bold')}>Mensual</span>
+                        <Switch checked={isYearly} onCheckedChange={setIsYearly} />
+                        <span className={cn(isYearly ? 'text-white font-bold' : 'text-gray-400')}>Anual</span>
+                        <span className="bg-emerald-400/20 text-emerald-300 text-xs font-bold px-2 py-1 rounded-full">AHORRA 20%</span>
+                    </div>
 
-                <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-start">
-                    {currentPlans.map((plan) => (
-                        <div key={plan.name} className={cn("bg-[#111827] rounded-2xl p-8 border border-gray-700 transition-all transform hover:scale-105 hover:border-emerald-400/80", plan.popular && "border-emerald-400 border-2 scale-105 relative")}>
-                             {plan.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-emerald-400 text-black font-bold text-sm px-4 py-1 rounded-full uppercase tracking-wider">Más Popular</div>}
-                            <h3 className="text-2xl font-bold text-center mb-2">{plan.name}</h3>
-                            <p className="text-center text-gray-400 mb-6">Hasta {plan.members} miembros</p>
-                            <p className="text-center text-5xl font-black mb-1">${plan.price}<span className="text-lg font-bold text-gray-400">/mes</span></p>
-                            <p className="text-center text-gray-500 mb-8 text-sm">{isYearly ? "Facturado anualmente" : "Cancela en cualquier momento"}</p>
-                            <Button size="lg" className={cn("w-full text-lg", plan.popular ? "bg-emerald-400 text-black hover:bg-emerald-500" : "bg-gray-700 text-white hover:bg-gray-600")}>Empezar con {plan.name}</Button>
-                            <ul className="mt-8 space-y-4">
-                                {plan.features.map(feat => (
-                                    <li key={feat} className="flex items-center gap-3">
-                                        <Check className="w-5 h-5 text-emerald-400 shrink-0"/>
-                                        <span className="text-gray-300">{feat}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    ))}
-                </div>
-                 <div className="text-center mt-12 border-t border-gray-800 pt-8 max-w-3xl mx-auto">
-                    <h3 className="text-2xl font-bold">¿Necesitas más?</h3>
-                    <p className="text-gray-400 my-4">Para operaciones con más de 300 miembros, requerimientos especiales o integraciones a medida, tenemos un plan Enterprise. Contáctanos para una solución personalizada.</p>
-                    <Button variant="outline" className="border-gray-400 text-white hover:bg-white/10">Contactar a Ventas <ArrowRight className="w-4 h-4 ml-2"/></Button>
+                    <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-start">
+                        {currentPlans.map((plan) => (
+                            <div key={plan.name} className={cn("bg-[#111827] rounded-2xl p-8 border transition-all transform hover:scale-105", plan.popular ? "border-emerald-400 border-2 scale-105 relative hover:border-emerald-300" : "border-gray-700 hover:border-gray-500")}>
+                                 {plan.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-emerald-400 text-black font-bold text-sm px-4 py-1 rounded-full uppercase tracking-wider">Más Popular</div>}
+                                <h3 className="text-2xl font-bold text-center mb-2">{plan.name}</h3>
+                                <p className="text-center text-gray-400 mb-6">Hasta {plan.members} miembros</p>
+                                <p className="text-center text-5xl font-black mb-1">${plan.price}<span className="text-lg font-bold text-gray-400">/mes</span></p>
+                                <p className="text-center text-gray-500 mb-8 text-sm">{isYearly ? "Facturado anualmente" : "Cancela en cualquier momento"}</p>
+                                <Button size="lg" className={cn("w-full text-lg", plan.popular ? "bg-emerald-400 text-black hover:bg-emerald-500" : "bg-gray-700 text-white hover:bg-gray-600")}>Empezar con {plan.name}</Button>
+                                <ul className="mt-8 space-y-4">
+                                    {plan.features.map(feat => (
+                                        <li key={feat} className="flex items-center gap-3">
+                                            <Check className="w-5 h-5 text-emerald-400 shrink-0"/>
+                                            <span className="text-gray-300">{feat}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))}
+                    </div>
+                     <div className="text-center mt-12 border-t border-gray-800 pt-8 max-w-3xl mx-auto">
+                        <h3 className="text-2xl font-bold">¿Necesitas más?</h3>
+                        <p className="text-gray-400 my-4">Para operaciones con más de 300 miembros, requerimientos especiales o integraciones a medida, tenemos un plan Enterprise. Contáctanos para una solución personalizada.</p>
+                        <Button variant="outline" className="border-gray-400 text-white hover:bg-white/10">Contactar a Ventas <ArrowRight className="w-4 h-4 ml-2"/></Button>
+                    </div>
                 </div>
             </Section>
 
             {/* --- FAQ SECTION --- */}
             <Section id="faq" className="bg-[#111827]">
-                <SectionTitle>Preguntas que quizás te estás haciendo...</SectionTitle>
-                <div className="max-w-3xl mx-auto space-y-4">
-                    {faqItems.map((item, index) => (
-                        <div key={index} className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-                            <button onClick={() => toggleFaq(index)} className="w-full flex justify-between items-center p-6 text-left font-bold text-lg">
-                                <span>{item.q}</span>
-                                <ChevronDown className={cn("w-6 h-6 transition-transform", faqOpen === index && "rotate-180")} />
-                            </button>
-                            <div
-                                className={cn(
-                                    "grid transition-all duration-300 ease-in-out",
-                                    faqOpen === index ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                                )}
-                            >
-                                <div className="overflow-hidden">
-                                     <div className="px-6 pb-6 text-gray-300">
-                                        <p>{item.a}</p>
+                <div className="container mx-auto">
+                    <SectionTitle>Preguntas que quizás te estás haciendo...</SectionTitle>
+                    <div className="max-w-3xl mx-auto space-y-4">
+                        {faqItems.map((item, index) => (
+                            <div key={index} className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+                                <button onClick={() => toggleFaq(index)} className="w-full flex justify-between items-center p-6 text-left font-bold text-lg">
+                                    <span>{item.q}</span>
+                                    <ChevronDown className={cn("w-6 h-6 transition-transform", faqOpen === index && "rotate-180")} />
+                                </button>
+                                <div
+                                    className={cn(
+                                        "grid transition-all duration-300 ease-in-out",
+                                        faqOpen === index ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                                    )}
+                                >
+                                    <div className="overflow-hidden">
+                                         <div className="px-6 pb-6 text-gray-300">
+                                            <p>{item.a}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             </Section>
             
             {/* --- FINAL CTA --- */}
             <Section id="final-cta" className="text-center">
-                 <h2 className="text-3xl md:text-5xl font-bold mb-4">Es hora de construir un negocio de fitness <span className="text-emerald-400">a prueba de abandonos.</span></h2>
-                <p className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto">Únete a la nueva generación de líderes del fitness en Chile. Empieza tu transformación hoy.</p>
-                <Button size="lg" className="bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-xl py-8 px-10 transform hover:scale-105 transition-transform">
-                    Comenzar mi Prueba Gratuita de 14 Días
-                </Button>
-                <p className="text-gray-500 mt-4 text-sm">Sin compromisos. Sin tarjeta de crédito. Solo resultados.</p>
+                <div className="container mx-auto">
+                     <h2 className="text-3xl md:text-5xl font-bold mb-4">Es hora de construir un negocio de fitness <span className="text-emerald-400">a prueba de abandonos.</span></h2>
+                    <p className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto">Únete a la nueva generación de líderes del fitness en Chile. Empieza tu transformación hoy.</p>
+                    <Button size="lg" className="bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-xl py-8 px-10 transform hover:scale-105 transition-transform">
+                        Comenzar mi Prueba Gratuita de 14 Días
+                    </Button>
+                    <p className="text-gray-500 mt-4 text-sm">Sin compromisos. Sin tarjeta de crédito. Solo resultados.</p>
+                </div>
             </Section>
             
             {/* --- FOOTER --- */}
