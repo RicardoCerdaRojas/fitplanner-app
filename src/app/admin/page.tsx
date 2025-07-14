@@ -151,166 +151,166 @@ export default function AdminDashboardPage() {
             </div>
         );
     }
-    
-    if (!isTrialActive) {
-        return <TrialEnded />;
-    }
-    
+        
     return (
         <div className="flex flex-col min-h-screen">
             <AppHeader />
-            <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-16 md:pb-8">
-                <div className="w-full max-w-6xl">
-                    <h1 className="text-3xl font-bold font-headline mb-4">Dashboard de Administración</h1>
-                    <AdminBottomNav />
-                
-                    <div className="grid gap-4 grid-cols-2 md:grid-cols-4 mb-8">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Miembros</CardTitle>
-                                <Users className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{memberCount + coachCount}</div>
-                                <p className="text-xs text-muted-foreground">{memberCount} Miembros, {coachCount} Coaches</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Inscripciones Pendientes</CardTitle>
-                                <UserPlus className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">+{pendingCount}</div>
-                                <p className="text-xs text-muted-foreground">Esperando para unirse</p>
-                            </CardContent>
-                        </Card>
-                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Activos Ahora</CardTitle>
-                                <Activity className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{activeNow}</div>
-                                <p className="text-xs text-muted-foreground">Miembros en una sesión</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Rutinas (últ. 30 días)</CardTitle>
-                                <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{routinesThisMonth}</div>
-                                <p className="text-xs text-muted-foreground">Asignadas en el último mes</p>
-                            </CardContent>
-                        </Card>
-                    </div>
+            {isTrialActive === false ? (
+                <TrialEnded />
+            ) : (
+                <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-16 md:pb-8">
+                    <div className="w-full max-w-6xl">
+                        <h1 className="text-3xl font-bold font-headline mb-4">Dashboard de Administración</h1>
+                        <AdminBottomNav />
+                    
+                        <div className="grid gap-4 grid-cols-2 md:grid-cols-4 mb-8">
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Total Miembros</CardTitle>
+                                    <Users className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{memberCount + coachCount}</div>
+                                    <p className="text-xs text-muted-foreground">{memberCount} Miembros, {coachCount} Coaches</p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Inscripciones Pendientes</CardTitle>
+                                    <UserPlus className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">+{pendingCount}</div>
+                                    <p className="text-xs text-muted-foreground">Esperando para unirse</p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Activos Ahora</CardTitle>
+                                    <Activity className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{activeNow}</div>
+                                    <p className="text-xs text-muted-foreground">Miembros en una sesión</p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Rutinas (últ. 30 días)</CardTitle>
+                                    <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{routinesThisMonth}</div>
+                                    <p className="text-xs text-muted-foreground">Asignadas en el último mes</p>
+                                </CardContent>
+                            </Card>
+                        </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Distribución de Género</CardTitle>
-                                <CardDescription>Desglose de miembros por género.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {genderDistribution.length > 0 ? (
-                                    <ChartContainer config={genderChartConfig} className="h-[250px] w-full">
-                                        <PieChart>
-                                            <Tooltip content={<ChartTooltipContent nameKey="name" hideIndicator />} />
-                                            <Pie 
-                                                data={genderDistribution} 
-                                                dataKey="value" 
-                                                nameKey="name" 
-                                                cx="50%" 
-                                                cy="50%" 
-                                                outerRadius={80} 
-                                                labelLine={false}
-                                                label={({ name, value }) => `${name}: ${value}`}
-                                            >
-                                                {genderDistribution.map((entry) => (
-                                                    <Cell key={`cell-${entry.name}`} fill={entry.fill} />
-                                                ))}
-                                            </Pie>
-                                            <ChartLegend content={<ChartLegendContent />} />
-                                        </PieChart>
-                                    </ChartContainer>
-                                ) : (
-                                    <div className="h-[250px] flex items-center justify-center">
-                                        <p className="text-muted-foreground">No hay datos de género.</p>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                         <Card>
-                            <CardHeader>
-                                <CardTitle>Distribución de Edad</CardTitle>
-                                <CardDescription>Desglose de miembros por rango de edad.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {ageDistribution.some(d => d.count > 0) ? (
-                                    <ChartContainer config={ageChartConfig} className="h-[250px] w-full">
-                                        <BarChart data={ageDistribution} accessibilityLayer>
-                                            <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
-                                            <YAxis hide />
-                                            <Tooltip content={<ChartTooltipContent hideIndicator />} />
-                                            <Bar dataKey="count" radius={4}>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Distribución de Género</CardTitle>
+                                    <CardDescription>Desglose de miembros por género.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    {genderDistribution.length > 0 ? (
+                                        <ChartContainer config={genderChartConfig} className="h-[250px] w-full">
+                                            <PieChart>
+                                                <Tooltip content={<ChartTooltipContent nameKey="name" hideIndicator />} />
+                                                <Pie 
+                                                    data={genderDistribution} 
+                                                    dataKey="value" 
+                                                    nameKey="name" 
+                                                    cx="50%" 
+                                                    cy="50%" 
+                                                    outerRadius={80} 
+                                                    labelLine={false}
+                                                    label={({ name, value }) => `${name}: ${value}`}
+                                                >
+                                                    {genderDistribution.map((entry) => (
+                                                        <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                                                    ))}
+                                                </Pie>
+                                                <ChartLegend content={<ChartLegendContent />} />
+                                            </PieChart>
+                                        </ChartContainer>
+                                    ) : (
+                                        <div className="h-[250px] flex items-center justify-center">
+                                            <p className="text-muted-foreground">No hay datos de género.</p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Distribución de Edad</CardTitle>
+                                    <CardDescription>Desglose de miembros por rango de edad.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    {ageDistribution.some(d => d.count > 0) ? (
+                                        <ChartContainer config={ageChartConfig} className="h-[250px] w-full">
+                                            <BarChart data={ageDistribution} accessibilityLayer>
+                                                <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
+                                                <YAxis hide />
+                                                <Tooltip content={<ChartTooltipContent hideIndicator />} />
+                                                <Bar dataKey="count" radius={4}>
+                                                    <LabelList 
+                                                        position="insideTop"
+                                                        offset={10}
+                                                        className="fill-white"
+                                                        fontSize={12} 
+                                                    />
+                                                    {ageDistribution.map((entry, index) => (
+                                                        <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                                                    ))}
+                                                </Bar>
+                                            </BarChart>
+                                        </ChartContainer>
+                                    ) : (
+                                        <div className="h-[250px] flex items-center justify-center">
+                                            <p className="text-muted-foreground">No hay datos de edad.</p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                            <Card className="lg:col-span-2">
+                                <CardHeader>
+                                    <CardTitle>Tipos de Rutina Más Asignados</CardTitle>
+                                    <CardDescription>Los tipos de rutina que más se han asignado.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    {topRoutines.length > 0 ? (
+                                        <ChartContainer config={routineChartConfig} className="h-[250px] w-full">
+                                            <BarChart data={topRoutines} layout="vertical" accessibilityLayer margin={{ left: 10, right: 30 }}>
+                                                <XAxis type="number" hide />
+                                                <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} width={100} />
+                                                <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                                                <Legend />
+                                                <Bar dataKey="count" layout="vertical" radius={4}>
                                                 <LabelList 
-                                                    position="insideTop"
-                                                    offset={10}
-                                                    className="fill-white"
-                                                    fontSize={12} 
-                                                />
-                                                {ageDistribution.map((entry, index) => (
-                                                    <Cell key={`cell-${entry.name}`} fill={entry.fill} />
-                                                ))}
-                                            </Bar>
-                                        </BarChart>
-                                    </ChartContainer>
-                                ) : (
-                                    <div className="h-[250px] flex items-center justify-center">
-                                        <p className="text-muted-foreground">No hay datos de edad.</p>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                        <Card className="lg:col-span-2">
-                            <CardHeader>
-                                <CardTitle>Tipos de Rutina Más Asignados</CardTitle>
-                                <CardDescription>Los tipos de rutina que más se han asignado.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {topRoutines.length > 0 ? (
-                                    <ChartContainer config={routineChartConfig} className="h-[250px] w-full">
-                                         <BarChart data={topRoutines} layout="vertical" accessibilityLayer margin={{ left: 10, right: 30 }}>
-                                            <XAxis type="number" hide />
-                                            <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} width={100} />
-                                            <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                                            <Legend />
-                                            <Bar dataKey="count" layout="vertical" radius={4}>
-                                               <LabelList 
-                                                    dataKey="count" 
-                                                    position="right" 
-                                                    offset={8} 
-                                                    className="fill-foreground" 
-                                                    fontSize={12} 
-                                                />
-                                                {topRoutines.map((entry, index) => (
-                                                    <Cell key={`cell-${entry.name}`} fill={entry.fill} />
-                                                ))}
-                                            </Bar>
-                                        </BarChart>
-                                    </ChartContainer>
-                                ) : (
-                                    <div className="h-[250px] flex items-center justify-center">
-                                        <p className="text-muted-foreground">No hay datos de rutinas.</p>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
+                                                        dataKey="count" 
+                                                        position="right" 
+                                                        offset={8} 
+                                                        className="fill-foreground" 
+                                                        fontSize={12} 
+                                                    />
+                                                    {topRoutines.map((entry, index) => (
+                                                        <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                                                    ))}
+                                                </Bar>
+                                            </BarChart>
+                                        </ChartContainer>
+                                    ) : (
+                                        <div className="h-[250px] flex items-center justify-center">
+                                            <p className="text-muted-foreground">No hay datos de rutinas.</p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
                     </div>
-                </div>
-            </main>
+                </main>
+            )}
              <footer className="w-full text-center p-4 text-muted-foreground text-sm">
                 <p>&copy; {new Date().getFullYear()} Fit Planner. Todos los derechos reservados.</p>
             </footer>

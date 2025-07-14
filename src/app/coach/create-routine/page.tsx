@@ -28,21 +28,23 @@ function PageContent() {
         return <CreateRoutinePageSkeleton />;
     }
 
-    if (!isTrialActive) {
-        return <TrialEnded />;
-    }
-
     return (
         <div className="flex flex-col min-h-screen">
             <AppHeader />
-            <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
-                <div className="w-full max-w-7xl">
-                     <CoachRoutineCreator />
-                </div>
-            </main>
-            <footer className="w-full text-center p-4 text-muted-foreground text-sm">
-                <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
-            </footer>
+            {isTrialActive === false ? (
+                 <TrialEnded />
+            ) : (
+                <>
+                    <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
+                        <div className="w-full max-w-7xl">
+                            <CoachRoutineCreator />
+                        </div>
+                    </main>
+                    <footer className="w-full text-center p-4 text-muted-foreground text-sm">
+                        <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
+                    </footer>
+                </>
+            )}
         </div>
     );
 }

@@ -1,3 +1,4 @@
+
 'use client';
 import { AppHeader } from '@/components/app-header';
 import { AdminUserManagement } from '@/components/admin-user-management';
@@ -26,25 +27,24 @@ export default function AdminMembersPage() {
     }
     
     if (!activeMembership || activeMembership.role !== 'gym-admin') {
-        // This should ideally not be reached if routing is correct, but serves as a fallback.
         router.push('/');
         return null;
-    }
-    
-    if (!isTrialActive) {
-        return <TrialEnded />;
     }
     
     return (
         <div className="flex flex-col min-h-screen">
             <AppHeader />
-            <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-28 md:pb-8">
-                 <div className="w-full max-w-4xl">
-                    <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
-                    <AdminBottomNav />
-                    {activeMembership.gymId && <AdminUserManagement gymId={activeMembership.gymId} />}
-                 </div>
-            </main>
+            {isTrialActive === false ? (
+                <TrialEnded />
+            ) : (
+                 <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-28 md:pb-8">
+                     <div className="w-full max-w-4xl">
+                        <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
+                        <AdminBottomNav />
+                        {activeMembership.gymId && <AdminUserManagement gymId={activeMembership.gymId} />}
+                     </div>
+                </main>
+            )}
              <footer className="w-full text-center p-4 text-muted-foreground text-sm">
                 <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
             </footer>

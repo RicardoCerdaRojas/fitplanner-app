@@ -147,10 +147,6 @@ export default function RoutineTypesPage() {
         return null;
     }
     
-    if (!isTrialActive) {
-        return <TrialEnded />;
-    }
-
     return (
         <>
             <AlertDialog open={!!typeToDelete} onOpenChange={(isOpen) => {if (!isOpen) setTypeToDelete(null)}}>
@@ -174,84 +170,88 @@ export default function RoutineTypesPage() {
             </AlertDialog>
             <div className="flex flex-col min-h-screen">
                 <AppHeader />
-                <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-16 md:pb-8">
-                    <div className="w-full max-w-2xl">
-                        <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
-                        <AdminBottomNav />
-                    
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Manage Routine Types</CardTitle>
-                                <CardDescription>A list of all available routine types in your gym.</CardDescription>
-                                <div className="pt-4">
-                                     <Form {...form}>
-                                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-1">
-                                            <FormField control={form.control} name="name" render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel className="sr-only">Type Name</FormLabel>
-                                                     <div className="flex items-start gap-2">
-                                                        <FormControl>
-                                                          <Input placeholder={editingType ? `Renaming "${editingType.name}"` : "e.g. Upper Body"} {...field} />
-                                                        </FormControl>
-                                                        <div className="flex gap-2">
-                                                            <Button type="submit" disabled={isSubmitting}>
-                                                                {isSubmitting ? (editingType ? 'Updating...' : 'Adding...') : (editingType ? 'Update' : 'Add')}
-                                                            </Button>
-                                                            {editingType && (
-                                                                <Button type="button" variant="outline" onClick={handleCancelEdit}>
-                                                                    Cancel
+                {isTrialActive === false ? (
+                    <TrialEnded />
+                ) : (
+                    <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-16 md:pb-8">
+                        <div className="w-full max-w-2xl">
+                            <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
+                            <AdminBottomNav />
+                        
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Manage Routine Types</CardTitle>
+                                    <CardDescription>A list of all available routine types in your gym.</CardDescription>
+                                    <div className="pt-4">
+                                        <Form {...form}>
+                                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-1">
+                                                <FormField control={form.control} name="name" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="sr-only">Type Name</FormLabel>
+                                                        <div className="flex items-start gap-2">
+                                                            <FormControl>
+                                                            <Input placeholder={editingType ? `Renaming "${editingType.name}"` : "e.g. Upper Body"} {...field} />
+                                                            </FormControl>
+                                                            <div className="flex gap-2">
+                                                                <Button type="submit" disabled={isSubmitting}>
+                                                                    {isSubmitting ? (editingType ? 'Updating...' : 'Adding...') : (editingType ? 'Update' : 'Add')}
                                                                 </Button>
-                                                            )}
+                                                                {editingType && (
+                                                                    <Button type="button" variant="outline" onClick={handleCancelEdit}>
+                                                                        Cancel
+                                                                    </Button>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <FormMessage className="pl-1"/>
-                                                </FormItem>
-                                            )}/>
-                                        </form>
-                                    </Form>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader><TableRow><TableHead>Name</TableHead><TableHead className="text-right w-[100px]">Actions</TableHead></TableRow></TableHeader>
-                                    <TableBody>
-                                        {isLoading ? (
-                                            <TableRow><TableCell colSpan={2}><Skeleton className="h-8 w-full"/></TableCell></TableRow>
-                                        ) : routineTypes.length === 0 ? (
-                                            <TableRow><TableCell colSpan={2} className="text-center">No routine types created yet.</TableCell></TableRow>
-                                        ) : (
-                                            routineTypes.map((type) => (
-                                                <TableRow key={type.id}>
-                                                    <TableCell className="font-medium">{type.name}</TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => setEditingType(type)}
-                                                            disabled={!!editingType}
-                                                            className='h-8 w-8'
-                                                        >
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => setTypeToDelete(type)}
-                                                            disabled={!!editingType}
-                                                            className='h-8 w-8 text-destructive hover:text-destructive'
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </main>
+                                                        <FormMessage className="pl-1"/>
+                                                    </FormItem>
+                                                )}/>
+                                            </form>
+                                        </Form>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <Table>
+                                        <TableHeader><TableRow><TableHead>Name</TableHead><TableHead className="text-right w-[100px]">Actions</TableHead></TableRow></TableHeader>
+                                        <TableBody>
+                                            {isLoading ? (
+                                                <TableRow><TableCell colSpan={2}><Skeleton className="h-8 w-full"/></TableCell></TableRow>
+                                            ) : routineTypes.length === 0 ? (
+                                                <TableRow><TableCell colSpan={2} className="text-center">No routine types created yet.</TableCell></TableRow>
+                                            ) : (
+                                                routineTypes.map((type) => (
+                                                    <TableRow key={type.id}>
+                                                        <TableCell className="font-medium">{type.name}</TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => setEditingType(type)}
+                                                                disabled={!!editingType}
+                                                                className='h-8 w-8'
+                                                            >
+                                                                <Edit className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => setTypeToDelete(type)}
+                                                                disabled={!!editingType}
+                                                                className='h-8 w-8 text-destructive hover:text-destructive'
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </main>
+                )}
                 <footer className="w-full text-center p-4 text-muted-foreground text-sm">
                     <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
                 </footer>
