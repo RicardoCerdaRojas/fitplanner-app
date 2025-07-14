@@ -37,26 +37,27 @@ export function AppHeader() {
         setTheme(theme === 'dark' ? 'light' : 'dark');
     };
     
-    const isGuestPage = !user && (pathname === '/' || pathname === '/login' || pathname === '/signup');
+    const isGuestFlowPage = !user && ['/', '/login', '/signup', '/create-gym'].includes(pathname);
+
 
     return (
         <header className={cn(
             "absolute top-0 z-20 w-full p-4",
-            isGuestPage ? "bg-black/10 backdrop-blur-sm" : "sticky border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+            isGuestFlowPage ? "bg-black/10 backdrop-blur-sm" : "sticky border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
         )}>
             <div className="container mx-auto flex h-full items-center">
                 <Link href="/" className="flex items-center gap-4 group mr-6">
-                    {gymProfile?.logoUrl && !isGuestPage ? (
+                    {gymProfile?.logoUrl && !isGuestFlowPage ? (
                         <Image src={gymProfile.logoUrl} alt={gymProfile.name ? `${gymProfile.name} Logo` : 'Gym Logo'} width={100} height={50} className="object-contain h-10 w-auto" priority />
                     ) : (
                         <h1 className={cn(
                             "text-2xl font-black tracking-tight",
-                            isGuestPage ? "text-white" : "text-card-foreground"
+                            isGuestFlowPage ? "text-white" : "text-card-foreground"
                         )}>
                             Fit Planner
                         </h1>
                     )}
-                    {!isGuestPage && gymProfile?.name && (
+                    {!isGuestFlowPage && gymProfile?.name && (
                         <h1 className={cn(
                             "font-headline font-bold text-card-foreground",
                              gymProfile?.logoUrl ? "text-xl" : "text-2xl"
@@ -76,7 +77,7 @@ export function AppHeader() {
                 )}
 
                 <div className="flex flex-1 items-center justify-end gap-2">
-                    {!isGuestPage && (
+                    {!isGuestFlowPage && (
                         <Button variant="ghost" size="icon" onClick={toggleTheme} className='h-9 w-9'>
                             <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                             <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -88,9 +89,9 @@ export function AppHeader() {
                     ) : user ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className={cn("relative h-8 w-8 rounded-full", isGuestPage && "hover:bg-white/10")}>
+                                <Button variant="ghost" className={cn("relative h-8 w-8 rounded-full", isGuestFlowPage && "hover:bg-white/10")}>
                                     <Avatar className="h-8 w-8">
-                                         <AvatarFallback className={cn(isGuestPage && "bg-transparent text-white")}>{userProfile?.name?.charAt(0) || user.email?.charAt(0) || <UserIcon />}</AvatarFallback>
+                                         <AvatarFallback className={cn(isGuestFlowPage && "bg-transparent text-white")}>{userProfile?.name?.charAt(0) || user.email?.charAt(0) || <UserIcon />}</AvatarFallback>
                                     </Avatar>
                                 </Button>
                             </DropdownMenuTrigger>
@@ -113,12 +114,12 @@ export function AppHeader() {
 
                     ) : (
                         <div className='flex items-center gap-2'>
-                            <Button asChild variant="ghost" className={cn(isGuestPage && "text-white hover:bg-white/10 hover:text-white")}>
+                            <Button asChild variant="ghost" className={cn(isGuestFlowPage && "text-white hover:bg-white/10 hover:text-white")}>
                                 <Link href="/login">
                                     Ingresar
                                 </Link>
                             </Button>
-                             <Button asChild className={cn(isGuestPage ? "bg-white text-black hover:bg-gray-200" : "bg-primary text-primary-foreground")}>
+                             <Button asChild className={cn(isGuestFlowPage ? "bg-white text-black hover:bg-gray-200" : "bg-primary text-primary-foreground")}>
                                 <Link href="/signup">
                                     Comenzar Prueba
                                 </Link>
