@@ -4,37 +4,56 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to check if a user is signed in
     function isSignedIn() {
       return request.auth != null;
     }
-    
-    // Rules for the 'users' collection
+
     match /users/{userId} {
-      // Anyone can create a user document (for sign-up).
-      allow create: if true;
-      // Any signed-in user can read any user profile.
-      // This is needed for admins/coaches to see member lists.
+      // Allow user creation on signup.
+      // Allow updates from webhooks (like Stripe) which are not authenticated.
+      // This is a key change to fix the subscription flow.
+      allow create, update: if true;
+      
+      // Allow signed-in users to read profiles (e.g., for admin dashboards).
       allow read: if isSignedIn();
-      // Allow any write operation (including updates from webhooks).
-      // This is a permissive rule for our current development stage.
-      allow write: if true; 
     }
-    
-    // Rules for the 'gyms' collection
+
     match /gyms/{gymId} {
-        // Any signed-in user can read gym profiles.
-        // This is necessary for the AuthContext to load the gym theme and name.
-        allow read: if isSignedIn();
-        // Allow any authenticated user to create a gym or update one.
-        // A stricter rule would check if request.auth.uid == resource.data.adminUid
-        allow write: if isSignedIn();
+      // Allow any signed-in user to create or update a gym document.
+      // A stricter rule for production would be:
+      // allow write: if request.auth.uid == resource.data.adminUid;
+      allow write: if isSignedIn();
+      
+      // Allow any signed-in user to read gym data (for themes, names, etc.).
+      allow read: if isSignedIn();
+    }
+
+    match /memberships/{membershipId} {
+        // Allow unauthenticated checks for pending memberships by email.
+        allow get: if true;
+        // Allow signed-in users to manage memberships.
+        allow list, write: if isSignedIn();
     }
     
-    // Generic rule for all other collections
-    // This allows any signed-in user to perform any action on other collections
-    // like memberships, routines, routineTypes, etc.
-    match /{path=**}/documents/{document} {
+    match /routines/{routineId} {
+        // Routines can only be managed by signed-in users.
+        // Stricter rules would check for gymId or memberId.
+        allow read, write: if isSignedIn();
+    }
+
+    match /routineTypes/{typeId} {
+        // Routine types can only be managed by signed-in users.
+        allow read, write: if isSignedIn();
+    }
+    
+    match /routineTemplates/{templateId} {
+        // Templates can only be managed by signed-in users.
+        allow read, write: if isSignedIn();
+    }
+    
+    match /workoutSessions/{sessionId} {
+      // Live workout sessions can only be created/updated by signed-in users.
+      // Deletion is handled by the backend.
       allow read, write: if isSignedIn();
     }
   }
