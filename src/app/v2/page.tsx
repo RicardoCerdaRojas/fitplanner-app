@@ -586,9 +586,9 @@ export default function V2LandingPage() {
                 </div>
             </Section>
 
-            <div id="wow-factor" className="w-full">
+            <Section id="wow-factor" className="w-full">
                 <AIPoweredGeneratorSection />
-            </div>
+            </Section>
 
             <section id="testimonials" className="bg-[#111827] py-16 md:py-24">
                 <div className="container mx-auto px-4 max-w-5xl">
@@ -662,7 +662,7 @@ export default function V2LandingPage() {
                      <div className="text-center mt-12 border-t border-gray-800 pt-8 max-w-3xl mx-auto">
                         <h3 className="text-2xl font-bold">¿Necesitas más?</h3>
                         <p className="text-gray-400 my-4">Para operaciones con más de 300 miembros, requerimientos especiales o integraciones a medida, tenemos un plan Enterprise. Contáctanos para una solución personalizada.</p>
-                        <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white">Contactar a Ventas <ArrowRight className="w-4 h-4 ml-2"/></Button>
+                        <Button variant="outline" className="text-white border-white/20 bg-white/5 hover:bg-white/10 backdrop-blur-sm">Contactar a Ventas <ArrowRight className="w-4 h-4 ml-2"/></Button>
                     </div>
                 </div>
             </Section>
