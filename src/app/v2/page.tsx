@@ -21,7 +21,8 @@ import {
     ArrowRight,
     Repeat,
     Clock,
-    UserX
+    UserX,
+    MoveHorizontal
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
@@ -178,6 +179,96 @@ const HeroV2 = () => {
     );
 };
 
+const ImageComparisonSlider = ({ before, after, beforeHint, afterHint }: { before: string, after: string, beforeHint: string, afterHint: string }) => {
+    const [sliderPos, setSliderPos] = useState(50);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const isDragging = useRef(false);
+
+    const handleMove = useCallback((clientX: number) => {
+        if (!containerRef.current) return;
+        const rect = containerRef.current.getBoundingClientRect();
+        const x = clientX - rect.left;
+        let percentage = (x / rect.width) * 100;
+        if (percentage < 0) percentage = 0;
+        if (percentage > 100) percentage = 100;
+        setSliderPos(percentage);
+    }, []);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        isDragging.current = true;
+        e.preventDefault();
+    };
+    
+    const handleMouseUp = (e: React.MouseEvent) => {
+        isDragging.current = false;
+    };
+    
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging.current) return;
+        handleMove(e.clientX);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        handleMove(e.touches[0].clientX);
+    };
+
+    useEffect(() => {
+        const currentContainer = containerRef.current;
+        const handleMouseUpWindow = () => { isDragging.current = false; };
+        
+        window.addEventListener('mouseup', handleMouseUpWindow);
+        currentContainer?.addEventListener('touchmove', handleTouchMove, { passive: true });
+
+        return () => {
+            window.removeEventListener('mouseup', handleMouseUpWindow);
+            currentContainer?.removeEventListener('touchmove', handleTouchMove);
+        }
+    }, [handleTouchMove]);
+    
+    return (
+        <div 
+            ref={containerRef}
+            className="relative w-full aspect-[4/3] max-w-xl mx-auto rounded-lg overflow-hidden select-none cursor-ew-resize group"
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+        >
+            <Image
+                src={before}
+                alt="El caos de la gestión manual"
+                width={600}
+                height={450}
+                className="absolute inset-0 w-full h-full object-cover"
+                data-ai-hint={beforeHint}
+            />
+            <div 
+                className="absolute inset-0 w-full h-full overflow-hidden" 
+                style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
+            >
+                <Image
+                    src={after}
+                    alt="El orden y la claridad de Fit Planner"
+                    width={600}
+                    height={450}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    data-ai-hint={afterHint}
+                />
+            </div>
+            <div 
+                className="absolute top-0 bottom-0 w-1 bg-white/50 group-hover:bg-white transition-colors duration-200"
+                style={{ left: `${sliderPos}%`, transform: 'translateX(-50%)' }}
+            >
+                <div 
+                    className="absolute top-1/2 -translate-y-1/2 -left-1/2 -translate-x-1/2 h-10 w-10 rounded-full bg-white/50 group-hover:bg-white transition-colors duration-200 flex items-center justify-center backdrop-blur-sm border-2 border-white/30"
+                    onMouseDown={handleMouseDown}
+                >
+                    <MoveHorizontal className="w-5 h-5 text-black" />
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 // --- Main Page Component ---
 export default function V2LandingPage() {
@@ -281,22 +372,12 @@ export default function V2LandingPage() {
                             </li>
                         </ul>
                     </div>
-                    <div className="relative h-[450px]">
-                        <Image
-                            src="https://placehold.co/600x450.png"
-                            alt="Caos de planillas y notas adhesivas"
-                            width={600}
-                            height={450}
-                            className="rounded-lg absolute inset-0 w-full h-full object-cover opacity-30 grayscale"
-                            data-ai-hint="messy paperwork spreadsheet"
-                        />
-                        <Image
-                            src="https://placehold.co/500x375.png"
-                            alt="Dashboard limpio y organizado de Fit Planner"
-                            width={500}
-                            height={375}
-                            className="rounded-lg absolute bottom-0 right-0 shadow-2xl border-4 border-gray-800"
-                            data-ai-hint="clean dashboard interface"
+                    <div>
+                         <ImageComparisonSlider 
+                            before="https://placehold.co/600x450.png"
+                            after="https://placehold.co/600x450.png"
+                            beforeHint="messy paperwork spreadsheet"
+                            afterHint="clean dashboard interface"
                         />
                     </div>
                 </div>
