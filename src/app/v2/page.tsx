@@ -388,7 +388,7 @@ export default function V2LandingPage() {
                 <SectionTitle>Fit Planner: Tu Socio Estratégico en la Calidad del Entrenamiento.</SectionTitle>
                 <div className="text-center max-w-4xl mx-auto mb-12">
                      <Image 
-                        src="https://placehold.co/800x400.png"
+                        src="/feedback-cycle-diagram.png"
                         alt="Diagrama mostrando el ciclo de feedback entre Admin, Entrenador y Atleta"
                         width={800} height={400}
                         className="rounded-lg shadow-2xl mx-auto"
@@ -573,4 +573,5 @@ export default function V2LandingPage() {
         </div>
     );
 }
+
 
