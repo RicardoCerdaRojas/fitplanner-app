@@ -22,6 +22,7 @@ import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { AppDashboardIllustration } from '@/components/ui/app-dashboard-illustration';
 
+
 // --- Sub-components for better structure ---
 
 const Section = ({ id, className, children }: { id?: string; className?: string; children: React.ReactNode }) => {
@@ -75,6 +76,82 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
         <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-24 h-1 bg-green-400"></span>
     </h2>
 );
+
+const HeroV2 = () => {
+    const heroRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const hero = heroRef.current;
+        if (!hero) return;
+
+        const handleMouseMove = (e: MouseEvent) => {
+            const { clientX, clientY } = e;
+            const { offsetWidth, offsetHeight } = hero;
+            const x = (clientX / offsetWidth - 0.5) * 2; // -1 to 1
+            const y = (clientY / offsetHeight - 0.5) * 2; // -1 to 1
+
+            const illustration = hero.querySelector('.hero-illustration') as HTMLElement;
+            if (illustration) {
+                 illustration.style.transform = `rotateY(${x * 10}deg) rotateX(${-y * 10}deg) translateZ(20px)`;
+            }
+        };
+        
+        document.addEventListener('mousemove', handleMouseMove);
+        
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+        }
+    }, []);
+
+    return (
+        <div ref={heroRef} className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden p-4 isolate">
+            {/* Background */}
+            <div className="absolute inset-0 -z-10 h-full w-full bg-black">
+                <div className="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+                <div className="absolute left-0 right-0 top-[-10%] h-[1000px] w-[1000px] rounded-full bg-[radial-gradient(circle_400px_at_50%_300px,#3b82f633,transparent)] animate-aurora-1"></div>
+                <div className="absolute left-[-200px] right-0 top-[20%] h-[1000px] w-[1000px] rounded-full bg-[radial-gradient(circle_400px_at_50%_300px,#10b98133,transparent)] animate-aurora-2"></div>
+            </div>
+            
+            <header className="absolute top-0 left-0 right-0 z-20 p-4">
+                <div className="container mx-auto flex justify-between items-center">
+                    <span className="text-xl font-bold text-white">Fit Planner</span>
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white" asChild><Link href="/login">Ingresar</Link></Button>
+                        <Button className="bg-white text-black hover:bg-gray-200 font-semibold" asChild><Link href="/signup">Comenzar Prueba</Link></Button>
+                    </div>
+                </div>
+            </header>
+
+            <div className="relative z-10 grid md:grid-cols-2 items-center gap-8 container mx-auto">
+                <div className="text-center md:text-left">
+                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-tight mb-6 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                        <span className="animate-stagger-in block" style={{"--stagger-delay": "0.4s"} as React.CSSProperties}>Deja de gestionar ausencias.</span>
+                        <span className="animate-stagger-in block bg-gradient-to-r from-emerald-400 to-blue-400 text-transparent bg-clip-text" style={{"--stagger-delay": "0.6s"} as React.CSSProperties}>
+                            Empieza a crear lealtad.
+                        </span>
+                    </h1>
+                    <p className="max-w-xl text-base md:text-lg text-gray-300 mb-8 animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
+                        La plataforma inteligente que combate la principal causa del abandono: la monotonía. Reduce la fuga de miembros con rutinas que evolucionan.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start animate-fade-in-up" style={{ animationDelay: '1.2s' }}>
+                        <Button size="lg" className="bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-lg py-7 px-8 transform hover:scale-105 transition-transform shadow-lg shadow-emerald-500/20">
+                            Prueba 14 Días Gratis <ArrowRight className="w-5 h-5 ml-2" />
+                        </Button>
+                        <Button size="lg" variant="outline" className="text-white bg-white/5 border-white/20 hover:bg-white/10 text-lg py-7 px-8 backdrop-blur-sm transition-all">
+                            Ver una demo <ArrowRight className="w-5 h-5 ml-2" />
+                        </Button>
+                    </div>
+                </div>
+                
+                <div className="relative hidden md:flex items-center justify-center animate-fade-in [perspective:1000px]" style={{ animationDelay: '0.3s' }}>
+                    <div className="hero-illustration transition-transform duration-300 ease-out">
+                         <AppDashboardIllustration className="w-full max-w-2xl shadow-2xl shadow-emerald-900/40 rounded-2xl" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 
 // --- Main Page Component ---
@@ -150,61 +227,7 @@ export default function V2LandingPage() {
     return (
         <div className="bg-[#0a0a0a] text-white font-sans" style={{ fontFamily: "'Poppins', sans-serif" }}>
            
-            {/* --- HERO SECTION --- */}
-             <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden p-4">
-                {/* Animated Aurora Background */}
-                <div className="absolute inset-0 z-0 opacity-40">
-                    <div className="absolute bottom-0 left-[-20%] right-[-20%] top-[-10%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_farthest-side,rgba(16,185,129,0.8),rgba(255,255,255,0))] animate-aurora-1"></div>
-                    <div className="absolute bottom-[-40%] right-[-10%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_farthest-side,rgba(59,130,246,0.8),rgba(255,255,255,0))] animate-aurora-2"></div>
-                </div>
-
-                {/* Header */}
-                 <header className="absolute top-0 left-0 right-0 z-20 p-4">
-                    <div className="container mx-auto flex justify-between items-center">
-                        <span className="text-xl font-bold">Fit Planner</span>
-                        <div className="flex items-center gap-4">
-                            <Button variant="ghost" asChild><Link href="/login">Ingresar</Link></Button>
-                            <Button className="bg-white text-black hover:bg-gray-200 font-semibold" asChild><Link href="/signup">Comenzar Prueba</Link></Button>
-                        </div>
-                    </div>
-                </header>
-
-                <div className="relative z-10 grid md:grid-cols-2 items-center gap-8 container mx-auto">
-                    {/* Left Column: Text Content */}
-                    <div className="text-center md:text-left">
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-tight mb-6 animate-fade-in-up">
-                            <span className="animate-stagger-in" style={{"--stagger-index": 0}}>Deja de</span>
-                            <span className="animate-stagger-in" style={{"--stagger-index": 1}}>gestionar</span>
-                            <span className="animate-stagger-in" style={{"--stagger-index": 2}}>ausencias.</span>
-                            <br />
-                            <span className="text-emerald-400 animate-stagger-in" style={{"--stagger-index": 3}}>Empieza a</span>
-                            <span className="text-emerald-400 animate-stagger-in" style={{"--stagger-index": 4}}>crear lealtad.</span>
-                        </h1>
-                        <p className="max-w-xl text-base md:text-lg text-gray-300 mb-8 animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
-                            La plataforma inteligente que combate la principal causa del abandono de clientes: la monotonía en el entrenamiento.
-                        </p>
-                        <ul className="space-y-3 text-left mb-10 max-w-lg animate-fade-in-up" style={{ animationDelay: '1s' }}>
-                           <li className="flex items-center gap-3">
-                                <Check className="w-5 h-5 text-emerald-400 shrink-0"/>
-                                <span>Reduce la fuga de miembros con rutinas que evolucionan.</span>
-                           </li>
-                        </ul>
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start animate-fade-in-up" style={{ animationDelay: '1.2s' }}>
-                            <Button size="lg" className="bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-lg py-7 px-8 transform hover:scale-105 transition-transform">
-                                Prueba 14 Días Gratis <ArrowRight className="w-5 h-5 ml-2" />
-                            </Button>
-                            <Button size="lg" variant="ghost" className="text-white hover:bg-white/10 text-lg py-7 px-8 border border-transparent hover:border-gray-600 transition-colors">
-                                Ver una demo <ArrowRight className="w-5 h-5 ml-2" />
-                            </Button>
-                        </div>
-                    </div>
-                    {/* Right Column: Visual */}
-                    <div className="relative hidden md:flex items-center justify-center animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                        <div className="absolute w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-3xl -z-10"></div>
-                        <AppDashboardIllustration className="w-full max-w-2xl transform rotate-3 shadow-2xl shadow-emerald-900/40" />
-                    </div>
-                </div>
-            </div>
+            <HeroV2 />
 
             {/* --- PROBLEM SECTION --- */}
             <Section id="problem" className="bg-[#0a0a0a]">
