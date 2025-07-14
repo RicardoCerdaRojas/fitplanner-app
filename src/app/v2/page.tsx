@@ -80,25 +80,48 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
 
 const HeroV2 = () => {
     const heroRef = useRef<HTMLDivElement>(null);
+    const illustrationRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const hero = heroRef.current;
-        if (!hero) return;
+        const illustration = illustrationRef.current;
+        if (!hero || !illustration) return;
 
         const handleMouseMove = (e: MouseEvent) => {
             const { clientX, clientY } = e;
-            const { offsetWidth, offsetHeight } = hero;
+            const { offsetWidth, offsetHeight, offsetLeft, offsetTop } = hero;
+            
+            // For background gradient
             const xPos = (clientX / offsetWidth);
             const yPos = (clientY / offsetHeight);
-
             hero.style.setProperty('--mouse-x', `${xPos * 100}%`);
             hero.style.setProperty('--mouse-y', `${yPos * 100}%`);
+
+            // For 3D tilt effect
+            const rect = illustration.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            const rotateX = (clientY - centerY) / 40; // The divisor controls the tilt amount
+            const rotateY = (clientX - centerX) / -40;
+
+            illustration.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
         };
+
+        const handleMouseLeave = () => {
+             if (illustration) {
+                illustration.style.transform = `rotateX(0deg) rotateY(0deg)`;
+            }
+        }
         
         document.addEventListener('mousemove', handleMouseMove);
+        hero.addEventListener('mouseleave', handleMouseLeave);
         
         return () => {
             document.removeEventListener('mousemove', handleMouseMove);
+             if (hero) {
+                hero.removeEventListener('mouseleave', handleMouseLeave);
+            }
         }
     }, []);
 
@@ -143,7 +166,7 @@ const HeroV2 = () => {
                 </div>
                 
                 <div className="relative w-full flex items-center justify-center mt-12 animate-fade-in [perspective:1000px]" style={{ animationDelay: '0.8s' }}>
-                    <div className="hero-illustration transition-transform duration-300 ease-out">
+                    <div ref={illustrationRef} className="hero-illustration transition-transform duration-300 ease-out">
                          <AppDashboardIllustration className="w-full max-w-4xl shadow-2xl shadow-emerald-900/40 rounded-2xl" />
                     </div>
                 </div>
