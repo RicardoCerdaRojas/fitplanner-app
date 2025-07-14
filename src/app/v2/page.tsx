@@ -88,13 +88,11 @@ const HeroV2 = () => {
         const handleMouseMove = (e: MouseEvent) => {
             const { clientX, clientY } = e;
             const { offsetWidth, offsetHeight } = hero;
-            const x = (clientX / offsetWidth - 0.5) * 2; // -1 to 1
-            const y = (clientY / offsetHeight - 0.5) * 2; // -1 to 1
+            const xPos = (clientX / offsetWidth);
+            const yPos = (clientY / offsetHeight);
 
-            const illustration = hero.querySelector('.hero-illustration') as HTMLElement;
-            if (illustration) {
-                 illustration.style.transform = `rotateY(${x * 10}deg) rotateX(${-y * 10}deg) translateZ(20px)`;
-            }
+            hero.style.setProperty('--mouse-x', `${xPos * 100}%`);
+            hero.style.setProperty('--mouse-y', `${yPos * 100}%`);
         };
         
         document.addEventListener('mousemove', handleMouseMove);
@@ -105,12 +103,12 @@ const HeroV2 = () => {
     }, []);
 
     return (
-        <div ref={heroRef} className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden p-4 isolate">
+        <div ref={heroRef} className="group relative min-h-screen flex flex-col items-center justify-center overflow-hidden p-4 isolate">
             {/* Background */}
             <div className="absolute inset-0 -z-10 h-full w-full bg-black">
                 <div className="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px]"></div>
-                <div className="absolute left-0 right-0 top-[-10%] h-[1000px] w-[1000px] rounded-full bg-[radial-gradient(circle_400px_at_50%_300px,#3b82f633,transparent)] animate-aurora-1"></div>
-                <div className="absolute left-[-200px] right-0 top-[20%] h-[1000px] w-[1000px] rounded-full bg-[radial-gradient(circle_400px_at_50%_300px,#10b98133,transparent)] animate-aurora-2"></div>
+                <div className="absolute inset-0 -z-20 bg-[radial-gradient(circle_500px_at_var(--mouse-x)_var(--mouse-y),#3b82f633,transparent)] transition-all duration-500 ease-out"></div>
+                <div className="absolute inset-0 -z-20 bg-[radial-gradient(circle_500px_at_var(--mouse-x)_var(--mouse-y),#10b98133,transparent)] transition-all duration-500 ease-out [animation-delay:1s]"></div>
             </div>
             
             <header className="absolute top-0 left-0 right-0 z-20 p-4">
