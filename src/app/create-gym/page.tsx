@@ -116,82 +116,92 @@ export default function CreateGymPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
+    <div className="relative flex flex-col min-h-screen bg-black text-white isolate">
+      <div className="absolute inset-0 -z-10 h-full w-full bg-black">
+          <div className="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+          <div className="absolute inset-0 -z-20 bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.15),transparent_70%)]"></div>
+      </div>
       <AppHeader />
-      <Card className="w-full max-w-lg mx-auto">
-        <CardHeader className="text-center">
-            <div className="flex justify-center items-center gap-2 mb-2">
-                <Building className="w-8 h-8 text-primary" />
-                <CardTitle className="text-3xl font-headline">Configura tu Centro</CardTitle>
-            </div>
-          <CardDescription>Vamos a registrar tu centro o negocio en Fit Planner.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="gymName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombre del Centro</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ej: 'Gimnasio Power', 'Estudio Pilates Zen'" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+      <main className="flex-grow flex items-center justify-center p-4">
+        <Card className="w-full max-w-lg mx-auto bg-gray-900/40 border-white/10 backdrop-blur-xl shadow-2xl shadow-emerald-900/20">
+            <CardHeader className="text-center">
+                <div className="flex justify-center items-center gap-2 mb-2">
+                    <Building className="w-8 h-8 text-emerald-400" />
+                    <CardTitle className="text-3xl font-headline text-white">Configura tu Centro</CardTitle>
+                </div>
+            <CardDescription className="text-gray-400">Vamos a registrar tu centro o negocio en Fit Planner.</CardDescription>
+            </CardHeader>
+            <CardContent>
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                    control={form.control}
+                    name="gymName"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-gray-300">Nombre del Centro</FormLabel>
+                        <FormControl>
+                          <Input 
+                              placeholder="Ej: 'Gimnasio Power', 'Estudio Pilates Zen'" 
+                              {...field} 
+                              className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
 
-              <FormField
-                control={form.control}
-                name="theme"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel className="flex items-center gap-2"><Palette/> Selecciona un Tema</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="grid grid-cols-1 gap-4"
-                      >
-                        {themes.map(theme => (
-                            <FormItem key={theme.id} className="w-full">
-                                <FormControl>
-                                <RadioGroupItem value={theme.id} id={theme.id} className="sr-only" />
-                                </FormControl>
-                                <FormLabel 
-                                    htmlFor={theme.id}
-                                    className={cn(
-                                        "flex flex-col items-start w-full p-4 rounded-lg border-2 cursor-pointer transition-all",
-                                        field.value === theme.id ? "border-primary shadow-md" : "border-muted"
-                                    )}
-                                >
-                                     <div className="flex justify-between items-center w-full">
-                                        <div className="font-bold text-card-foreground">{theme.name}</div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="h-5 w-5 rounded-full" style={{backgroundColor: `hsl(${theme.colors.primary})`}}/>
-                                            <div className="h-5 w-5 rounded-full" style={{backgroundColor: `hsl(${theme.colors.accent})`}}/>
+                <FormField
+                    control={form.control}
+                    name="theme"
+                    render={({ field }) => (
+                    <FormItem className="space-y-3">
+                        <FormLabel className="flex items-center gap-2 text-gray-300"><Palette/> Selecciona un Tema</FormLabel>
+                        <FormControl>
+                        <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="grid grid-cols-1 gap-4"
+                        >
+                            {themes.map(theme => (
+                                <FormItem key={theme.id} className="w-full">
+                                    <FormControl>
+                                    <RadioGroupItem value={theme.id} id={theme.id} className="sr-only" />
+                                    </FormControl>
+                                    <FormLabel 
+                                        htmlFor={theme.id}
+                                        className={cn(
+                                            "flex flex-col items-start w-full p-4 rounded-lg border-2 cursor-pointer transition-all bg-gray-800/20",
+                                            field.value === theme.id ? "border-emerald-400 shadow-md" : "border-white/10"
+                                        )}
+                                    >
+                                        <div className="flex justify-between items-center w-full">
+                                            <div className="font-bold text-white">{theme.name}</div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-5 w-5 rounded-full" style={{backgroundColor: `hsl(${theme.colors.primary})`}}/>
+                                                <div className="h-5 w-5 rounded-full" style={{backgroundColor: `hsl(${theme.colors.accent})`}}/>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground mt-1">{theme.description}</p>
-                                </FormLabel>
-                            </FormItem>
-                        ))}
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                                        <p className="text-sm text-gray-400 mt-1">{theme.description}</p>
+                                    </FormLabel>
+                                </FormItem>
+                            ))}
+                        </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
 
-              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? 'Creando...' : 'Crear Centro y Continuar'}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+                <Button type="submit" className="w-full bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-base py-6" disabled={form.formState.isSubmitting}>
+                    {form.formState.isSubmitting ? 'Creando...' : 'Crear Centro y Continuar'}
+                </Button>
+                </form>
+            </Form>
+            </CardContent>
+        </Card>
+      </main>
     </div>
   );
 }
