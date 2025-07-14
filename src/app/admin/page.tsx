@@ -13,6 +13,7 @@ import { BarChart, ResponsiveContainer, Tooltip, Legend, Bar, XAxis, YAxis, Labe
 import { ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
+import { TrialEnded } from '@/components/trial-ended';
 
 
 type UserProfile = {
@@ -44,7 +45,7 @@ const ageChartConfig: ChartConfig = {
 }
 
 export default function AdminDashboardPage() {
-    const { activeMembership, loading } = useAuth();
+    const { activeMembership, loading, isTrialActive } = useAuth();
     const router = useRouter();
 
     const [memberCount, setMemberCount] = useState(0);
@@ -149,6 +150,10 @@ export default function AdminDashboardPage() {
                  <p className='mt-8 text-lg text-muted-foreground'>Verificando acceso de administrador...</p>
             </div>
         );
+    }
+    
+    if (!isTrialActive) {
+        return <TrialEnded />;
     }
     
     return (

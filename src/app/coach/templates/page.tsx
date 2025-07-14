@@ -27,6 +27,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AppHeader } from '@/components/app-header';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
+import { TrialEnded } from '@/components/trial-ended';
 
 export type RoutineTemplate = {
     id: string;
@@ -40,7 +41,7 @@ export type RoutineTemplate = {
 
 export default function TemplatesPage() {
     const { toast } = useToast();
-    const { activeMembership, loading: authLoading } = useAuth();
+    const { activeMembership, loading: authLoading, isTrialActive } = useAuth();
     const [templates, setTemplates] = useState<RoutineTemplate[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchFilter, setSearchFilter] = useState('');
@@ -109,6 +110,10 @@ export default function TemplatesPage() {
         );
     }
     
+    if (!isTrialActive) {
+        return <TrialEnded />;
+    }
+
     return (
         <>
             <AlertDialog open={!!templateToDelete} onOpenChange={(isOpen) => !isOpen && setTemplateToDelete(null)}>

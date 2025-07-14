@@ -5,6 +5,8 @@ import { Suspense } from 'react';
 import { CoachRoutineCreator } from '@/components/coach-routine-creator';
 import { AppHeader } from '@/components/app-header';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/contexts/auth-context';
+import { TrialEnded } from '@/components/trial-ended';
 
 function CreateRoutinePageSkeleton() {
     return (
@@ -19,20 +21,36 @@ function CreateRoutinePageSkeleton() {
     )
 }
 
+function PageContent() {
+    const { isTrialActive, loading } = useAuth();
+    
+    if (loading) {
+        return <CreateRoutinePageSkeleton />;
+    }
+
+    if (!isTrialActive) {
+        return <TrialEnded />;
+    }
+
+    return (
+        <div className="flex flex-col min-h-screen">
+            <AppHeader />
+            <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
+                <div className="w-full max-w-7xl">
+                     <CoachRoutineCreator />
+                </div>
+            </main>
+            <footer className="w-full text-center p-4 text-muted-foreground text-sm">
+                <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
+            </footer>
+        </div>
+    );
+}
+
 export default function CreateRoutinePage() {
     return (
         <Suspense fallback={<CreateRoutinePageSkeleton />}>
-           <div className="flex flex-col min-h-screen">
-                <AppHeader />
-                <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
-                    <div className="w-full max-w-7xl">
-                         <CoachRoutineCreator />
-                    </div>
-                </main>
-                <footer className="w-full text-center p-4 text-muted-foreground text-sm">
-                    <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
-                </footer>
-            </div>
+           <PageContent />
         </Suspense>
     )
 }

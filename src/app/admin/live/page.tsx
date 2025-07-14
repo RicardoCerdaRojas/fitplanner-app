@@ -12,9 +12,10 @@ import { AdminBottomNav } from '@/components/admin-bottom-nav';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LiveActivityCard, type WorkoutSessionData } from '@/components/live-activity-card';
 import { Activity } from 'lucide-react';
+import { TrialEnded } from '@/components/trial-ended';
 
 export default function LiveActivityPage() {
-    const { activeMembership, loading } = useAuth();
+    const { activeMembership, loading, isTrialActive } = useAuth();
     const router = useRouter();
     const [activeSessions, setActiveSessions] = useState<WorkoutSessionData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -88,6 +89,10 @@ export default function LiveActivityPage() {
                  <p className='mt-8 text-lg text-muted-foreground'>Verifying admin access...</p>
             </div>
         );
+    }
+    
+    if (!isTrialActive) {
+        return <TrialEnded />;
     }
     
     return (

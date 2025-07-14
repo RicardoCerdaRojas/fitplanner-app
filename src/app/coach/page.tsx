@@ -12,6 +12,7 @@ import { CoachRoutineManagement } from '@/components/coach-routine-management';
 import { AppHeader } from '@/components/app-header';
 import type { RoutineType } from '@/app/admin/routine-types/page';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
+import { TrialEnded } from '@/components/trial-ended';
 
 
 export type Member = {
@@ -22,7 +23,7 @@ export type Member = {
 
 
 export default function CoachPage() {
-  const { activeMembership, loading } = useAuth();
+  const { activeMembership, loading, isTrialActive } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -106,6 +107,10 @@ export default function CoachPage() {
             <p className='mt-8 text-lg text-muted-foreground'>Verifying access...</p>
         </div>
     );
+  }
+
+  if (!isTrialActive) {
+      return <TrialEnded />;
   }
 
   return (
