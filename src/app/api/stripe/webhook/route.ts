@@ -1,14 +1,27 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { headers } from 'next/headers';
 import { db } from '@/lib/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20',
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+async function findUserByCustomerId(customerId: string): Promise<{id: string, data: any} | null> {
+    const userRef = doc(db, 'users', customerId); // This is a guess, the metadata is better
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+        return { id: userSnap.id, data: userSnap.data() };
+    }
+    // This is a fallback if the UID is not directly the customer ID
+    // A proper implementation would query based on stripeCustomerId
+    return null;
+}
+
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -23,11 +36,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
   }
 
+  const session = event.data.object as any;
+
   // Handle the event
   switch (event.type) {
     case 'checkout.session.completed': {
-      const session = event.data.object as Stripe.Checkout.Session;
-      
       const firebaseUID = session.metadata?.firebaseUID;
       const stripeCustomerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
       const stripeSubscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
@@ -41,19 +54,40 @@ export async function POST(req: NextRequest) {
       await updateDoc(userRef, {
         stripeCustomerId,
         stripeSubscriptionId,
-        stripeSubscriptionStatus: 'active',
+        stripeSubscriptionStatus: 'active', // Trialing is considered 'active' in our app
       });
-      console.log(`✅ Subscription created for user ${firebaseUID}`);
+      console.log(`✅ Subscription trial started for user ${firebaseUID}`);
       break;
     }
     
+    case 'customer.subscription.updated': {
+        const subscription = event.data.object as Stripe.Subscription;
+        const stripeCustomerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id;
+        
+        // Find user by stripeCustomerId. This requires storing it on the user doc.
+        // For this implementation, we rely on metadata. A more robust system might query.
+        const firebaseUID = subscription.metadata?.firebaseUID;
+        if (!firebaseUID) {
+            console.error('Webhook Error: Missing firebaseUID from subscription metadata on update.');
+            // This is a critical error, but we return 200 so Stripe doesn't retry.
+            return NextResponse.json({ error: 'Missing firebaseUID metadata on subscription' });
+        }
+        
+        const userRef = doc(db, 'users', firebaseUID);
+        await updateDoc(userRef, {
+            stripeSubscriptionStatus: subscription.status, // e.g., 'active', 'past_due', 'canceled'
+        });
+        console.log(`✅ Subscription status updated to ${subscription.status} for user ${firebaseUID}`);
+        break;
+    }
+
     case 'customer.subscription.deleted': {
       const subscription = event.data.object as Stripe.Subscription;
       const firebaseUID = subscription.metadata?.firebaseUID;
       
       if (!firebaseUID) {
-        console.error('Webhook Error: Missing firebaseUID from subscription metadata.');
-        return NextResponse.json({ error: 'Missing firebaseUID metadata' }, { status: 400 });
+        console.error('Webhook Error: Missing firebaseUID from subscription metadata on delete.');
+        return NextResponse.json({ error: 'Missing firebaseUID metadata' });
       }
 
       const userRef = doc(db, 'users', firebaseUID);
