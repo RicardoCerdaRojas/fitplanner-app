@@ -18,8 +18,6 @@ export function TrialEnded() {
                 <div className="absolute inset-0 -z-20 animate-aurora-2 bg-[radial-gradient(ellipse_at_80%_30%,#3b82f644,transparent_50%)]"></div>
             </div>
             
-            <AppHeader />
-            
             <main className="flex-grow flex items-center justify-center p-4">
                 <Card className="w-full max-w-lg text-center bg-gray-900/40 border-white/10 backdrop-blur-xl shadow-2xl shadow-emerald-900/20">
                     <CardHeader className="items-center">

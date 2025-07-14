@@ -23,7 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 
 export function AppHeader() {
-    const { user, userProfile, activeMembership, gymProfile, loading } = useAuth();
+    const { user, userProfile, activeMembership, gymProfile, loading, isTrialActive } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
     const { theme, setTheme } = useTheme();
@@ -37,7 +37,7 @@ export function AppHeader() {
         setTheme(theme === 'dark' ? 'light' : 'dark');
     };
     
-    const isTransparentHeader = (!user && ['/', '/login', '/signup', '/create-gym'].includes(pathname)) || (user && !activeMembership);
+    const isTransparentHeader = (!user && ['/', '/login', '/signup', '/create-gym'].includes(pathname)) || (user && !activeMembership) || isTrialActive === false;
 
 
     return (
