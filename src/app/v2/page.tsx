@@ -22,7 +22,10 @@ import {
     Repeat,
     Clock,
     UserX,
-    MoveHorizontal
+    MoveHorizontal,
+    Shield,
+    ClipboardList,
+    Target
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
@@ -273,33 +276,32 @@ const ImageComparisonSlider = ({ before, after, beforeHint, afterHint }: { befor
 // --- Main Page Component ---
 export default function V2LandingPage() {
     const [isYearly, setIsYearly] = useState(false);
-    const [activeTab, setActiveTab] = useState('boutique');
+    const [activeSolution, setActiveSolution] = useState('admin');
     const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
     const toggleFaq = (index: number) => {
         setFaqOpen(faqOpen === index ? null : index);
     };
     
-    const solutionTabs = {
-        boutique: {
-            title: "Diseña Experiencias Únicas",
-            text: "Crea secuencias de clases y rutinas complejas con una facilidad sin precedentes. Nuestra plataforma entiende la estructura y progresión que tu disciplina exige, permitiéndote entregar la calidad premium que tus miembros esperan.",
-            img: "https://placehold.co/500x400.png",
-            imgHint: "pilates routine creator"
+    const solutionContent = {
+        admin: {
+            icon: Shield,
+            title: "Visión 360 para el Administrador",
+            text: "Toma el control total de tu negocio. Desde un único dashboard, supervisa la actividad en tiempo real, gestiona membresías y analiza datos clave para tomar decisiones estratégicas que impulsen tu crecimiento. Menos administración, más estrategia.",
         },
-        personal: {
-            title: "Construye tu Imperio. Profesionaliza tu Marca.",
-            text: "Gestiona a todos tus clientes desde un solo lugar. Entrégales una app con tu logo y colores, y demuestra un nivel de profesionalismo que justifica tus tarifas. Menos admin, más coaching.",
-            img: "https://placehold.co/500x400.png",
-            imgHint: "mobile app custom brand"
+        coach: {
+            icon: ClipboardList,
+            title: "Herramientas de Precisión para el Coach",
+            text: "Dedica tu tiempo a lo que amas: entrenar. Crea y asigna rutinas personalizadas en minutos, utiliza nuestra IA para generar entrenamientos variados y sigue el progreso de tus atletas con un detalle sin precedentes. Eleva tu coaching al siguiente nivel.",
         },
-        gym: {
-            title: "Tu Diferenciador es la Calidad",
-            text: "Mientras otros instalan torniquetes, tú instalas motivación. Supervisa la calidad de las sesiones, asigna programas a grupos y asegúrate de que cada miembro reciba una experiencia que las grandes cadenas no pueden igualar.",
-            img: "https://placehold.co/500x400.png",
-            imgHint: "live activity dashboard"
-        }
+        athlete: {
+            icon: Target,
+            title: "Una Experiencia Inmersiva para el Atleta",
+            text: "Transforma cada entrenamiento en una victoria. Con una app intuitiva, tus miembros pueden seguir sus rutinas, registrar su progreso con un temporizador integrado y recibir feedback constante. Es la motivación que necesitan para volver por más.",
+        },
     };
+
+    const ActiveIcon = solutionContent[activeSolution].icon;
     
     const faqItems = [
         {
@@ -385,42 +387,51 @@ export default function V2LandingPage() {
             
             {/* --- SOLUTION SECTION --- */}
             <Section id="solution" className="bg-[#111827]">
-                <SectionTitle>Fit Planner: Tu Socio Estratégico en la Calidad del Entrenamiento.</SectionTitle>
-                <div className="text-center max-w-4xl mx-auto mb-12">
-                     <Image 
-                        src="/feedback-cycle-diagram.png"
-                        alt="Diagrama mostrando el ciclo de feedback entre Admin, Entrenador y Atleta"
-                        width={800} height={400}
-                        className="rounded-lg shadow-2xl mx-auto"
-                        data-ai-hint="feedback cycle diagram"
-                    />
-                </div>
-                
-                <div className="bg-gray-900 rounded-xl p-4 md:p-8 max-w-5xl mx-auto">
-                    <div className="flex flex-col md:flex-row gap-2 md:gap-4 mb-8 border-b border-gray-700">
-                        <button onClick={() => setActiveTab('boutique')} className={cn("flex-1 text-center font-bold p-4 transition-colors", activeTab === 'boutique' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-gray-400 hover:text-white')}>Estudios Boutique</button>
-                        <button onClick={() => setActiveTab('personal')} className={cn("flex-1 text-center font-bold p-4 transition-colors", activeTab === 'personal' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-gray-400 hover:text-white')}>Entrenadores</button>
-                        <button onClick={() => setActiveTab('gym')} className={cn("flex-1 text-center font-bold p-4 transition-colors", activeTab === 'gym' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-gray-400 hover:text-white')}>Gimnasios</button>
+                <SectionTitle>Un ecosistema. Tres roles. Perfecta sincronía.</SectionTitle>
+                <div className="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
+                    <div className="order-2 lg:order-1">
+                        <div className="flex items-start gap-4 mb-4">
+                           <ActiveIcon className="w-10 h-10 text-emerald-400 mt-1 shrink-0"/>
+                           <div>
+                                <h3 className="text-2xl font-bold mb-2 transition-opacity duration-300 animate-fade-in">{solutionContent[activeSolution].title}</h3>
+                                <p className="text-gray-300 transition-opacity duration-300 animate-fade-in">{solutionContent[activeSolution].text}</p>
+                           </div>
+                        </div>
                     </div>
-                    
-                    <div className="grid md:grid-cols-2 gap-8 items-center transition-opacity duration-500 animate-fade-in">
-                        <div>
-                            <h3 className="text-2xl font-bold mb-4">{solutionTabs[activeTab].title}</h3>
-                            <p className="text-gray-300">{solutionTabs[activeTab].text}</p>
-                        </div>
-                        <div>
-                            <Image 
-                                src={solutionTabs[activeTab].img} 
-                                alt={solutionTabs[activeTab].title} 
-                                width={500} height={400} 
-                                className="rounded-lg shadow-lg"
-                                data-ai-hint={solutionTabs[activeTab].imgHint}
-                            />
-                        </div>
+                    <div className="relative order-1 lg:order-2 flex items-center justify-center">
+                        <Image 
+                            src="/feedback-cycle-diagram.png"
+                            alt="Ecosistema Fit Planner conectando admin, coach y atleta"
+                            width={800} height={533}
+                            className="rounded-lg shadow-2xl w-full"
+                            data-ai-hint="fitness ecosystem diagram"
+                        />
+                         {/* Hotspots */}
+                        <button 
+                            onMouseEnter={() => setActiveSolution('admin')}
+                            className="absolute w-10 h-10 rounded-full bg-emerald-400/50 flex items-center justify-center backdrop-blur-sm"
+                            style={{ top: '65%', left: '46%' }}
+                        >
+                            <div className="w-4 h-4 rounded-full bg-emerald-400 animate-ping"></div>
+                        </button>
+                        <button 
+                            onMouseEnter={() => setActiveSolution('coach')}
+                            className="absolute w-10 h-10 rounded-full bg-emerald-400/50 flex items-center justify-center backdrop-blur-sm"
+                            style={{ top: '42%', left: '15%' }}
+                        >
+                             <div className="w-4 h-4 rounded-full bg-emerald-400 animate-ping"></div>
+                        </button>
+                        <button 
+                            onMouseEnter={() => setActiveSolution('athlete')}
+                            className="absolute w-10 h-10 rounded-full bg-emerald-400/50 flex items-center justify-center backdrop-blur-sm"
+                            style={{ top: '48%', left: '80%' }}
+                        >
+                             <div className="w-4 h-4 rounded-full bg-emerald-400 animate-ping"></div>
+                        </button>
                     </div>
                 </div>
             </Section>
-            
+
             {/* --- WOW FACTOR SECTION --- */}
             <Section id="wow-factor" className="bg-[#0a0a0a]">
                  <div className="text-center max-w-4xl mx-auto">
@@ -573,5 +584,6 @@ export default function V2LandingPage() {
         </div>
     );
 }
+
 
 
