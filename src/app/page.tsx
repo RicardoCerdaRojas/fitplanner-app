@@ -36,7 +36,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Autoplay from 'embla-carousel-autoplay';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import ReactPlayer from 'react-player/lazy';
 
 
@@ -142,6 +142,10 @@ const HeroV2 = () => {
         <>
         <Dialog open={showDemoModal} onOpenChange={setShowDemoModal}>
             <DialogContent className="max-w-3xl p-0 border-0">
+                 <DialogHeader className="sr-only">
+                    <DialogTitle>Video de Demostración de Fit Planner</DialogTitle>
+                    <DialogDescription>Un video corto que muestra las características principales de la aplicación Fit Planner.</DialogDescription>
+                </DialogHeader>
                 <div className="aspect-video">
                     <ReactPlayer
                         url='https://www.youtube.com/watch?v=dQw4w9WgXcQ'
