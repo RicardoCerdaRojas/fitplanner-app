@@ -37,7 +37,7 @@ export function AppHeader() {
         setTheme(theme === 'dark' ? 'light' : 'dark');
     };
     
-    const isTransparentHeader = (!user && ['/', '/login', '/signup'].includes(pathname)) || (user && !activeMembership);
+    const isTransparentHeader = (!user && ['/', '/login', '/signup', '/create-gym'].includes(pathname)) || (user && !activeMembership);
 
 
     return (
