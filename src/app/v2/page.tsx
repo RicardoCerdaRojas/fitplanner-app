@@ -25,7 +25,9 @@ import {
     MoveHorizontal,
     Shield,
     ClipboardList,
-    Target
+    Target,
+    Dumbbell,
+    Flame
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
@@ -272,6 +274,123 @@ const ImageComparisonSlider = ({ before, after, beforeHint, afterHint }: { befor
     );
 };
 
+const AIPoweredGeneratorSection = () => {
+    const routines = {
+        upper: {
+            title: "Rutina de Tren Superior",
+            exercises: [
+                { name: "Press de Banca", sets: 4, reps: 8, weight: "75kg" },
+                { name: "Dominadas", sets: 4, reps: 10, weight: "BW" },
+                { name: "Remo con Barra", sets: 3, reps: 12, weight: "60kg" },
+            ],
+        },
+        lower: {
+            title: "Rutina de Tren Inferior",
+            exercises: [
+                { name: "Sentadillas", sets: 5, reps: 5, weight: "100kg" },
+                { name: "Peso Muerto Rumano", sets: 3, reps: 10, weight: "80kg" },
+                { name: "Prensa de Piernas", sets: 4, reps: 15, weight: "120kg" },
+            ],
+        },
+        cardio: {
+            title: "Cardio Explosivo",
+            exercises: [
+                { name: "Burpees", sets: 5, duration: "45s", rest: "15s" },
+                { name: "Sprints en Cinta", sets: 8, duration: "30s", rest: "30s" },
+                { name: "Saltos de Caja", sets: 4, reps: 12, weight: "24in" },
+            ],
+        },
+    };
+
+    const [activeRoutine, setActiveRoutine] = useState('upper');
+    const [isAnimating, setIsAnimating] = useState(false);
+    const routineKey = useRef(0);
+
+    const handleSelectRoutine = (routine: keyof typeof routines) => {
+        if (routine === activeRoutine) return;
+
+        setIsAnimating(true);
+        setTimeout(() => {
+            setActiveRoutine(routine);
+            routineKey.current += 1; // Change key to force re-render and re-animate
+            setIsAnimating(false);
+        }, 300); // Duration of fade-out animation
+    };
+
+    const displayedRoutine = routines[activeRoutine];
+
+    return (
+        <div className="relative overflow-hidden">
+            <div className="absolute inset-0 -z-10 bg-grid-white/5"></div>
+            <div className="absolute inset-x-0 top-0 h-64 -z-10 bg-gradient-to-b from-black to-transparent"></div>
+            <div className="absolute inset-0 -z-20 animate-aurora-1 bg-[radial-gradient(ellipse_at_20%_80%,#34d39944,transparent_50%)]"></div>
+            <div className="absolute inset-0 -z-20 animate-aurora-2 bg-[radial-gradient(ellipse_at_80%_30%,#3b82f644,transparent_50%)]"></div>
+            
+            <div className="text-center max-w-4xl mx-auto mb-12">
+                <h2 className="text-3xl md:text-4xl font-bold mb-4">La Monotonía es el Enemigo</h2>
+                <p className="text-xl text-emerald-400 font-semibold mb-6">Genera rutinas personalizadas en segundos.</p>
+                <p className="text-gray-300">
+                    Nuestra IA combate la principal causa de abandono. Ahorra horas de trabajo a tus coaches y entrega variedad infinita a tus miembros, manteniendo la motivación siempre al máximo.
+                </p>
+            </div>
+            
+            <div className="grid lg:grid-cols-12 gap-8 max-w-6xl mx-auto">
+                {/* Left Panel: Controls */}
+                <div className="lg:col-span-4">
+                    <div className="sticky top-24 bg-white/5 border border-white/10 p-6 rounded-2xl backdrop-blur-xl shadow-lg">
+                        <h3 className="font-bold text-lg mb-4">Elige un Objetivo</h3>
+                        <div className="space-y-3">
+                            <Button 
+                                onClick={() => handleSelectRoutine('upper')} 
+                                variant={activeRoutine === 'upper' ? 'default' : 'secondary'}
+                                className={cn("w-full justify-start text-base py-6", activeRoutine === 'upper' ? "bg-emerald-500 hover:bg-emerald-600" : "")}
+                            >
+                                <Dumbbell className="mr-3" /> Tren Superior
+                            </Button>
+                            <Button 
+                                onClick={() => handleSelectRoutine('lower')} 
+                                variant={activeRoutine === 'lower' ? 'default' : 'secondary'}
+                                className={cn("w-full justify-start text-base py-6", activeRoutine === 'lower' ? "bg-emerald-500 hover:bg-emerald-600" : "")}
+                            >
+                                <Dumbbell className="mr-3" /> Tren Inferior
+                            </Button>
+                            <Button 
+                                onClick={() => handleSelectRoutine('cardio')} 
+                                variant={activeRoutine === 'cardio' ? 'default' : 'secondary'}
+                                className={cn("w-full justify-start text-base py-6", activeRoutine === 'cardio' ? "bg-emerald-500 hover:bg-emerald-600" : "")}
+                            >
+                                <Flame className="mr-3" /> Cardio Explosivo
+                            </Button>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-4 text-center">...o describe cualquier objetivo personalizado.</p>
+                    </div>
+                </div>
+
+                {/* Right Panel: Display */}
+                <div className="lg:col-span-8">
+                    <div className={cn("bg-[#111827] rounded-2xl p-8 transition-opacity duration-300", isAnimating ? "opacity-0" : "opacity-100")}>
+                        <div key={routineKey.current} className="animate-fade-in">
+                            <h3 className="text-2xl font-bold mb-6 animate-stagger-in" style={{"--stagger-delay": "0.1s"} as React.CSSProperties}>{displayedRoutine.title}</h3>
+                            <div className="space-y-4">
+                                {displayedRoutine.exercises.map((ex, i) => (
+                                    <div key={ex.name} className="bg-gray-800 p-4 rounded-lg flex justify-between items-center animate-stagger-in" style={{"--stagger-delay": `${(i + 2) * 0.1}s`} as React.CSSProperties}>
+                                        <p className="font-semibold text-gray-200">{ex.name}</p>
+                                        <div className="flex items-center gap-4 text-gray-400 text-sm">
+                                            <span className="flex items-center gap-1.5"><Repeat className="w-4 h-4 text-emerald-400" /> {ex.reps ? `${ex.reps} reps` : `${ex.duration}`}</span>
+                                            {ex.weight && <span className="flex items-center gap-1.5"><Dumbbell className="w-4 h-4 text-emerald-400" /> {ex.weight}</span>}
+                                            {ex.rest && <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-emerald-400" /> {ex.rest} rest</span>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 // --- Main Page Component ---
 export default function V2LandingPage() {
@@ -432,24 +551,9 @@ export default function V2LandingPage() {
                 </div>
             </Section>
 
-            {/* --- WOW FACTOR SECTION --- */}
+            {/* --- WOW FACTOR SECTION (AI GENERATOR) --- */}
             <Section id="wow-factor" className="bg-[#0a0a0a]">
-                 <div className="text-center max-w-4xl mx-auto">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-4">Nuestro Generador de Entrenamientos con IA</h2>
-                    <p className="text-xl text-emerald-400 font-semibold mb-6">Creatividad Infinita, Cero Aburrimiento.</p>
-                    <p className="text-gray-300 mb-8">
-                      Imagina crear cientos de rutinas variadas, desafiantes y perfectamente estructuradas con un solo clic. Nuestra IA no solo ahorra horas de trabajo, sino que combate la principal causa de abandono: la monotonía. Es tu arma secreta para mantener a tus miembros enganchados y progresando.
-                    </p>
-                    <div className="bg-[#111827] rounded-lg p-8">
-                         <Image 
-                            src="https://placehold.co/800x450.gif"
-                            alt="Animación interactiva del generador de rutinas IA"
-                            width={800} height={450}
-                            className="rounded-lg shadow-2xl mx-auto"
-                            data-ai-hint="ai routine generator animation"
-                        />
-                    </div>
-                </div>
+                <AIPoweredGeneratorSection />
             </Section>
 
             {/* --- SOCIAL PROOF SECTION --- */}
@@ -584,6 +688,3 @@ export default function V2LandingPage() {
         </div>
     );
 }
-
-
-
