@@ -215,7 +215,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                 currentExerciseName: currentItem.name,
                 currentSetIndex: currentIndex,
                 totalSetsInSession: sessionPlaylist.length,
-                lastReportedDifficulty: progress[exerciseKey]?.difficulty,
+                lastReportedDifficulty: progress[exerciseKey]?.difficulty || null,
                 lastUpdateTime: Timestamp.now(),
             };
             
