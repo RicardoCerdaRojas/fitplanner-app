@@ -32,6 +32,10 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { AppDashboardIllustration } from '@/components/ui/app-dashboard-illustration';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import Autoplay from 'embla-carousel-autoplay';
 
 
 // --- Sub-components for better structure ---
@@ -400,6 +404,10 @@ export default function V2LandingPage() {
     const [activeSolution, setActiveSolution] = useState('admin');
     const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
+    const plugin = useRef(
+      Autoplay({ delay: 5000, stopOnInteraction: true })
+    );
+
     const toggleFaq = (index: number) => {
         setFaqOpen(faqOpen === index ? null : index);
     };
@@ -462,6 +470,29 @@ export default function V2LandingPage() {
     
     const currentPlans = isYearly ? plans.yearly : plans.monthly;
 
+    const testimonials = [
+        {
+            quote: "Fit Planner revolucionó cómo programo mis clases. Mis alumnas aman tener sus secuencias en la app y la retención ha subido un 40%. Dejé de ser una administradora para volver a ser una maestra.",
+            name: "Sofía V.",
+            role: "Fundadora de 'Estudio Alma Pilates'",
+            avatar: "/testimonial-sofia-v.png",
+            hint: "woman pilates instructor"
+        },
+        {
+            quote: "Pasé de un Excel caótico a una plataforma que grita profesionalismo. Mis clientes se sienten como atletas de élite y mi negocio ha crecido un 60% en 6 meses. Es la mejor inversión que he hecho.",
+            name: "Matías R.",
+            role: "Entrenador Personal",
+            avatar: "/testimonial-matias-r.png",
+            hint: "man personal trainer"
+        },
+        {
+            quote: "Competir con Smart Fit es imposible en precio, pero con Fit Planner les ganamos en experiencia. Nuestros miembros se quedan porque ven resultados y se sienten cuidados. La IA es un cambio de juego.",
+            name: "Carolina L.",
+            role: "Gerente de 'Fuerza Austral Gym'",
+            avatar: "/testimonial-carolina-l.png",
+            hint: "woman gym manager"
+        }
+    ];
 
     return (
         <div className="bg-[#0a0a0a] text-white font-sans" style={{ fontFamily: "'Poppins', sans-serif" }}>
@@ -559,41 +590,44 @@ export default function V2LandingPage() {
             </div>
 
             {/* --- SOCIAL PROOF SECTION --- */}
-            <Section id="testimonials" className="bg-[#111827]">
-                <SectionTitle>Líderes del Fitness en Chile ya están transformando su negocio.</SectionTitle>
-                <div className="grid md:grid-cols-3 gap-8">
-                    <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 flex flex-col">
-                        <p className="italic text-gray-300 mb-4 flex-grow">"Fit Planner revolucionó cómo programo mis clases. Mis alumnas aman tener sus secuencias en la app y la retención ha subido un 40%. Dejé de ser una administradora para volver a ser una maestra."</p>
-                        <div className="flex items-center gap-4 mt-auto">
-                            <Image src="https://placehold.co/48x48.png" data-ai-hint="woman portrait" alt="Sofía V." width={48} height={48} className="rounded-full" />
-                            <div>
-                                <p className="font-bold">Sofía V.</p>
-                                <p className="text-sm text-emerald-400">Fundadora de "Estudio Alma Pilates"</p>
-                            </div>
-                        </div>
-                    </div>
-                     <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 flex flex-col">
-                        <p className="italic text-gray-300 mb-4 flex-grow">"Pasé de un Excel caótico a una plataforma que grita profesionalismo. Mis clientes se sienten como atletas de élite y mi negocio ha crecido un 60% en 6 meses. Es la mejor inversión que he hecho."</p>
-                        <div className="flex items-center gap-4 mt-auto">
-                            <Image src="https://placehold.co/48x48.png" data-ai-hint="man portrait" alt="Matías R." width={48} height={48} className="rounded-full" />
-                            <div>
-                                <p className="font-bold">Matías R.</p>
-                                <p className="text-sm text-emerald-400">Entrenador Personal</p>
-                            </div>
-                        </div>
-                    </div>
-                     <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 flex flex-col">
-                        <p className="italic text-gray-300 mb-4 flex-grow">"Competir con Smart Fit es imposible en precio, pero con Fit Planner les ganamos en experiencia. Nuestros miembros se quedan porque ven resultados y se sienten cuidados. La IA es un cambio de juego."</p>
-                        <div className="flex items-center gap-4 mt-auto">
-                            <Image src="https://placehold.co/48x48.png" data-ai-hint="woman manager" alt="Carolina L." width={48} height={48} className="rounded-full" />
-                            <div>
-                                <p className="font-bold">Carolina L.</p>
-                                <p className="text-sm text-emerald-400">Gerente de "Fuerza Austral Gym"</p>
-                            </div>
-                        </div>
-                    </div>
+            <section id="testimonials" className="bg-[#111827] py-16 md:py-24">
+                <div className="container mx-auto px-4 max-w-5xl">
+                    <SectionTitle>Líderes del Fitness en Chile ya están transformando su negocio.</SectionTitle>
+                    <Carousel 
+                        opts={{ loop: true, align: "start" }} 
+                        plugins={[plugin.current]}
+                        onMouseEnter={plugin.current.stop}
+                        onMouseLeave={plugin.current.reset}
+                        className="w-full"
+                    >
+                        <CarouselContent className="-ml-4">
+                            {testimonials.map((testimonial, index) => (
+                                <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3 pl-4">
+                                    <div className="p-1 h-full">
+                                        <Card className="bg-gray-800 p-6 rounded-lg border border-gray-700 flex flex-col h-full">
+                                            <CardContent className="p-0 flex flex-col flex-grow">
+                                                <p className="italic text-gray-300 mb-6 flex-grow">"{testimonial.quote}"</p>
+                                                <div className="flex items-center gap-4 mt-auto">
+                                                    <Avatar className="w-12 h-12 border-2 border-emerald-400">
+                                                        <AvatarImage src={testimonial.avatar} alt={testimonial.name} />
+                                                        <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <p className="font-bold text-white">{testimonial.name}</p>
+                                                        <p className="text-sm text-emerald-400">{testimonial.role}</p>
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                </CarouselItem>
+                            ))}
+                        </CarouselContent>
+                        <CarouselPrevious className="absolute left-[-50px] top-1/2 -translate-y-1/2" />
+                        <CarouselNext className="absolute right-[-50px] top-1/2 -translate-y-1/2" />
+                    </Carousel>
                 </div>
-            </Section>
+            </section>
             
             {/* --- PRICING SECTION --- */}
             <Section id="pricing" className="bg-[#0a0a0a]">
