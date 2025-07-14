@@ -30,7 +30,7 @@ export function SubscriptionButton({ plan, popular = false }: SubscriptionButton
     
     setLoading(true);
     
-    const { sessionId, error } = await createCheckoutSession(plan);
+    const { sessionId, error } = await createCheckoutSession({ plan, uid: user.uid });
 
     if (error) {
         toast({

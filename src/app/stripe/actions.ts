@@ -2,7 +2,7 @@
 
 import { auth } from '@/lib/firebase';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Stripe from 'stripe';
@@ -18,14 +18,17 @@ const priceIds: { [key: string]: string } = {
     GYM: process.env.STRIPE_GYM_PRICE_ID || '',
 };
 
-export async function createCheckoutSession(plan: 'TRAINER' | 'STUDIO' | 'GYM') {
-  const user = auth.currentUser;
-  
-  if (!user) {
+type CreateCheckoutSessionParams = {
+    plan: 'TRAINER' | 'STUDIO' | 'GYM';
+    uid: string;
+}
+
+export async function createCheckoutSession({ plan, uid }: CreateCheckoutSessionParams) {
+  if (!uid) {
     return { error: 'You must be logged in to subscribe.' };
   }
 
-  const userRef = doc(db, 'users', user.uid);
+  const userRef = doc(db, 'users', uid);
   const userSnap = await getDoc(userRef);
 
   if (!userSnap.exists()) {
@@ -39,10 +42,10 @@ export async function createCheckoutSession(plan: 'TRAINER' | 'STUDIO' | 'GYM') 
   if (!stripeCustomerId) {
     try {
         const customer = await stripe.customers.create({
-          email: user.email!,
+          email: userData.email!,
           name: userData.name,
           metadata: {
-            firebaseUID: user.uid,
+            firebaseUID: uid,
           },
         });
         stripeCustomerId = customer.id;
@@ -74,14 +77,14 @@ export async function createCheckoutSession(plan: 'TRAINER' | 'STUDIO' | 'GYM') 
       subscription_data: {
         trial_period_days: 14,
         metadata: {
-            firebaseUID: user.uid,
+            firebaseUID: uid,
             plan: plan
         }
       },
       success_url: `${appUrl}/`,
       cancel_url: `${appUrl}/`,
       metadata: {
-          firebaseUID: user.uid,
+          firebaseUID: uid,
           plan: plan
       }
     });
