@@ -1,3 +1,4 @@
+
 // @ts-nocheck
 'use client';
 
@@ -122,18 +123,18 @@ const HeroV2 = () => {
                 </div>
             </header>
 
-            <div className="relative z-10 grid md:grid-cols-2 items-center gap-8 container mx-auto">
-                <div className="text-center md:text-left">
-                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-tight mb-6 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+            <div className="relative z-10 flex flex-col items-center text-center container mx-auto pt-20 md:pt-0">
+                <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-tight mb-6">
                         <span className="animate-stagger-in block" style={{"--stagger-delay": "0.4s"} as React.CSSProperties}>Deja de gestionar ausencias.</span>
                         <span className="animate-stagger-in block bg-gradient-to-r from-emerald-400 to-blue-400 text-transparent bg-clip-text" style={{"--stagger-delay": "0.6s"} as React.CSSProperties}>
                             Empieza a crear lealtad.
                         </span>
                     </h1>
-                    <p className="max-w-xl text-base md:text-lg text-gray-300 mb-8 animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
+                    <p className="max-w-2xl mx-auto text-base md:text-lg text-gray-300 mb-8">
                         La plataforma inteligente que combate la principal causa del abandono: la monotonía. Reduce la fuga de miembros con rutinas que evolucionan.
                     </p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start animate-fade-in-up" style={{ animationDelay: '1.2s' }}>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Button size="lg" className="bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-lg py-7 px-8 transform hover:scale-105 transition-transform shadow-lg shadow-emerald-500/20">
                             Prueba 14 Días Gratis <ArrowRight className="w-5 h-5 ml-2" />
                         </Button>
@@ -143,9 +144,9 @@ const HeroV2 = () => {
                     </div>
                 </div>
                 
-                <div className="relative hidden md:flex items-center justify-center animate-fade-in [perspective:1000px]" style={{ animationDelay: '0.3s' }}>
+                <div className="relative w-full flex items-center justify-center mt-12 animate-fade-in [perspective:1000px]" style={{ animationDelay: '0.8s' }}>
                     <div className="hero-illustration transition-transform duration-300 ease-out">
-                         <AppDashboardIllustration className="w-full max-w-3xl shadow-2xl shadow-emerald-900/40 rounded-2xl" />
+                         <AppDashboardIllustration className="w-full max-w-4xl shadow-2xl shadow-emerald-900/40 rounded-2xl" />
                     </div>
                 </div>
             </div>
