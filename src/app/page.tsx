@@ -147,8 +147,8 @@ const HeroV2 = () => {
         <Dialog open={showDemoModal} onOpenChange={setShowDemoModal}>
             <DialogContent className="max-w-3xl p-0 border-0">
                  <DialogHeader className="sr-only">
-                    <DialogTitle>Video de Demostración de Fit Planner</DialogTitle>
-                    <DialogDescription>Un video corto que muestra las características principales de la aplicación Fit Planner.</DialogDescription>
+                    <DialogTitle>Fit Planner Demo Video</DialogTitle>
+                    <DialogDescription>A short video showcasing the main features of the Fit Planner application.</DialogDescription>
                 </DialogHeader>
                 <div className="aspect-video">
                     <ReactPlayer
@@ -428,22 +428,16 @@ const AIPoweredGeneratorSection = () => {
 
 // --- Main Page Component ---
 export default function V2LandingPage() {
-    const { user, activeMembership, loading } = useAuth();
+    const { user, loading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
         if (loading) return;
 
-        if (user && activeMembership) {
-            if (activeMembership.role === 'gym-admin') {
-                router.replace('/admin');
-            } else if (activeMembership.role === 'coach') {
-                router.replace('/coach');
-            }
-        } else if (user && !activeMembership) {
-            router.replace('/create-gym');
+        if (user) {
+            router.replace('/home');
         }
-    }, [user, activeMembership, loading, router]);
+    }, [user, loading, router]);
 
 
     const [isYearly, setIsYearly] = useState(false);
@@ -541,36 +535,13 @@ export default function V2LandingPage() {
     ];
 
     if (loading) {
-        return (
-            <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
-                <div className="flex flex-col items-center gap-4">
-                    <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <p className="text-lg text-muted-foreground">Cargando tu Dashboard...</p>
-                </div>
-            </div>
-        );
-    }
-    
-    if (user && activeMembership?.role === 'member') {
-        return <GuestHomepage />;
+        return <GuestHomepage />; // The loading screen is now handled inside GuestHomepage
     }
 
-    if (user && !loading) {
-        // This covers the redirection case where router.replace is running
-        return (
-             <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
-                <div className="flex flex-col items-center gap-4">
-                    <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <p className="text-lg text-muted-foreground">Redirigiendo a tu dashboard...</p>
-                </div>
-            </div>
-        );
+    // If user is logged in, GuestHomepage will handle redirection. If not, it will be null.
+    // So we only render the landing page if there's no user.
+    if (user) {
+        return <GuestHomepage />;
     }
 
     return (
