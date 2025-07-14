@@ -24,6 +24,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
 import { Upload, Palette } from 'lucide-react';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
+import { TrialEnded } from '@/components/trial-ended';
 
 const formSchema = z.object({
   theme: z.string({ required_error: 'Please select a theme for your gym.' }),
@@ -33,7 +34,7 @@ type FormValues = z.infer<typeof formSchema>;
 export default function GymSettingsPage() {
     const { toast } = useToast();
     const router = useRouter();
-    const { user, activeMembership, gymProfile, loading } = useAuth();
+    const { user, activeMembership, gymProfile, loading, isTrialActive } = useAuth();
     
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -120,7 +121,7 @@ export default function GymSettingsPage() {
         }
     }
 
-    if (loading || !activeMembership || activeMembership.role !== 'gym-admin') {
+    if (loading) {
         return (
             <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
                 <AppHeader />
@@ -133,6 +134,15 @@ export default function GymSettingsPage() {
         );
     }
     
+    if (!activeMembership || activeMembership.role !== 'gym-admin') {
+        router.push('/');
+        return null;
+    }
+    
+    if (!isTrialActive) {
+        return <TrialEnded />;
+    }
+
     return (
         <div className="flex flex-col min-h-screen">
             <AppHeader />

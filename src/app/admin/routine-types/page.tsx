@@ -29,6 +29,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
+import { TrialEnded } from '@/components/trial-ended';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Type name must be at least 2 characters.'),
@@ -45,7 +46,7 @@ export type RoutineType = {
 export default function RoutineTypesPage() {
     const { toast } = useToast();
     const router = useRouter();
-    const { activeMembership, loading } = useAuth();
+    const { activeMembership, loading, isTrialActive } = useAuth();
     const [routineTypes, setRoutineTypes] = useState<RoutineType[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -128,7 +129,7 @@ export default function RoutineTypesPage() {
         form.reset();
     };
 
-    if (loading || !activeMembership || activeMembership.role !== 'gym-admin') {
+    if (loading) {
         return (
             <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
                 <AppHeader />
@@ -139,6 +140,15 @@ export default function RoutineTypesPage() {
                  <p className='mt-8 text-lg text-muted-foreground'>Verifying admin access...</p>
             </div>
         );
+    }
+    
+    if (!activeMembership || activeMembership.role !== 'gym-admin') {
+        router.push('/');
+        return null;
+    }
+    
+    if (!isTrialActive) {
+        return <TrialEnded />;
     }
 
     return (

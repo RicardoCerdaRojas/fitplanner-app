@@ -13,9 +13,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 // Define your price IDs from your Stripe dashboard
 const priceIds: { [key: string]: string } = {
-    TRAINER: process.env.STRIPE_TRAINER_PRICE_ID || 'price_1P...',
-    STUDIO: process.env.STRIPE_STUDIO_PRICE_ID || 'price_1P...',
-    GYM: process.env.STRIPE_GYM_PRICE_ID || 'price_1P...',
+    TRAINER: process.env.STRIPE_TRAINER_PRICE_ID || '',
+    STUDIO: process.env.STRIPE_STUDIO_PRICE_ID || '',
+    GYM: process.env.STRIPE_GYM_PRICE_ID || '',
 };
 
 export async function createCheckoutSession(plan: 'TRAINER' | 'STUDIO' | 'GYM') {
@@ -37,20 +37,25 @@ export async function createCheckoutSession(plan: 'TRAINER' | 'STUDIO' | 'GYM') 
 
   // Create a Stripe customer if one doesn't exist
   if (!stripeCustomerId) {
-    const customer = await stripe.customers.create({
-      email: user.email!,
-      name: userData.name,
-      metadata: {
-        firebaseUID: user.uid,
-      },
-    });
-    stripeCustomerId = customer.id;
-    await setDoc(userRef, { stripeCustomerId }, { merge: true });
+    try {
+        const customer = await stripe.customers.create({
+          email: user.email!,
+          name: userData.name,
+          metadata: {
+            firebaseUID: user.uid,
+          },
+        });
+        stripeCustomerId = customer.id;
+        await setDoc(userRef, { stripeCustomerId }, { merge: true });
+    } catch(e) {
+        console.error("Error creating stripe customer", e);
+        return { error: 'Could not create customer in Stripe.' };
+    }
   }
 
   const priceId = priceIds[plan];
   if (!priceId) {
-      return { error: 'Invalid plan selected.' };
+      return { error: 'Invalid plan selected. Price ID is missing.' };
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
@@ -86,4 +91,36 @@ export async function createCheckoutSession(plan: 'TRAINER' | 'STUDIO' | 'GYM') 
     console.error('Error creating Stripe session:', error);
     return { error: 'Could not create checkout session.' };
   }
+}
+
+
+export async function createCustomerPortalSession() {
+    const user = auth.currentUser;
+
+    if (!user) {
+        return { error: "You must be logged in." };
+    }
+
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    if (!userDoc.exists()) {
+        return { error: "User not found." };
+    }
+    
+    const stripeCustomerId = userDoc.data()?.stripeCustomerId;
+    if (!stripeCustomerId) {
+        return { error: "Stripe customer ID not found." };
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:9002";
+    
+    try {
+        const portalSession = await stripe.billingPortal.sessions.create({
+            customer: stripeCustomerId,
+            return_url: `${appUrl}/admin/subscription`,
+        });
+        return { url: portalSession.url };
+    } catch (error: any) {
+        console.error("Error creating customer portal session: ", error);
+        return { error: "Could not create customer portal session." };
+    }
 }

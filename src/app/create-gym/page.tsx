@@ -21,12 +21,13 @@ import { useAuth } from '@/contexts/auth-context';
 import { Building, Palette } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { writeBatch, doc, collection } from 'firebase/firestore';
+import { writeBatch, doc, collection, Timestamp } from 'firebase/firestore';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { themes } from '@/lib/themes';
 import { useEffect } from 'react';
 import { AppHeader } from '@/components/app-header';
+import { addDays } from 'date-fns';
 
 const formSchema = z.object({
   gymName: z.string().min(3, { message: 'El nombre debe tener al menos 3 caracteres.' }),
@@ -67,12 +68,14 @@ export default function CreateGymPage() {
 
     try {
         const batch = writeBatch(db);
+        const trialEndDate = addDays(new Date(), 14);
         
         const gymRef = doc(collection(db, 'gyms'));
         batch.set(gymRef, {
             name: values.gymName,
             adminUid: user.uid,
-            createdAt: new Date(),
+            createdAt: Timestamp.now(),
+            trialEndsAt: Timestamp.fromDate(trialEndDate),
             logoUrl: `https://placehold.co/100x50.png?text=${encodeURIComponent(values.gymName)}`,
             theme: selectedTheme.colors,
         });
@@ -86,6 +89,12 @@ export default function CreateGymPage() {
             userName: userProfile.name || user.email,
             gymName: values.gymName,
             status: 'active'
+        });
+        
+        const userRef = doc(db, 'users', user.uid);
+        batch.update(userRef, {
+            gymId: gymRef.id,
+            role: 'gym-admin'
         });
 
         await batch.commit();

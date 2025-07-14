@@ -26,6 +26,9 @@ export type UserProfile = {
   role?: 'member' | 'coach' | 'gym-admin'; // Role can be on user profile
   dob?: Timestamp;
   gender?: 'male' | 'female' | 'other';
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string | null;
+  stripeSubscriptionStatus?: string;
 };
 
 export type Membership = {
@@ -38,11 +41,12 @@ export type Membership = {
     status: 'active' | 'pending';
 };
 
-type GymProfile = {
+export type GymProfile = {
     id: string;
     name: string;
     theme?: { [key: string]: string };
     logoUrl?: string;
+    trialEndsAt?: Timestamp;
 };
 
 type AuthContextType = {
@@ -51,12 +55,14 @@ type AuthContextType = {
   memberships: Membership[];
   activeMembership: Membership | null;
   gymProfile: GymProfile | null;
+  isTrialActive: boolean | null;
   loading: boolean;
   setUser: (user: User | null) => void;
   setUserProfile: (profile: UserProfile | null) => void;
   setMemberships: (memberships: Membership[]) => void;
   setActiveMembership: (membership: Membership | null) => void;
   setGymProfile: (gym: GymProfile | null) => void;
+  setIsTrialActive: (isActive: boolean | null) => void;
   setLoading: (loading: boolean) => void;
 };
 
@@ -68,6 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [activeMembership, setActiveMembership] = useState<Membership | null>(null);
   const [gymProfile, setGymProfile] = useState<GymProfile | null>(null);
+  const [isTrialActive, setIsTrialActive] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Effect to check for and process pending memberships when a user logs in.
@@ -125,6 +132,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         claimPendingMembership();
     }
   }, [user, userProfile]);
+  
+  // Effect to determine trial status
+  useEffect(() => {
+    if (loading) return;
+    
+    // If the user is subscribed, they always have active access.
+    if (userProfile?.stripeSubscriptionStatus === 'active' || userProfile?.stripeSubscriptionStatus === 'trialing') {
+        setIsTrialActive(true);
+        return;
+    }
+    
+    // If they have a gym profile with a trial end date, calculate the status.
+    if (gymProfile?.trialEndsAt) {
+        const trialEndDate = gymProfile.trialEndsAt.toDate();
+        setIsTrialActive(new Date() < trialEndDate);
+    } else {
+        // No subscription and no trial info means no access (unless they are a member of a gym)
+        // Let's assume non-admins/coaches always have access if they have a membership.
+        if (activeMembership && activeMembership.role === 'member') {
+            setIsTrialActive(true);
+        } else {
+            setIsTrialActive(false);
+        }
+    }
+  }, [loading, userProfile, gymProfile, activeMembership]);
 
 
   const contextValue: AuthContextType = {
@@ -133,12 +165,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     memberships,
     activeMembership,
     gymProfile,
+    isTrialActive,
     loading,
     setUser,
     setUserProfile,
     setMemberships,
     setActiveMembership,
     setGymProfile,
+    setIsTrialActive,
     setLoading,
   };
 

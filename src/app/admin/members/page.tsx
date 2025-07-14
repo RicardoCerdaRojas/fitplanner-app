@@ -6,12 +6,13 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
+import { TrialEnded } from '@/components/trial-ended';
 
 export default function AdminMembersPage() {
-    const { activeMembership, loading } = useAuth();
+    const { activeMembership, loading, isTrialActive } = useAuth();
     const router = useRouter();
 
-    if (loading || !activeMembership || activeMembership.role !== 'gym-admin') {
+    if (loading) {
         return (
             <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
                 <AppHeader />
@@ -22,6 +23,16 @@ export default function AdminMembersPage() {
                  <p className='mt-8 text-lg text-muted-foreground'>Verifying admin access...</p>
             </div>
         );
+    }
+    
+    if (!activeMembership || activeMembership.role !== 'gym-admin') {
+        // This should ideally not be reached if routing is correct, but serves as a fallback.
+        router.push('/');
+        return null;
+    }
+    
+    if (!isTrialActive) {
+        return <TrialEnded />;
     }
     
     return (
