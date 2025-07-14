@@ -118,12 +118,12 @@ const HeroV2 = () => {
             }
         }
         
-        document.addEventListener('mousemove', handleMouseMove);
+        hero.addEventListener('mousemove', handleMouseMove);
         hero.addEventListener('mouseleave', handleMouseLeave);
         
         return () => {
-            document.removeEventListener('mousemove', handleMouseMove);
-             if (hero) {
+            if (hero) {
+                hero.removeEventListener('mousemove', handleMouseMove);
                 hero.removeEventListener('mouseleave', handleMouseLeave);
             }
         }
