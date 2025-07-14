@@ -145,7 +145,7 @@ const HeroV2 = () => {
                 
                 <div className="relative hidden md:flex items-center justify-center animate-fade-in [perspective:1000px]" style={{ animationDelay: '0.3s' }}>
                     <div className="hero-illustration transition-transform duration-300 ease-out">
-                         <AppDashboardIllustration className="w-full max-w-2xl shadow-2xl shadow-emerald-900/40 rounded-2xl" />
+                         <AppDashboardIllustration className="w-full max-w-3xl shadow-2xl shadow-emerald-900/40 rounded-2xl" />
                     </div>
                 </div>
             </div>
