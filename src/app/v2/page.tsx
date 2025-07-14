@@ -256,26 +256,7 @@ export default function V2LandingPage() {
 
             {/* --- PROBLEM SECTION --- */}
             <Section id="problem" className="bg-[#0a0a0a]">
-                <div className="grid md:grid-cols-2 gap-10 items-center">
-                    <div className="relative">
-                        <Image
-                            src="https://placehold.co/600x450.png"
-                            alt="Caos de planillas y notas adhesivas"
-                            width={600}
-                            height={450}
-                            className="rounded-lg opacity-30 grayscale"
-                            data-ai-hint="messy paperwork spreadsheet"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                        <Image
-                            src="https://placehold.co/500x375.png"
-                            alt="Dashboard limpio y organizado de Fit Planner"
-                            width={500}
-                            height={375}
-                            className="rounded-lg absolute bottom-0 right-0 transform translate-x-1/4 translate-y-1/4 shadow-2xl border-4 border-gray-800"
-                            data-ai-hint="clean dashboard interface"
-                        />
-                    </div>
+                <div className="grid md:grid-cols-2 gap-12 items-center">
                     <div className="text-left">
                         <h2 className="text-3xl md:text-4xl font-bold mb-6">
                             ¿Tu centro <span className="text-gray-500">gestiona</span> o <span className="text-emerald-400">transforma</span>?
@@ -299,6 +280,24 @@ export default function V2LandingPage() {
                                 </div>
                             </li>
                         </ul>
+                    </div>
+                    <div className="relative h-[450px]">
+                        <Image
+                            src="https://placehold.co/600x450.png"
+                            alt="Caos de planillas y notas adhesivas"
+                            width={600}
+                            height={450}
+                            className="rounded-lg absolute inset-0 w-full h-full object-cover opacity-30 grayscale"
+                            data-ai-hint="messy paperwork spreadsheet"
+                        />
+                        <Image
+                            src="https://placehold.co/500x375.png"
+                            alt="Dashboard limpio y organizado de Fit Planner"
+                            width={500}
+                            height={375}
+                            className="rounded-lg absolute bottom-0 right-0 shadow-2xl border-4 border-gray-800"
+                            data-ai-hint="clean dashboard interface"
+                        />
                     </div>
                 </div>
             </Section>
@@ -493,3 +492,4 @@ export default function V2LandingPage() {
         </div>
     );
 }
+
