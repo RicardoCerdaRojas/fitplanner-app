@@ -89,7 +89,7 @@ const HeroV2 = () => {
 
         const handleMouseMove = (e: MouseEvent) => {
             const { clientX, clientY } = e;
-            const { offsetWidth, offsetHeight, offsetLeft, offsetTop } = hero;
+            const { offsetWidth, offsetHeight } = hero;
             
             // For background gradient
             const xPos = (clientX / offsetWidth);
@@ -136,7 +136,7 @@ const HeroV2 = () => {
             
             <header className="absolute top-0 left-0 right-0 z-20 p-4">
                 <div className="container mx-auto flex justify-between items-center">
-                    <span className="text-xl font-bold text-white">Fit Planner</span>
+                    <span className="text-2xl font-black text-white tracking-tight">Fit Planner</span>
                     <div className="flex items-center gap-2">
                         <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white" asChild><Link href="/login">Ingresar</Link></Button>
                         <Button className="bg-white text-black hover:bg-gray-200 font-semibold" asChild><Link href="/signup">Comenzar Prueba</Link></Button>
@@ -146,6 +146,9 @@ const HeroV2 = () => {
 
             <div className="relative z-10 flex flex-col items-center text-center container mx-auto pt-20 md:pt-0">
                 <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                    <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-emerald-400 mb-2">
+                      Fit Planner
+                    </h2>
                     <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-tight mb-6">
                         <span className="animate-stagger-in block" style={{"--stagger-delay": "0.4s"} as React.CSSProperties}>Deja de gestionar ausencias.</span>
                         <span className="animate-stagger-in block bg-gradient-to-r from-emerald-400 to-blue-400 text-transparent bg-clip-text" style={{"--stagger-delay": "0.6s"} as React.CSSProperties}>
