@@ -103,6 +103,16 @@ export default {
                 transform: 'translateY(0)',
             },
         },
+        'stagger-in': {
+            'from': {
+              opacity: '0',
+              transform: 'translateY(10px)',
+            },
+            'to': {
+              opacity: '1',
+              transform: 'translateY(0)',
+            },
+        },
         'aurora-1': {
           '0%': { transform: 'scale(1)', opacity: '0.4' },
           '50%': { transform: 'scale(1.5)', opacity: '0.2' },
@@ -119,6 +129,7 @@ export default {
         'accordion-up': 'accordion-up 0.2s ease-out',
         'fade-in': 'fade-in 0.5s ease-in-out forwards',
         'fade-in-up': 'fade-in-up 0.6s ease-out forwards',
+        'stagger-in': 'stagger-in 0.4s ease-out both var(--stagger-delay, 0s)',
         'aurora-1': 'aurora-1 20s ease-in-out infinite',
         'aurora-2': 'aurora-2 25s ease-in-out infinite',
       },

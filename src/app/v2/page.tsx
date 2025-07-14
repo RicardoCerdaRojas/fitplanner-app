@@ -173,25 +173,28 @@ export default function V2LandingPage() {
                     {/* Left Column: Text Content */}
                     <div className="text-center md:text-left">
                         <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-tight mb-6 animate-fade-in-up">
-                            Deja de gestionar ausencias.
+                            <span className="animate-stagger-in" style={{"--stagger-index": 0}}>Deja de</span>
+                            <span className="animate-stagger-in" style={{"--stagger-index": 1}}>gestionar</span>
+                            <span className="animate-stagger-in" style={{"--stagger-index": 2}}>ausencias.</span>
                             <br />
-                            <span className="text-emerald-400">Empieza a crear lealtad.</span>
+                            <span className="text-emerald-400 animate-stagger-in" style={{"--stagger-index": 3}}>Empieza a</span>
+                            <span className="text-emerald-400 animate-stagger-in" style={{"--stagger-index": 4}}>crear lealtad.</span>
                         </h1>
-                        <p className="max-w-xl text-base md:text-lg text-gray-300 mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                        <p className="max-w-xl text-base md:text-lg text-gray-300 mb-8 animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
                             La plataforma inteligente que combate la principal causa del abandono de clientes: la monotonía en el entrenamiento.
                         </p>
-                        <ul className="space-y-3 text-left mb-10 max-w-lg animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+                        <ul className="space-y-3 text-left mb-10 max-w-lg animate-fade-in-up" style={{ animationDelay: '1s' }}>
                            <li className="flex items-center gap-3">
                                 <Check className="w-5 h-5 text-emerald-400 shrink-0"/>
                                 <span>Reduce la fuga de miembros con rutinas que evolucionan.</span>
                            </li>
                         </ul>
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start animate-fade-in-up" style={{ animationDelay: '1.2s' }}>
                             <Button size="lg" className="bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-lg py-7 px-8 transform hover:scale-105 transition-transform">
-                                Prueba 14 Días Gratis
+                                Prueba 14 Días Gratis <ArrowRight className="w-5 h-5 ml-2" />
                             </Button>
-                            <Button size="lg" variant="outline" className="border-gray-600 text-white hover:bg-white/10 text-lg py-7 px-8">
-                                Ver una demo
+                            <Button size="lg" variant="ghost" className="text-white hover:bg-white/10 text-lg py-7 px-8 border border-transparent hover:border-gray-600 transition-colors">
+                                Ver una demo <ArrowRight className="w-5 h-5 ml-2" />
                             </Button>
                         </div>
                     </div>
@@ -292,7 +295,7 @@ export default function V2LandingPage() {
                     <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 flex flex-col">
                         <p className="italic text-gray-300 mb-4 flex-grow">"Fit Planner revolucionó cómo programo mis clases. Mis alumnas aman tener sus secuencias en la app y la retención ha subido un 40%. Dejé de ser una administradora para volver a ser una maestra."</p>
                         <div className="flex items-center gap-4 mt-auto">
-                            <Image src="/testimonial-sarah-johnson.png" alt="Sofía V." width={48} height={48} className="rounded-full" />
+                            <Image src="https://placehold.co/48x48.png" data-ai-hint="woman portrait" alt="Sofía V." width={48} height={48} className="rounded-full" />
                             <div>
                                 <p className="font-bold">Sofía V.</p>
                                 <p className="text-sm text-emerald-400">Fundadora de "Estudio Alma Pilates"</p>
@@ -302,7 +305,7 @@ export default function V2LandingPage() {
                      <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 flex flex-col">
                         <p className="italic text-gray-300 mb-4 flex-grow">"Pasé de un Excel caótico a una plataforma que grita profesionalismo. Mis clientes se sienten como atletas de élite y mi negocio ha crecido un 60% en 6 meses. Es la mejor inversión que he hecho."</p>
                         <div className="flex items-center gap-4 mt-auto">
-                            <Image src="/testimonial-david-chen.png" alt="Matías R." width={48} height={48} className="rounded-full" />
+                            <Image src="https://placehold.co/48x48.png" data-ai-hint="man portrait" alt="Matías R." width={48} height={48} className="rounded-full" />
                             <div>
                                 <p className="font-bold">Matías R.</p>
                                 <p className="text-sm text-emerald-400">Entrenador Personal</p>
@@ -312,7 +315,7 @@ export default function V2LandingPage() {
                      <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 flex flex-col">
                         <p className="italic text-gray-300 mb-4 flex-grow">"Competir con Smart Fit es imposible en precio, pero con Fit Planner les ganamos en experiencia. Nuestros miembros se quedan porque ven resultados y se sienten cuidados. La IA es un cambio de juego."</p>
                         <div className="flex items-center gap-4 mt-auto">
-                            <Image src="/testimonial-jessica-miller.png" alt="Carolina L." width={48} height={48} className="rounded-full" />
+                            <Image src="https://placehold.co/48x48.png" data-ai-hint="woman manager" alt="Carolina L." width={48} height={48} className="rounded-full" />
                             <div>
                                 <p className="font-bold">Carolina L.</p>
                                 <p className="text-sm text-emerald-400">Gerente de "Fuerza Austral Gym"</p>
