@@ -17,7 +17,10 @@ import {
     Heart, 
     BrainCircuit,
     ChevronDown,
-    ArrowRight
+    ArrowRight,
+    Repeat,
+    Clock,
+    UserX
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
@@ -257,23 +260,23 @@ export default function V2LandingPage() {
             {/* --- PROBLEM SECTION --- */}
             <Section id="problem" className="bg-[#0a0a0a]">
                 <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-                    En un mercado competitivo, <span className="text-emerald-400">retener es el nuevo crecer.</span>
+                   En el fitness, la lealtad se construye <span className="text-emerald-400">sesión a sesión.</span>
                 </h2>
-                <div className="grid md:grid-cols-3 gap-8 text-center">
-                    <div className="p-6 bg-gray-900/50 rounded-lg border border-transparent hover:border-emerald-400/50 transition-all transform hover:-translate-y-2">
-                        <TrendingDown className="w-12 h-12 text-emerald-400 mx-auto mb-4"/>
-                        <h3 className="text-xl font-bold mb-2">La Fuga Silenciosa de Clientes</h3>
-                        <p className="text-gray-400">Cada mes, miembros valiosos se van por rutinas monótonas o falta de progreso visible. La presión económica y el IVA hacen que cada abandono duela más que nunca.</p>
+                <div className="grid md:grid-cols-3 gap-8 text-left">
+                    <div className="p-8 bg-gray-900/50 rounded-lg border border-transparent hover:border-emerald-400/50 transition-all transform hover:-translate-y-2 group">
+                        <Repeat className="w-12 h-12 text-emerald-400 mb-6"/>
+                        <h3 className="text-xl font-bold mb-3">La Monotonía Mata la Motivación</h3>
+                        <p className="text-gray-400">Cuando las rutinas se estancan, el progreso se detiene y los miembros pierden el interés. El verdadero enemigo no es el precio, es el aburrimiento.</p>
                     </div>
-                    <div className="p-6 bg-gray-900/50 rounded-lg border border-transparent hover:border-emerald-400/50 transition-all transform hover:-translate-y-2">
-                        <FileText className="w-12 h-12 text-emerald-400 mx-auto mb-4"/>
-                        <h3 className="text-xl font-bold mb-2">El Caos de las Planillas Excel</h3>
-                        <p className="text-gray-400">Pasas más tiempo administrando planillas y mensajes de WhatsApp que haciendo lo que amas: entrenar. La personalización a escala se siente imposible.</p>
+                    <div className="p-8 bg-gray-900/50 rounded-lg border border-transparent hover:border-emerald-400/50 transition-all transform hover:-translate-y-2 group">
+                        <Clock className="w-12 h-12 text-emerald-400 mb-6"/>
+                        <h3 className="text-xl font-bold mb-3">El Tiempo es para el Impacto, no para el Admin</h3>
+                        <p className="text-gray-400">Cada hora perdida en planillas y WhatsApp es una hora menos que dedicas a lo que realmente importa: transformar vidas. La personalización no debería ser un lujo de tiempo.</p>
                     </div>
-                    <div className="p-6 bg-gray-900/50 rounded-lg border border-transparent hover:border-emerald-400/50 transition-all transform hover:-translate-y-2">
-                        <Users className="w-12 h-12 text-emerald-400 mx-auto mb-4"/>
-                        <h3 className="text-xl font-bold mb-2">La Competencia de las Grandes Cadenas</h3>
-                        <p className="text-gray-400">Las grandes cadenas compiten por precio. Tu única arma es ofrecer una experiencia de entrenamiento tan increíble que nadie quiera irse. Pero, ¿tienes las herramientas para hacerlo?</p>
+                    <div className="p-8 bg-gray-900/50 rounded-lg border border-transparent hover:border-emerald-400/50 transition-all transform hover:-translate-y-2 group">
+                        <UserX className="w-12 h-12 text-emerald-400 mb-6"/>
+                        <h3 className="text-xl font-bold mb-3">La Indiferencia es tu Mayor Competidor</h3>
+                        <p className="text-gray-400">Las grandes cadenas venden acceso, no experiencia. Tu ventaja competitiva es entregar un servicio tan personalizado y memorable que irse sea impensable.</p>
                     </div>
                 </div>
             </Section>
