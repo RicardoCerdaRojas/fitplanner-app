@@ -46,6 +46,12 @@ export default function GymSettingsPage() {
     });
     
     useEffect(() => {
+        if (!loading && (!activeMembership || activeMembership.role !== 'gym-admin')) {
+            router.push('/');
+        }
+    }, [loading, activeMembership, router]);
+
+    useEffect(() => {
         if (gymProfile?.theme) {
             const currentTheme = themes.find(t => 
                 Object.entries(t.colors).every(([key, value]) => gymProfile.theme?.[key as keyof typeof t.colors] === value)
@@ -121,7 +127,7 @@ export default function GymSettingsPage() {
         }
     }
 
-    if (loading) {
+    if (loading || !activeMembership || activeMembership.role !== 'gym-admin') {
         return (
             <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
                 <AppHeader />
@@ -132,11 +138,6 @@ export default function GymSettingsPage() {
                  <p className='mt-8 text-lg text-muted-foreground'>Verifying admin access...</p>
             </div>
         );
-    }
-    
-    if (!activeMembership || activeMembership.role !== 'gym-admin') {
-        router.push('/');
-        return null;
     }
     
     return (
