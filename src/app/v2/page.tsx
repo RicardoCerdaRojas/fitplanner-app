@@ -320,13 +320,13 @@ const AIPoweredGeneratorSection = () => {
     const displayedRoutine = routines[activeRoutine];
 
     return (
-        <div className="relative overflow-hidden bg-black py-16 md:py-24">
+        <div className="relative w-full overflow-hidden bg-black">
             <div className="absolute inset-0 -z-10 bg-grid-white/5"></div>
             <div className="absolute inset-x-0 top-0 h-64 -z-10 bg-gradient-to-b from-black to-transparent"></div>
             <div className="absolute inset-0 -z-20 animate-aurora-1 bg-[radial-gradient(ellipse_at_20%_80%,#34d39944,transparent_50%)]"></div>
             <div className="absolute inset-0 -z-20 animate-aurora-2 bg-[radial-gradient(ellipse_at_80%_30%,#3b82f644,transparent_50%)]"></div>
             
-             <div className="container mx-auto px-4">
+             <div className="container mx-auto px-4 py-16 md:py-24">
                 <div className="text-center max-w-4xl mx-auto mb-12">
                     <h2 className="text-3xl md:text-4xl font-bold mb-4">La Monotonía es el Enemigo</h2>
                     <p className="text-xl text-emerald-400 font-semibold mb-6">Genera rutinas personalizadas en segundos.</p>
@@ -554,9 +554,9 @@ export default function V2LandingPage() {
             </Section>
 
             {/* --- WOW FACTOR SECTION (AI GENERATOR) --- */}
-            <Section id="wow-factor" className="!p-0">
+            <div id="wow-factor" className="w-full">
                 <AIPoweredGeneratorSection />
-            </Section>
+            </div>
 
             {/* --- SOCIAL PROOF SECTION --- */}
             <Section id="testimonials" className="bg-[#111827]">
