@@ -39,6 +39,9 @@ import Autoplay from 'embla-carousel-autoplay';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import ReactPlayer from 'react-player/lazy';
 import { SubscriptionButton } from '@/components/subscription-button';
+import { useAuth } from '@/contexts/auth-context';
+import { useRouter } from 'next/navigation';
+import GuestHomepage from '@/components/guest-homepage';
 
 
 // --- Sub-components for better structure ---
@@ -425,6 +428,24 @@ const AIPoweredGeneratorSection = () => {
 
 // --- Main Page Component ---
 export default function V2LandingPage() {
+    const { user, activeMembership, loading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (loading) return;
+
+        if (user && activeMembership) {
+            if (activeMembership.role === 'gym-admin') {
+                router.replace('/admin');
+            } else if (activeMembership.role === 'coach') {
+                router.replace('/coach');
+            }
+        } else if (user && !activeMembership) {
+            router.replace('/create-gym');
+        }
+    }, [user, activeMembership, loading, router]);
+
+
     const [isYearly, setIsYearly] = useState(false);
     const [activeSolution, setActiveSolution] = useState('admin');
     const [faqOpen, setFaqOpen] = useState<number | null>(null);
@@ -518,6 +539,39 @@ export default function V2LandingPage() {
             hint: "woman gym manager"
         }
     ];
+
+    if (loading) {
+        return (
+            <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
+                <div className="flex flex-col items-center gap-4">
+                    <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p className="text-lg text-muted-foreground">Cargando tu Dashboard...</p>
+                </div>
+            </div>
+        );
+    }
+    
+    if (user && activeMembership?.role === 'member') {
+        return <GuestHomepage />;
+    }
+
+    if (user && !loading) {
+        // This covers the redirection case where router.replace is running
+        return (
+             <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
+                <div className="flex flex-col items-center gap-4">
+                    <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p className="text-lg text-muted-foreground">Redirigiendo a tu dashboard...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-[#0a0a0a] text-white font-sans" style={{ fontFamily: "'Poppins', sans-serif" }}>

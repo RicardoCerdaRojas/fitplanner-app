@@ -100,39 +100,14 @@ export default function GuestHomepage() {
     const { user, activeMembership, loading } = useAuth();
     const router = useRouter();
 
-    useEffect(() => {
-        if (loading) return;
-
-        if (user) {
-            if (activeMembership) {
-                if (activeMembership.role === 'gym-admin') {
-                    router.replace('/admin');
-                } else if (activeMembership.role === 'coach') {
-                    router.replace('/coach');
-                }
-                // Members will stay on this page to see their dashboard
-            } else {
-                // User is logged in but has no membership, direct them to create a gym.
-                router.replace('/create-gym');
-            }
-        } else {
-           // If there's no user, they should be on the public homepage.
-           // This component should only be rendered for authenticated users.
-           // Redirecting to the main page ensures guests see the landing page.
-           router.replace('/');
-        }
-    }, [user, activeMembership, loading, router]);
-    
     if (loading) {
         return <LoadingScreen />;
     }
 
-    // This part is for authenticated members.
-    // Guests will see the new landing page at /app/page.tsx.
     if (user && activeMembership?.role === 'member') {
         return <MemberDashboard />;
     }
-
+    
     // Fallback for when redirection is happening or for roles without a specific dashboard on '/'
     return <LoadingScreen />;
 }
