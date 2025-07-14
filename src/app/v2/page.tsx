@@ -73,7 +73,7 @@ const Section = ({ id, className, children }: { id?: string; className?: string;
             id={id}
             ref={ref}
             className={cn(
-                "py-16 md:py-24 transition-opacity duration-1000 ease-out",
+                "transition-opacity duration-1000 ease-out",
                 isVisible ? "opacity-100 animate-fade-in-up" : "opacity-0",
                 className
             )}
@@ -497,8 +497,9 @@ export default function V2LandingPage() {
            
             <HeroV2 />
 
-            <div id="problem" className="bg-[#0a0a0a] container mx-auto px-4">
-                <Section>
+            <div id="problem">
+              <Section className="py-16 md:py-24 bg-[#0a0a0a]">
+                <div className="container mx-auto px-4">
                     <div className="grid md:grid-cols-2 gap-12 items-center">
                         <div className="text-left">
                             <h2 className="text-3xl md:text-4xl font-bold mb-6">
@@ -533,10 +534,11 @@ export default function V2LandingPage() {
                             />
                         </div>
                     </div>
+                  </div>
                 </Section>
             </div>
             
-            <Section id="solution" className="bg-[#111827]">
+            <Section id="solution" className="bg-[#111827] py-16 md:py-24">
                 <div className="container mx-auto">
                     <SectionTitle>Un ecosistema. Tres roles. Perfecta sincronía.</SectionTitle>
                     <div className="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
@@ -559,25 +561,25 @@ export default function V2LandingPage() {
                             />
                              {/* Hotspots */}
                             <button 
-                                onMouseEnter={() => setActiveSolution('admin')}
+                                onClick={() => setActiveSolution('admin')}
                                 className="absolute w-10 h-10 rounded-full bg-emerald-400/50 flex items-center justify-center backdrop-blur-sm"
                                 style={{ top: '65%', left: '46%' }}
                             >
-                                <div className="w-4 h-4 rounded-full bg-emerald-400 animate-ping"></div>
+                                <div className={cn("w-4 h-4 rounded-full bg-emerald-400", activeSolution === 'admin' ? "animate-ping" : "")}></div>
                             </button>
                             <button 
-                                onMouseEnter={() => setActiveSolution('coach')}
+                                onClick={() => setActiveSolution('coach')}
                                 className="absolute w-10 h-10 rounded-full bg-emerald-400/50 flex items-center justify-center backdrop-blur-sm"
                                 style={{ top: '42%', left: '15%' }}
                             >
-                                 <div className="w-4 h-4 rounded-full bg-emerald-400 animate-ping"></div>
+                                 <div className={cn("w-4 h-4 rounded-full bg-emerald-400", activeSolution === 'coach' ? "animate-ping" : "")}></div>
                             </button>
                             <button 
-                                onMouseEnter={() => setActiveSolution('athlete')}
+                                onClick={() => setActiveSolution('athlete')}
                                 className="absolute w-10 h-10 rounded-full bg-emerald-400/50 flex items-center justify-center backdrop-blur-sm"
                                 style={{ top: '48%', left: '80%' }}
                             >
-                                 <div className="w-4 h-4 rounded-full bg-emerald-400 animate-ping"></div>
+                                 <div className={cn("w-4 h-4 rounded-full bg-emerald-400", activeSolution === 'athlete' ? "animate-ping" : "")}></div>
                             </button>
                         </div>
                     </div>
@@ -607,7 +609,7 @@ export default function V2LandingPage() {
                                                 <p className="italic text-gray-300 mb-6 flex-grow">"{testimonial.quote}"</p>
                                                 <div className="flex items-center gap-4 mt-auto">
                                                     <Avatar className="w-12 h-12 border-2 border-emerald-400">
-                                                        <AvatarImage src={testimonial.avatar} alt={testimonial.name} />
+                                                        <AvatarImage src={testimonial.avatar} alt={testimonial.name} data-ai-hint={testimonial.hint} />
                                                         <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
                                                     </Avatar>
                                                     <div>
@@ -627,7 +629,7 @@ export default function V2LandingPage() {
                 </div>
             </section>
             
-            <Section id="pricing" className="bg-[#0a0a0a]">
+            <Section id="pricing" className="bg-[#0a0a0a] py-16 md:py-24">
                 <div className="container mx-auto">
                     <SectionTitle>Planes diseñados para tu crecimiento</SectionTitle>
                     <div className="flex items-center justify-center gap-4 mb-12">
@@ -660,13 +662,13 @@ export default function V2LandingPage() {
                      <div className="text-center mt-12 border-t border-gray-800 pt-8 max-w-3xl mx-auto">
                         <h3 className="text-2xl font-bold">¿Necesitas más?</h3>
                         <p className="text-gray-400 my-4">Para operaciones con más de 300 miembros, requerimientos especiales o integraciones a medida, tenemos un plan Enterprise. Contáctanos para una solución personalizada.</p>
-                        <Button variant="outline" className="border-gray-400 text-white hover:bg-white/10">Contactar a Ventas <ArrowRight className="w-4 h-4 ml-2"/></Button>
+                        <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white">Contactar a Ventas <ArrowRight className="w-4 h-4 ml-2"/></Button>
                     </div>
                 </div>
             </Section>
 
             {/* --- FAQ SECTION --- */}
-            <Section id="faq" className="bg-[#111827]">
+            <Section id="faq" className="bg-[#111827] py-16 md:py-24">
                 <div className="container mx-auto">
                     <SectionTitle>Preguntas que quizás te estás haciendo...</SectionTitle>
                     <div className="max-w-3xl mx-auto space-y-4">
@@ -695,7 +697,7 @@ export default function V2LandingPage() {
             </Section>
             
             {/* --- FINAL CTA --- */}
-            <Section id="final-cta" className="text-center">
+            <Section id="final-cta" className="text-center py-16 md:py-24">
                 <div className="container mx-auto">
                      <h2 className="text-3xl md:text-5xl font-bold mb-4">Es hora de construir un negocio de fitness <span className="text-emerald-400">a prueba de abandonos.</span></h2>
                     <p className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto">Únete a la nueva generación de líderes del fitness en Chile. Empieza tu transformación hoy.</p>
