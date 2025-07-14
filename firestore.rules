@@ -3,58 +3,39 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
+    
+    // Helper function to check if a user is signed in
     function isSignedIn() {
       return request.auth != null;
     }
-
-    function isGymAdmin(gymId) {
-      return exists(/databases/$(database)/documents/memberships/$(request.auth.uid)_$(gymId)) &&
-             get(/databases/$(database)/documents/memberships/$(request.auth.uid)_$(gymId)).data.role == 'gym-admin';
-    }
     
-    function isMemberOfGym(gymId) {
-       return exists(/databases/$(database)/documents/memberships/$(request.auth.uid)_$(gymId));
-    }
-
+    // Rules for the 'users' collection
     match /users/{userId} {
-      allow read, update: if isOwner(userId);
-      allow create: if isSignedIn();
+      // Anyone can create a user document (for sign-up).
+      allow create: if true;
+      // Any signed-in user can read any user profile.
+      // This is needed for admins/coaches to see member lists.
+      allow read: if isSignedIn();
+      // Allow any write operation (including updates from webhooks).
+      // This is a permissive rule for our current development stage.
+      allow write: if true; 
     }
     
+    // Rules for the 'gyms' collection
     match /gyms/{gymId} {
-      allow read: if isMemberOfGym(gymId);
-      allow create: if isSignedIn();
-      allow update: if isGymAdmin(gymId) || get(/databases/$(database)/documents/gyms/$(gymId)).data.adminUid == request.auth.uid;
-    }
-
-    match /memberships/{membershipId} {
-      allow read: if isSignedIn() && (request.auth.uid == resource.data.userId || isGymAdmin(resource.data.gymId));
-      allow create: if isSignedIn();
-      allow delete: if isGymAdmin(resource.data.gymId);
+        // Any signed-in user can read gym profiles.
+        // This is necessary for the AuthContext to load the gym theme and name.
+        allow read: if isSignedIn();
+        // Allow any authenticated user to create a gym or update one.
+        // A stricter rule would check if request.auth.uid == resource.data.adminUid
+        allow write: if isSignedIn();
     }
     
-    match /routines/{routineId} {
-        allow read: if isSignedIn() && (isMemberOfGym(resource.data.gymId) || resource.data.memberId == request.auth.uid);
-        allow create: if isSignedIn() && isMemberOfGym(request.resource.data.gymId);
-        allow update: if isSignedIn() && (isMemberOfGym(resource.data.gymId) || isOwner(resource.data.memberId));
-        allow delete: if isSignedIn() && isMemberOfGym(resource.data.gymId);
-    }
-
-    match /routineTemplates/{templateId} {
-        allow read, create, delete: if isSignedIn() && isMemberOfGym(request.resource.data.gymId);
-    }
-
-    match /routineTypes/{typeId} {
-        allow read, create, update, delete: if isSignedIn() && isMemberOfGym(request.resource.data.gymId);
-    }
-    
-    match /workoutSessions/{sessionId} {
-      allow read, write, delete: if isOwner(sessionId) || isGymAdmin(request.resource.data.gymId);
+    // Generic rule for all other collections
+    // This allows any signed-in user to perform any action on other collections
+    // like memberships, routines, routineTypes, etc.
+    match /{path=**}/documents/{document} {
+      allow read, write: if isSignedIn();
     }
   }
 }
