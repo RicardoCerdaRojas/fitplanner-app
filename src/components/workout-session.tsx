@@ -154,20 +154,22 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
     const sessionPlaylist = useMemo(() => {
         const playlist: SessionExercise[] = [];
-        routine.blocks.forEach((block, bIndex) => {
-            const totalSets = parseInt(block.sets.match(/\d+/)?.[0] || '1', 10);
-            for (let sIndex = 0; sIndex < totalSets; sIndex++) {
-                block.exercises.forEach((exercise, eIndex) => {
-                    playlist.push({
-                        ...exercise,
-                        blockName: block.name,
-                        blockSets: block.sets,
-                        blockIndex: bIndex,
-                        exerciseIndex: eIndex,
-                        setIndex: sIndex,
-                        totalSets: totalSets,
+        routine.blocks?.forEach((block, bIndex) => {
+            if (block.exercises && block.exercises.length > 0) {
+                const totalSets = parseInt(block.sets.match(/\d+/)?.[0] || '1', 10);
+                for (let sIndex = 0; sIndex < totalSets; sIndex++) {
+                    block.exercises.forEach((exercise, eIndex) => {
+                        playlist.push({
+                            ...exercise,
+                            blockName: block.name,
+                            blockSets: block.sets,
+                            blockIndex: bIndex,
+                            exerciseIndex: eIndex,
+                            setIndex: sIndex,
+                            totalSets: totalSets,
+                        });
                     });
-                });
+                }
             }
         });
         return playlist;
@@ -242,6 +244,15 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     };
 
     const currentItem = sessionPlaylist[currentIndex];
+    if (!currentItem) {
+        // This can happen if the playlist is empty.
+        // We can end the session or show a message.
+        useEffect(() => {
+            onSessionEnd();
+        }, [onSessionEnd]);
+        return null;
+    }
+
     const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
     const currentSetProgress = progress?.[exerciseKey];
     
