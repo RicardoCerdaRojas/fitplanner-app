@@ -112,16 +112,23 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <AppHeader />
+     <div className="relative flex flex-col min-h-screen bg-black text-white isolate">
+       <div className="absolute inset-0 -z-10 h-full w-full bg-black">
+          <div className="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+          <div className="absolute inset-0 -z-20 bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.15),transparent_70%)]"></div>
+      </div>
+
+       <AppHeader />
+
       <main className="flex-grow flex items-center justify-center p-4">
-          <Card className="w-full max-w-md mx-auto">
+          <Card className="w-full max-w-md mx-auto bg-gray-900/40 border-white/10 backdrop-blur-xl shadow-2xl shadow-emerald-900/20">
             <CardHeader className="text-center">
                 <div className="flex justify-center items-center gap-3 mb-2">
-                    <UserPlus className="w-8 h-8 text-primary" />
-                    <CardTitle className="text-3xl font-headline">Create an Account</CardTitle>
+                    <h1 className="text-3xl font-black tracking-tighter bg-gradient-to-r from-emerald-400 to-blue-400 text-transparent bg-clip-text">
+                        Crea tu Cuenta
+                    </h1>
                 </div>
-              <CardDescription>Join Fitness Flow to start your journey.</CardDescription>
+              <CardDescription className="text-gray-400">Únete a Fit Planner para empezar tu viaje.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
@@ -131,11 +138,12 @@ export default function SignupPage() {
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Full Name</FormLabel>
+                        <FormLabel className="text-gray-300">Nombre Completo</FormLabel>
                         <FormControl>
                            <Input 
                             placeholder="John Doe" 
-                            {...field} 
+                            {...field}
+                            className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"
                           />
                         </FormControl>
                         <FormMessage />
@@ -147,12 +155,13 @@ export default function SignupPage() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel className="text-gray-300">Email</FormLabel>
                         <FormControl>
                            <Input 
                             type="email" 
                             placeholder="you@example.com" 
-                            {...field} 
+                            {...field}
+                            className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"
                           />
                         </FormControl>
                         <FormMessage />
@@ -162,12 +171,12 @@ export default function SignupPage() {
                   <div className="grid grid-cols-2 gap-4">
                    <FormField control={form.control} name="dob" render={({ field }) => (
                       <FormItem className="flex flex-col">
-                          <FormLabel>Date of Birth</FormLabel>
+                          <FormLabel className="text-gray-300">Fecha de Nacimiento</FormLabel>
                           <Popover>
                               <PopoverTrigger asChild>
                                   <FormControl>
-                                      <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                      <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 hover:bg-gray-700/50 hover:text-white", !field.value && "text-gray-400")}>
+                                          {field.value ? format(field.value, "PPP") : <span>Elige una fecha</span>}
                                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                       </Button>
                                   </FormControl>
@@ -195,7 +204,7 @@ export default function SignupPage() {
                     name="gender"
                     render={({ field }) => (
                       <FormItem className="space-y-2">
-                        <FormLabel>Gender</FormLabel>
+                        <FormLabel className="text-gray-300">Género</FormLabel>
                         <FormControl>
                           <RadioGroup
                             onValueChange={field.onChange}
@@ -203,16 +212,16 @@ export default function SignupPage() {
                             className="flex flex-col space-y-1 pt-2"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl><RadioGroupItem value="male" /></FormControl>
-                              <FormLabel className="font-normal">Male</FormLabel>
+                              <FormControl><RadioGroupItem value="male" className="border-gray-400 focus:ring-emerald-400" /></FormControl>
+                              <FormLabel className="font-normal text-gray-300">Hombre</FormLabel>
                             </FormItem>
                             <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl><RadioGroupItem value="female" /></FormControl>
-                              <FormLabel className="font-normal">Female</FormLabel>
+                              <FormControl><RadioGroupItem value="female" className="border-gray-400 focus:ring-emerald-400" /></FormControl>
+                              <FormLabel className="font-normal text-gray-300">Mujer</FormLabel>
                             </FormItem>
                             <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl><RadioGroupItem value="other" /></FormControl>
-                              <FormLabel className="font-normal">Other</FormLabel>
+                              <FormControl><RadioGroupItem value="other" className="border-gray-400 focus:ring-emerald-400" /></FormControl>
+                              <FormLabel className="font-normal text-gray-300">Otro</FormLabel>
                             </FormItem>
                           </RadioGroup>
                         </FormControl>
@@ -226,29 +235,30 @@ export default function SignupPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <FormLabel className="text-gray-300">Contraseña</FormLabel>
                         <FormControl>
                           <Input 
                             type="password" 
                             placeholder="••••••••" 
-                            {...field} 
+                            {...field}
+                            className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                    {form.formState.isSubmitting ? 'Creating account...' : 'Create Account'}
+                  <Button type="submit" className="w-full bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-base py-6" disabled={form.formState.isSubmitting}>
+                    {form.formState.isSubmitting ? 'Creando cuenta...' : 'Crear Cuenta'}
                   </Button>
                 </form>
               </Form>
             </CardContent>
             <CardFooter className="text-center text-sm">
-                <p className="w-full text-muted-foreground">
-                    Already have an account?{' '}
-                    <Link href="/login" className="text-primary hover:underline">
-                        Login
+                <p className="w-full text-gray-400">
+                    Ya tienes una cuenta?{' '}
+                    <Link href="/login" className="text-emerald-400 font-semibold hover:underline">
+                        Ingresa
                     </Link>
                 </p>
             </CardFooter>
