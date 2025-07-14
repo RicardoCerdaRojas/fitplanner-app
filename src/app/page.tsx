@@ -38,6 +38,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Autoplay from 'embla-carousel-autoplay';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import ReactPlayer from 'react-player/lazy';
+import { SubscriptionButton } from '@/components/subscription-button';
 
 
 // --- Sub-components for better structure ---
@@ -673,7 +674,7 @@ export default function V2LandingPage() {
                                 <p className="text-center text-gray-400 mb-6">Hasta {plan.members} miembros</p>
                                 <p className="text-center text-5xl font-black mb-1">${Math.round(plan.price).toLocaleString('es-CL')}<span className="text-lg font-bold text-gray-400">/mes</span></p>
                                 <p className="text-center text-gray-500 mb-8 text-sm">{isYearly ? "Facturado anualmente" : "Cancela en cualquier momento"}</p>
-                                <Button size="lg" className={cn("w-full text-lg", plan.popular ? "bg-emerald-400 text-black hover:bg-emerald-500" : "bg-gray-700 text-white hover:bg-gray-600")}>Empezar con {plan.name}</Button>
+                                <SubscriptionButton plan={plan.name as 'TRAINER' | 'STUDIO' | 'GYM'} popular={plan.popular} />
                                 <ul className="mt-8 space-y-4">
                                     {plan.features.map(feat => (
                                         <li key={feat} className="flex items-center gap-3">
