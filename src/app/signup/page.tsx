@@ -18,25 +18,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { UserPlus, Calendar as CalendarIcon } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, Timestamp, getDoc } from 'firebase/firestore';
+import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { AppHeader } from '@/components/app-header';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { Calendar } from '@/components/ui/calendar';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   email: z.string().email({ message: 'Please enter a valid email.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-  dob: z.date({ required_error: 'Date of birth is required.' }),
-  gender: z.enum(['male', 'female', 'other'], { required_error: 'Please select a gender.' }),
 });
 
 export default function SignupPage() {
@@ -57,8 +49,6 @@ export default function SignupPage() {
       name: '',
       email: '',
       password: '',
-      dob: undefined,
-      gender: undefined,
     },
   });
 
@@ -66,34 +56,21 @@ export default function SignupPage() {
     const lowerCaseEmail = values.email.toLowerCase();
 
     try {
-      // Step 0: Check if a pending membership exists for this email.
-      const pendingMembershipRef = doc(db, 'memberships', lowerCaseEmail);
-      const pendingSnap = await getDoc(pendingMembershipRef);
-
-      if (!pendingSnap.exists() || pendingSnap.data().status !== 'pending') {
-          toast({
-              variant: 'destructive',
-              title: 'Registration Not Allowed',
-              description: 'This email does not have a pending membership. Please contact your gym administrator.',
-          });
-          return;
-      }
-
       // Step 1: Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, lowerCaseEmail, values.password);
       const { user } = userCredential;
 
-      // Step 2: Create a user profile in Firestore with all details.
+      // Step 2: Create a user profile in Firestore with basic details.
+      // The logic to claim a pending membership or create a new gym will be handled by the AuthContext listener.
       await setDoc(doc(db, 'users', user.uid), {
         name: values.name,
         email: lowerCaseEmail,
-        dob: Timestamp.fromDate(values.dob),
-        gender: values.gender,
         createdAt: Timestamp.now(),
-        gymId: null, // gymId will be set by the auth context trigger
+        gymId: null, // gymId will be set by the auth context trigger if a pending membership exists
+        // Removed dob and gender from initial signup for simplicity
       });
       
-      // Redirect to home, where logic in AuthContext will handle claiming the membership.
+      // Redirect to home, where logic in AuthContext will handle routing.
       router.push('/');
 
     } catch (error: any) {
@@ -168,68 +145,7 @@ export default function SignupPage() {
                       </FormItem>
                     )}
                   />
-                  <div className="grid grid-cols-2 gap-4">
-                   <FormField control={form.control} name="dob" render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                          <FormLabel className="text-gray-300">Fecha de Nacimiento</FormLabel>
-                          <Popover>
-                              <PopoverTrigger asChild>
-                                  <FormControl>
-                                      <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 hover:bg-gray-700/50 hover:text-white", !field.value && "text-gray-400")}>
-                                          {field.value ? format(field.value, "PPP") : <span>Elige una fecha</span>}
-                                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                      </Button>
-                                  </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                  <Calendar
-                                      mode="single"
-                                      selected={field.value}
-                                      onSelect={field.onChange}
-                                      captionLayout="dropdown"
-                                      fromYear={1940}
-                                      toYear={new Date().getFullYear()}
-                                      disabled={(date) =>
-                                          date > new Date() || date < new Date("1940-01-01")
-                                      }
-                                      initialFocus
-                                  />
-                              </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                      </FormItem>
-                  )}/>
-                  <FormField
-                    control={form.control}
-                    name="gender"
-                    render={({ field }) => (
-                      <FormItem className="space-y-2">
-                        <FormLabel className="text-gray-300">Género</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            className="flex flex-col space-y-1 pt-2"
-                          >
-                            <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl><RadioGroupItem value="male" className="border-gray-400 focus:ring-emerald-400" /></FormControl>
-                              <FormLabel className="font-normal text-gray-300">Hombre</FormLabel>
-                            </FormItem>
-                            <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl><RadioGroupItem value="female" className="border-gray-400 focus:ring-emerald-400" /></FormControl>
-                              <FormLabel className="font-normal text-gray-300">Mujer</FormLabel>
-                            </FormItem>
-                            <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl><RadioGroupItem value="other" className="border-gray-400 focus:ring-emerald-400" /></FormControl>
-                              <FormLabel className="font-normal text-gray-300">Otro</FormLabel>
-                            </FormItem>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  </div>
+                  
                   <FormField
                     control={form.control}
                     name="password"

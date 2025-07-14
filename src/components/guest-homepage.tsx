@@ -112,12 +112,15 @@ export default function GuestHomepage() {
                 }
                 // Members will stay on this page to see their dashboard
             } else {
-                // User is logged in but has no membership
+                // User is logged in but has no membership, direct them to create a gym.
                 router.replace('/create-gym');
             }
+        } else {
+           // If there's no user, they should be on the public homepage.
+           // This component should only be rendered for authenticated users.
+           // Redirecting to the main page ensures guests see the landing page.
+           router.replace('/');
         }
-        // If no user, the V2 landing page will be rendered from page.tsx.
-        // This component should not be rendered for guests.
     }, [user, activeMembership, loading, router]);
     
     if (loading) {

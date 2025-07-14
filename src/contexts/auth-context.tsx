@@ -22,7 +22,8 @@ export type UserProfile = {
   name: string;
   email: string;
   createdAt: Timestamp;
-  gymId?: string;
+  gymId?: string | null; // Allow null
+  role?: 'member' | 'coach' | 'gym-admin'; // Role can be on user profile
   dob?: Timestamp;
   gender?: 'male' | 'female' | 'other';
 };
@@ -72,6 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Effect to check for and process pending memberships when a user logs in.
   useEffect(() => {
     const claimPendingMembership = async () => {
+      // Don't run if we don't have a user/email, or if the user already has a gymId
       if (!user?.email || (userProfile && userProfile.gymId)) {
         return;
       }
@@ -79,6 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const pendingMembershipRef = doc(db, 'memberships', user.email.toLowerCase());
       const pendingSnap = await getDoc(pendingMembershipRef);
 
+      // If a pending membership exists for this email, claim it.
       if (pendingSnap.exists() && pendingSnap.data().status === 'pending') {
         setLoading(true);
         const pendingData = pendingSnap.data();
@@ -96,11 +99,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           status: 'active',
         });
 
-        // 2. Update the user's profile with gymId
+        // 2. Update the user's profile with gymId and role
         const userRef = doc(db, 'users', user.uid);
         const userUpdateData: any = {
           gymId: pendingData.gymId,
-          role: pendingData.role, // Also add role to user profile for easier access
+          role: pendingData.role,
         };
         batch.update(userRef, userUpdateData);
 
@@ -109,13 +112,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         try {
           await batch.commit();
+          // State will be updated by the realtime listeners in AuthProviderClient
         } catch (error) {
           console.error("Error claiming pending membership:", error);
-          setLoading(false);
+          setLoading(false); // Stop loading on error
         }
       }
     };
 
+    // We need both the user and their profile to be loaded before we can check for pending memberships
     if (user && userProfile) {
         claimPendingMembership();
     }
