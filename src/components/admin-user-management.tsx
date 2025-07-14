@@ -2,18 +2,13 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, Trash2, Search, MoreVertical, UserX, Edit, ShieldCheck, Dumbbell, ClipboardList, Clock } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, setDoc, doc, Timestamp, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, Timestamp, deleteDoc, updateDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import {
   DropdownMenu,
@@ -27,8 +22,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogClose,
-  DialogFooter
 } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { User } from 'lucide-react';
@@ -36,15 +29,9 @@ import { Skeleton } from './ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/auth-context';
-
-
-const formSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email.' }),
-  role: z.enum(['coach', 'member'], { required_error: 'Please select a role.' }),
-});
-
-
-type FormValues = z.infer<typeof formSchema>;
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { CompleteProfileForm, type UserProfileData } from './complete-profile-form';
+import { AddMemberForm } from './add-member-form';
 
 type Member = {
     id: string; // userId
@@ -53,6 +40,7 @@ type Member = {
     name?: string;
     role: 'member' | 'coach' | 'gym-admin';
     dob?: Timestamp;
+    gender?: 'male' | 'female' | 'other';
     gymName: string;
 };
 
@@ -65,93 +53,7 @@ type PendingMembership = {
     name?: string; // name is not captured at this stage anymore
 }
 
-type CombinedUser = Member | PendingMembership;
-
-
-function MemberForm({ gymId, gymName, onFormSubmitted, userToEdit }: { gymId: string, gymName: string, onFormSubmitted: () => void, userToEdit: CombinedUser | null }) {
-    const { toast } = useToast();
-    const isEditing = !!userToEdit;
-
-    const form = useForm<FormValues>({
-        resolver: zodResolver(formSchema),
-        defaultValues: { email: '', role: undefined },
-    });
-
-    useEffect(() => {
-        if (userToEdit) {
-            form.reset({
-                email: userToEdit.email,
-                role: userToEdit.role === 'member' || userToEdit.role === 'coach' ? userToEdit.role : undefined,
-            });
-        } else {
-            form.reset({ email: '', role: undefined });
-        }
-    }, [userToEdit, form]);
-
-    async function onSubmit(values: FormValues) {
-        if (isEditing) {
-            // Logic to update an existing user (member)
-            const docRef = doc(db, "users", userToEdit.id);
-            const dataToUpdate: any = {
-                role: values.role,
-            };
-            try {
-                await updateDoc(docRef, dataToUpdate);
-                toast({ title: 'Success!', description: `${userToEdit.name}'s role has been updated.` });
-            } catch(error: any) {
-                 toast({ variant: 'destructive', title: 'Error', description: `Could not update the member.` });
-            }
-
-        } else {
-            // Logic to create a new pending membership
-            const docRef = doc(db, 'memberships', values.email.toLowerCase());
-            const dataToSave: any = {
-                gymId,
-                gymName,
-                status: 'pending',
-                email: values.email.toLowerCase(),
-                role: values.role,
-                createdAt: Timestamp.now(),
-            };
-
-            try {
-                await setDoc(docRef, dataToSave);
-                toast({ title: 'Success!', description: `Membership for ${values.email} is ready. They can now sign up.` });
-            } catch (error: any) {
-                console.error("Error creating pending membership:", error);
-                toast({ variant: 'destructive', title: 'Error', description: `Could not create the membership.` });
-            }
-        }
-        onFormSubmitted();
-    }
-
-    return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="member@example.com" {...field} disabled={isEditing} /></FormControl><FormMessage /></FormItem>)}/>
-                <FormField control={form.control} name="role" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Role</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger></FormControl>
-                            <SelectContent>
-                                <SelectItem value="coach">Coach</SelectItem>
-                                <SelectItem value="member">Member</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-                <DialogFooter className='pt-4'>
-                    <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                    <Button type="submit" disabled={form.formState.isSubmitting}>
-                        {form.formState.isSubmitting ? (isEditing ? 'Saving...' : 'Creating...') : (isEditing ? 'Save Changes' : 'Create Membership')}
-                    </Button>
-                </DialogFooter>
-            </form>
-        </Form>
-    );
-}
+export type CombinedUser = Member | PendingMembership;
 
 export function AdminUserManagement({ gymId }: { gymId: string }) {
     const { toast } = useToast();
@@ -160,8 +62,9 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
-    const [isFormModalOpen, setFormModalOpen] = useState(false);
-    const [userToEdit, setUserToEdit] = useState<CombinedUser | null>(null);
+    
+    const [dialogType, setDialogType] = useState<'addMember' | 'editProfile' | null>(null);
+    const [selectedUser, setSelectedUser] = useState<CombinedUser | null>(null);
     
     useEffect(() => {
         setIsLoading(true);
@@ -197,7 +100,7 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
             await deleteDoc(doc(db, collectionName, docId));
             if(item.type === 'member') {
                 // Also clear gymId from user profile
-                await updateDoc(doc(db, 'users', item.id), { gymId: null });
+                await updateDoc(doc(db, 'users', item.id), { gymId: null, role: null });
             }
             toast({ title: `Record Deleted`, description: `${item.name || item.email} has been removed.`});
         } catch (error) {
@@ -205,19 +108,19 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
         }
     }
 
-    const openCreateDialog = () => {
-        setUserToEdit(null);
-        setFormModalOpen(true);
-    };
-
-    const openEditDialog = (user: CombinedUser) => {
-        if (user.type === 'pending') {
-            toast({ title: 'Action Not Allowed', description: 'Please delete and recreate the pending membership to make changes.'});
+    const openDialog = (type: 'addMember' | 'editProfile', user: CombinedUser | null = null) => {
+        if (type === 'editProfile' && user?.type === 'pending') {
+            toast({ title: 'Action Not Allowed', description: 'Cannot edit a pending membership. Please delete and recreate it if changes are needed.'});
             return;
         }
-        setUserToEdit(user);
-        setFormModalOpen(true);
+        setSelectedUser(user);
+        setDialogType(type);
     };
+
+    const handleDialogClose = () => {
+        setDialogType(null);
+        setSelectedUser(null);
+    }
 
     const filteredUsers = useMemo(() => {
         return allUsers
@@ -287,7 +190,7 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
     }
 
     return (
-        <Dialog open={isFormModalOpen} onOpenChange={setFormModalOpen}>
+        <>
             <Card>
                 <CardHeader>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -295,7 +198,7 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                             <CardTitle>Gym Members</CardTitle>
                             <CardDescription>Search, filter, and manage all members and pending sign-ups.</CardDescription>
                         </div>
-                        <Button className="w-full sm:w-auto" onClick={openCreateDialog}>
+                        <Button className="w-full sm:w-auto" onClick={() => openDialog('addMember')}>
                             <UserPlus className="mr-2 h-4 w-4" /> Add Member
                         </Button>
                     </div>
@@ -353,8 +256,8 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => openEditDialog(user)} disabled={user.type === 'pending' || user.role === 'gym-admin'}>
-                                                <Edit className="mr-2 h-4 w-4" /> Edit Role
+                                            <DropdownMenuItem onClick={() => openDialog('editProfile', user)} disabled={user.type === 'pending'}>
+                                                <Edit className="mr-2 h-4 w-4" /> Edit Profile
                                             </DropdownMenuItem>
                                             {user.type === 'member' && user.role !== 'gym-admin' && (
                                                 <DropdownMenuItem asChild>
@@ -375,15 +278,35 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                 </CardContent>
             </Card>
 
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{userToEdit ? 'Edit Member Role' : 'Add New Member'}</DialogTitle>
-                    <DialogDescription>
-                        {userToEdit ? `Update the role for ${userToEdit.name}.` : 'Create a new membership. The user can then sign up with this email to get access.'}
-                    </DialogDescription>
-                </DialogHeader>
-                <MemberForm gymId={gymId} gymName={gymProfile?.name ?? ''} onFormSubmitted={() => setFormModalOpen(false)} userToEdit={userToEdit} />
-            </DialogContent>
-        </Dialog>
+            <Dialog open={!!dialogType} onOpenChange={(isOpen) => !isOpen && handleDialogClose()}>
+                <DialogContent>
+                    <DialogHeader>
+                         <DialogTitle>
+                            {dialogType === 'addMember' ? 'Add New Member' : `Edit Profile: ${selectedUser?.name}`}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {dialogType === 'addMember' 
+                                ? 'Create a new membership. The user can then sign up with this email to get access.'
+                                : 'Update the user\'s role and demographic information.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                   
+                    {dialogType === 'addMember' && (
+                        <AddMemberForm
+                            gymId={gymId}
+                            gymName={gymProfile?.name ?? ''}
+                            onFormSubmitted={handleDialogClose}
+                        />
+                    )}
+
+                    {dialogType === 'editProfile' && selectedUser?.type === 'member' && (
+                        <CompleteProfileForm 
+                            user={selectedUser} 
+                            onFormSubmitted={handleDialogClose}
+                        />
+                    )}
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

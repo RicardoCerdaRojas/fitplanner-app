@@ -95,7 +95,7 @@ export default function GymSettingsPage() {
             if (logoFile) {
                 const fileExtension = logoFile.name.split('.').pop();
                 const fileName = `${uuidv4()}.${fileExtension}`;
-                const filePath = `logos/${user.uid}/${fileName}`;
+                const filePath = `logos/${gymId}/${fileName}`;
                 const storageRef = ref(storage, filePath);
     
                 await uploadBytes(storageRef, logoFile);
