@@ -42,27 +42,26 @@ export function AppHeader() {
 
     return (
         <header className={cn(
-            "absolute top-0 z-20 w-full p-4",
-            isTransparentHeader ? "bg-black/10 backdrop-blur-sm" : "sticky border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+            "w-full p-4",
+            isTransparentHeader ? "absolute top-0 z-20 bg-black/10 backdrop-blur-sm" : "sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
         )}>
-            <div className="container mx-auto flex h-full items-center">
+            <div className="container mx-auto flex h-full items-center max-w-7xl">
                 <Link href="/" className="flex items-center gap-4 group mr-6">
                     {gymProfile?.logoUrl && !isTransparentHeader ? (
                         <Image src={gymProfile.logoUrl} alt={gymProfile.name ? `${gymProfile.name} Logo` : 'Gym Logo'} width={100} height={50} className="object-contain h-10 w-auto" priority />
-                    ) : (
+                    ) : !isTransparentHeader && gymProfile?.name ? (
                         <h1 className={cn(
+                            "font-headline font-bold text-card-foreground",
+                            "text-xl"
+                        )}>
+                            {gymProfile.name}
+                        </h1>
+                    ) : (
+                         <h1 className={cn(
                             "text-2xl font-black tracking-tight",
                             isTransparentHeader ? "text-white" : "text-card-foreground"
                         )}>
                             Fit Planner
-                        </h1>
-                    )}
-                    {!isTransparentHeader && gymProfile?.name && (
-                        <h1 className={cn(
-                            "font-headline font-bold text-card-foreground",
-                             gymProfile?.logoUrl ? "text-xl" : "text-2xl"
-                        )}>
-                            {gymProfile.name}
                         </h1>
                     )}
                 </Link>
