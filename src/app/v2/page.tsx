@@ -455,14 +455,14 @@ export default function V2LandingPage() {
 
     const plans = {
         monthly: [
-            { name: "TRAINER", price: 29, members: 25, features: ["Miembros Activos", "Generador IA Básico", "App para Atletas", "Soporte por Email"] },
-            { name: "STUDIO", price: 59, members: 100, features: ["Todo en Trainer +", "Coaches Ilimitados", "Personalización de Marca", "Analíticas Avanzadas"], popular: true },
-            { name: "GYM", price: 99, members: 300, features: ["Todo en Studio +", "API de Integración", "Soporte Prioritario", "Onboarding Personalizado"] }
+            { name: "TRAINER", price: 19990, members: 25, features: ["Miembros Activos", "Generador IA Básico", "App para Atletas", "Soporte por Email"] },
+            { name: "STUDIO", price: 49990, members: 100, features: ["Todo en Trainer +", "Coaches Ilimitados", "Personalización de Marca", "Analíticas Avanzadas"], popular: true },
+            { name: "GYM", price: 89990, members: 300, features: ["Todo en Studio +", "API de Integración", "Soporte Prioritario", "Onboarding Personalizado"] }
         ],
         yearly: [
-            { name: "TRAINER", price: 23, members: 25, features: ["Miembros Activos", "Generador IA Básico", "App para Atletas", "Soporte por Email"] },
-            { name: "STUDIO", price: 47, members: 100, features: ["Todo en Trainer +", "Coaches Ilimitados", "Personalización de Marca", "Analíticas Avanzadas"], popular: true },
-            { name: "GYM", price: 79, members: 300, features: ["Todo en Studio +", "API de Integración", "Soporte Prioritario", "Onboarding Personalizado"] }
+            { name: "TRAINER", price: 19990 * 0.8, members: 25, features: ["Miembros Activos", "Generador IA Básico", "App para Atletas", "Soporte por Email"] },
+            { name: "STUDIO", price: 49990 * 0.8, members: 100, features: ["Todo en Trainer +", "Coaches Ilimitados", "Personalización de Marca", "Analíticas Avanzadas"], popular: true },
+            { name: "GYM", price: 89990 * 0.8, members: 300, features: ["Todo en Studio +", "API de Integración", "Soporte Prioritario", "Onboarding Personalizado"] }
         ]
     };
     
@@ -585,10 +585,10 @@ export default function V2LandingPage() {
                     </div>
                 </div>
             </Section>
-
-            <Section id="wow-factor" className="w-full">
+            
+            <div id="wow-factor" className="w-full">
                 <AIPoweredGeneratorSection />
-            </Section>
+            </div>
 
             <section id="testimonials" className="bg-[#111827] py-16 md:py-24">
                 <div className="container mx-auto px-4 max-w-5xl">
@@ -645,7 +645,7 @@ export default function V2LandingPage() {
                                  {plan.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-emerald-400 text-black font-bold text-sm px-4 py-1 rounded-full uppercase tracking-wider">Más Popular</div>}
                                 <h3 className="text-2xl font-bold text-center mb-2">{plan.name}</h3>
                                 <p className="text-center text-gray-400 mb-6">Hasta {plan.members} miembros</p>
-                                <p className="text-center text-5xl font-black mb-1">${plan.price}<span className="text-lg font-bold text-gray-400">/mes</span></p>
+                                <p className="text-center text-5xl font-black mb-1">${Math.round(plan.price).toLocaleString('es-CL')}<span className="text-lg font-bold text-gray-400">/mes</span></p>
                                 <p className="text-center text-gray-500 mb-8 text-sm">{isYearly ? "Facturado anualmente" : "Cancela en cualquier momento"}</p>
                                 <Button size="lg" className={cn("w-full text-lg", plan.popular ? "bg-emerald-400 text-black hover:bg-emerald-500" : "bg-gray-700 text-white hover:bg-gray-600")}>Empezar con {plan.name}</Button>
                                 <ul className="mt-8 space-y-4">
