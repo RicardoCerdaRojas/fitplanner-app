@@ -37,26 +37,26 @@ export function AppHeader() {
         setTheme(theme === 'dark' ? 'light' : 'dark');
     };
     
-    const isGuestHomepage = !user && pathname === '/';
+    const isGuestPage = !user && (pathname === '/' || pathname === '/login' || pathname === '/signup');
 
     return (
         <header className={cn(
-            "sticky top-0 z-50 w-full",
-            isGuestHomepage ? "bg-transparent" : "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+            "absolute top-0 z-20 w-full p-4",
+            isGuestPage ? "bg-black/10 backdrop-blur-sm" : "sticky border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
         )}>
-            <div className="flex h-14 max-w-7xl items-center mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="container mx-auto flex h-full items-center">
                 <Link href="/" className="flex items-center gap-4 group mr-6">
-                    {gymProfile?.logoUrl && !isGuestHomepage ? (
+                    {gymProfile?.logoUrl && !isGuestPage ? (
                         <Image src={gymProfile.logoUrl} alt={gymProfile.name ? `${gymProfile.name} Logo` : 'Gym Logo'} width={100} height={50} className="object-contain h-10 w-auto" priority />
                     ) : (
                         <h1 className={cn(
-                            "font-headline font-bold",
-                            isGuestHomepage ? "text-2xl text-white" : "text-2xl text-card-foreground"
+                            "text-2xl font-black tracking-tight",
+                            isGuestPage ? "text-white" : "text-card-foreground"
                         )}>
-                            FIT PLANNER
+                            Fit Planner
                         </h1>
                     )}
-                    {!isGuestHomepage && gymProfile?.name && (
+                    {!isGuestPage && gymProfile?.name && (
                         <h1 className={cn(
                             "font-headline font-bold text-card-foreground",
                              gymProfile?.logoUrl ? "text-xl" : "text-2xl"
@@ -66,16 +66,17 @@ export function AppHeader() {
                     )}
                 </Link>
 
-                {isGuestHomepage && (
+                {pathname === '/' && !user && (
                     <nav className="hidden md:flex items-center gap-8 flex-1">
-                        <Link href="#features" className="text-white hover:text-gray-300 transition-colors text-sm font-medium">Para Quién</Link>
-                        <Link href="#about" className="text-white hover:text-gray-300 transition-colors text-sm font-medium">Funcionalidades</Link>
-                        <Link href="mailto:ricardo@fitplanner.cl" className="text-white hover:text-gray-300 transition-colors text-sm font-medium">Contacto</Link>
+                        <Link href="#problem" className="text-white hover:text-gray-300 transition-colors text-sm font-medium">El Problema</Link>
+                        <Link href="#solution" className="text-white hover:text-gray-300 transition-colors text-sm font-medium">La Solución</Link>
+                        <Link href="#wow-factor" className="text-white hover:text-gray-300 transition-colors text-sm font-medium">La Magia</Link>
+                        <Link href="#pricing" className="text-white hover:text-gray-300 transition-colors text-sm font-medium">Precios</Link>
                     </nav>
                 )}
 
                 <div className="flex flex-1 items-center justify-end gap-2">
-                    {!isGuestHomepage && (
+                    {!isGuestPage && (
                         <Button variant="ghost" size="icon" onClick={toggleTheme} className='h-9 w-9'>
                             <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                             <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -87,9 +88,9 @@ export function AppHeader() {
                     ) : user ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                                <Button variant="ghost" className={cn("relative h-8 w-8 rounded-full", isGuestPage && "hover:bg-white/10")}>
                                     <Avatar className="h-8 w-8">
-                                         <AvatarFallback>{userProfile?.name?.charAt(0) || user.email?.charAt(0) || <UserIcon />}</AvatarFallback>
+                                         <AvatarFallback className={cn(isGuestPage && "bg-transparent text-white")}>{userProfile?.name?.charAt(0) || user.email?.charAt(0) || <UserIcon />}</AvatarFallback>
                                     </Avatar>
                                 </Button>
                             </DropdownMenuTrigger>
@@ -112,14 +113,14 @@ export function AppHeader() {
 
                     ) : (
                         <div className='flex items-center gap-2'>
-                            <Button asChild variant="secondary" className="bg-white text-gray-800 hover:bg-gray-200">
+                            <Button asChild variant="ghost" className={cn(isGuestPage && "text-white hover:bg-white/10 hover:text-white")}>
                                 <Link href="/login">
                                     Ingresar
                                 </Link>
                             </Button>
-                            <Button asChild className="bg-[#3A7CFD] hover:bg-[#3a7cfd]/90 text-white">
+                             <Button asChild className={cn(isGuestPage ? "bg-white text-black hover:bg-gray-200" : "bg-primary text-primary-foreground")}>
                                 <Link href="/signup">
-                                    Registrarse
+                                    Comenzar Prueba
                                 </Link>
                             </Button>
                         </div>
