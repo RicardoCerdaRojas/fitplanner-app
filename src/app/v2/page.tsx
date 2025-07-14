@@ -374,8 +374,8 @@ export default function V2LandingPage() {
                     </div>
                     <div>
                          <ImageComparisonSlider 
-                            before="https://placehold.co/600x450.png"
-                            after="https://placehold.co/600x450.png"
+                            before="/chaos-manual-management.png"
+                            after="/fit-planner-dashboard.png"
                             beforeHint="messy paperwork spreadsheet"
                             afterHint="clean dashboard interface"
                         />
