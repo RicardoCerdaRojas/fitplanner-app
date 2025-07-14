@@ -497,7 +497,7 @@ export default function V2LandingPage() {
            
             <HeroV2 />
 
-            <div id="problem" className="bg-[#0a0a0a]">
+            <div id="problem" className="bg-[#0a0a0a] container mx-auto px-4">
                 <Section>
                     <div className="grid md:grid-cols-2 gap-12 items-center">
                         <div className="text-left">
