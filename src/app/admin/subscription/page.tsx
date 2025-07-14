@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, CreditCard, XCircle, Calendar, Sparkles } from 'lucide-react';
 import { createCustomerPortalSession } from '@/app/stripe/actions';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SubscriptionButton } from '@/components/subscription-button';
 import { differenceInDays, format } from 'date-fns';
 
@@ -21,6 +21,12 @@ export default function SubscriptionPage() {
     const router = useRouter();
     const [isRedirecting, setIsRedirecting] = useState(false);
     
+    useEffect(() => {
+        if (!loading && (!activeMembership || activeMembership.role !== 'gym-admin')) {
+            router.push('/');
+        }
+    }, [loading, activeMembership, router]);
+
     const handleManageSubscription = async () => {
         setIsRedirecting(true);
         const { url, error } = await createCustomerPortalSession();
@@ -38,7 +44,7 @@ export default function SubscriptionPage() {
         }
     };
     
-    if (loading) {
+    if (loading || !activeMembership || activeMembership.role !== 'gym-admin') {
         return (
             <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
                 <AppHeader />
@@ -51,11 +57,6 @@ export default function SubscriptionPage() {
         );
     }
     
-    if (!activeMembership || activeMembership.role !== 'gym-admin') {
-        router.push('/');
-        return null;
-    }
-
     const trialEndsAt = gymProfile?.trialEndsAt?.toDate();
     const daysLeft = trialEndsAt ? differenceInDays(trialEndsAt, new Date()) : 0;
     const isSubscribed = !!userProfile?.stripeSubscriptionId;
