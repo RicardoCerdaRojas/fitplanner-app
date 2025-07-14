@@ -3,7 +3,7 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -95,18 +95,16 @@ const HeroV2 = () => {
             const { clientX, clientY } = e;
             const { offsetWidth, offsetHeight } = hero;
             
-            // For background gradient
             const xPos = (clientX / offsetWidth);
             const yPos = (clientY / offsetHeight);
             hero.style.setProperty('--mouse-x', `${xPos * 100}%`);
             hero.style.setProperty('--mouse-y', `${yPos * 100}%`);
 
-            // For 3D tilt effect
             const rect = illustration.getBoundingClientRect();
             const centerX = rect.left + rect.width / 2;
             const centerY = rect.top + rect.height / 2;
 
-            const rotateX = (clientY - centerY) / 40; // The divisor controls the tilt amount
+            const rotateX = (clientY - centerY) / 40; 
             const rotateY = (clientX - centerX) / -40;
 
             illustration.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
@@ -131,11 +129,9 @@ const HeroV2 = () => {
 
     return (
         <div ref={heroRef} className="group relative min-h-screen flex flex-col items-center justify-center overflow-hidden p-4 isolate">
-            {/* Background */}
             <div className="absolute inset-0 -z-10 h-full w-full bg-black">
                 <div className="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px]"></div>
                 <div className="absolute inset-0 -z-20 bg-[radial-gradient(circle_500px_at_var(--mouse-x)_var(--mouse-y),#3b82f633,transparent)] transition-all duration-500 ease-out"></div>
-                <div className="absolute inset-0 -z-20 bg-[radial-gradient(circle_500px_at_var(--mouse-x)_var(--mouse-y),#10b98133,transparent)] transition-all duration-500 ease-out [animation-delay:1s]"></div>
             </div>
             
             <header className="absolute top-0 left-0 right-0 z-20 p-4 backdrop-blur-sm bg-black/10">
@@ -149,7 +145,7 @@ const HeroV2 = () => {
             </header>
 
             <div className="relative z-10 flex flex-col items-center text-center container mx-auto pt-20 md:pt-0">
-                <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                 <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
                     <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-emerald-400 mb-2">
                       Fit Planner
                     </h2>
