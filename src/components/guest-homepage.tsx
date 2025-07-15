@@ -101,8 +101,9 @@ export default function GuestHomepage() {
     const router = useRouter();
 
     useEffect(() => {
+        // Only run routing logic when auth state is fully resolved
         if (loading) {
-            return; // Wait until all auth data is loaded and processed
+            return;
         }
 
         if (user) {
@@ -112,13 +113,13 @@ export default function GuestHomepage() {
                 } else if (activeMembership.role === 'coach') {
                     router.replace('/coach');
                 }
-                // For members, we don't redirect from here. MemberDashboard is shown below.
+                // For members, the MemberDashboard is rendered below, so no redirect is needed.
             } else {
                 // User is authenticated but has no membership, send to create a gym.
                 router.replace('/create-gym');
             }
         }
-        // If no user and loading is false, do nothing, allowing the public page to render.
+        // If there's no user and loading is false, do nothing. The parent component will render the public page.
     }, [user, activeMembership, loading, router]);
 
 
@@ -130,13 +131,13 @@ export default function GuestHomepage() {
         return <MemberDashboard />;
     }
     
-    // This state is for users who have just logged in and are waiting for redirection.
-    // It prevents a flash of unstyled content or incorrect pages.
+    // This state is for users who have just logged in and are waiting for the redirection logic to complete.
+    // It prevents a flash of the wrong page.
     if (user) {
         return <LoadingScreen />;
     }
 
     // For unauthenticated users, this component will return null,
-    // allowing the parent component (e.g., page.tsx) to render the public content.
+    // allowing the parent component (e.g., page.tsx) to render the public landing page.
     return null;
 }
