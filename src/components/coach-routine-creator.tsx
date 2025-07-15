@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, useFormContext } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -25,7 +25,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { FormControl, FormField, FormItem, FormLabel, FormMessage, useFormContext } from '@/components/ui/form';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AppHeader } from './app-header';
@@ -200,12 +200,14 @@ const TemplateLoader = React.memo(({ onTemplateLoad }: { onTemplateLoad: (templa
 });
 TemplateLoader.displayName = 'TemplateLoader';
 
-const SaveTemplateDialog = React.memo(({ onSave, initialName }: { onSave: (name: string) => void, initialName: string }) => {
+const SaveTemplateDialog = React.memo(({ onSave, initialName, open, onOpenChange }: { onSave: (name: string) => void, initialName: string, open: boolean, onOpenChange: (open: boolean) => void }) => {
     const [name, setName] = React.useState(initialName);
 
     React.useEffect(() => {
-        setName(initialName);
-    }, [initialName]);
+        if (open) {
+            setName(initialName);
+        }
+    }, [initialName, open]);
 
     const handleSave = () => {
         if(name.trim()) {
@@ -214,28 +216,30 @@ const SaveTemplateDialog = React.memo(({ onSave, initialName }: { onSave: (name:
     }
 
     return (
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Save as Template</DialogTitle>
-                <DialogDescription>
-                    This routine will be saved to your library for future use. Give it a descriptive name.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-                <Label htmlFor="template-name">Template Name</Label>
-                <Input
-                    id="template-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g., 'Beginner Full Body'"
-                />
-            </div>
-            <DialogFooter>
-                 <DialogClose asChild>
-                    <Button onClick={handleSave}>Save Template</Button>
-                </DialogClose>
-            </DialogFooter>
-        </DialogContent>
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Save as Template</DialogTitle>
+                    <DialogDescription>
+                        This routine will be saved to your library for future use. Give it a descriptive name.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <Label htmlFor="template-name">Template Name</Label>
+                    <Input
+                        id="template-name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g., 'Beginner Full Body'"
+                    />
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button onClick={handleSave}>Save Template</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 });
 SaveTemplateDialog.displayName = 'SaveTemplateDialog';
@@ -542,11 +546,9 @@ export default function CoachRoutineCreator() {
                               </DialogTrigger>
                               <TemplateLoader onTemplateLoad={loadTemplate} />
                          </Dialog>
-                         <DialogTrigger asChild>
-                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSaveTemplateOpen(true); }}>
-                                <Save className="mr-2 h-4 w-4" /> Save as Template
-                            </DropdownMenuItem>
-                         </DialogTrigger>
+                         <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSaveTemplateOpen(true); }}>
+                             <Save className="mr-2 h-4 w-4" /> Save as Template
+                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
           </div>
@@ -579,9 +581,12 @@ export default function CoachRoutineCreator() {
               </Button>
           </div>
           
-          <Dialog open={isSaveTemplateOpen} onOpenChange={setSaveTemplateOpen}>
-              <SaveTemplateDialog onSave={handleSaveAsTemplate} initialName={getInitialTemplateName()} />
-          </Dialog>
+          <SaveTemplateDialog 
+            onSave={handleSaveAsTemplate} 
+            initialName={getInitialTemplateName()}
+            open={isSaveTemplateOpen}
+            onOpenChange={setSaveTemplateOpen}
+          />
 
       </div>
   );
