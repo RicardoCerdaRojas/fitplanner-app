@@ -1,10 +1,10 @@
 
+
 'use client';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus } from 'lucide-react';
-import type { ControllerRenderProps } from 'react-hook-form';
 import { useState, useEffect } from 'react';
 
 type StepperInputProps = {
@@ -18,11 +18,15 @@ type StepperInputProps = {
 };
 
 export function StepperInput({ field, step = 1, allowText = false }: StepperInputProps) {
-  const [internalValue, setInternalValue] = useState(field.value ?? '0');
+  const [internalValue, setInternalValue] = useState(String(field.value ?? '0'));
 
   useEffect(() => {
-    setInternalValue(field.value ?? '0');
-  }, [field.value]);
+    // Sync with external form state, but only if it's different.
+    // This prevents re-renders from overwriting user input.
+    if (String(field.value) !== internalValue) {
+        setInternalValue(String(field.value ?? '0'));
+    }
+  }, [field.value, internalValue]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInternalValue(e.target.value);

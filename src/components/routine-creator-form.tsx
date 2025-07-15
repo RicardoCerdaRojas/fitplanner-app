@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -246,7 +247,7 @@ export function RoutineCreatorForm({ blocks, setBlocks }: RoutineCreatorFormProp
     };
     
     const handleAddBlock = () => {
-        setBlocks(prev => [...prev, { id: crypto.randomUUID(), name: `Block ${prev.length + 1}`, sets: '3', exercises: [] }]);
+        setBlocks(prev => [...prev, { id: crypto.randomUUID(), name: `Block ${prev.length + 1}`, sets: '4', exercises: [] }]);
     };
 
     const handleDuplicateBlock = (blockId: string) => {

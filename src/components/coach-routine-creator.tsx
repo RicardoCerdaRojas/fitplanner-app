@@ -361,7 +361,7 @@ export function CoachRoutineCreator() {
 
     fetchEditData();
     if (!isEditing) {
-        setBlocks([{ name: 'Warm-up', sets: '1', exercises: [], id: crypto.randomUUID() }]);
+        setBlocks([{ name: 'Warm-up', sets: '4', exercises: [], id: crypto.randomUUID() }]);
     }
 
     return () => {
@@ -399,7 +399,7 @@ export function CoachRoutineCreator() {
           </div>
           
           <FormProvider {...form}>
-              <RoutineDetailsSection members={members} routineTypes={routineTypes} />
+            <RoutineDetailsSection members={members} routineTypes={routineTypes} />
           </FormProvider>
           
           <RoutineCreatorForm 
