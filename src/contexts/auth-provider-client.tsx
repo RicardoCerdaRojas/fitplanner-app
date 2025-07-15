@@ -24,15 +24,17 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
     // Effect for handling Firebase Auth state changes
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (authUser) => {
-            setUser(authUser);
             if (!authUser) {
                 // If no user, clear all related state and finish loading
+                setUser(null);
                 setUserProfile(null);
                 setMemberships([]);
                 setActiveMembership(null);
                 setGymProfile(null);
                 setIsTrialActive(false);
                 setLoading(false);
+            } else {
+                setUser(authUser);
             }
         });
         return () => unsubscribe();
@@ -66,8 +68,10 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
                 });
                 setActiveMembership(sorted[0]);
             } else {
+                // If the user has no memberships, we can stop loading here.
                 setActiveMembership(null);
-                setLoading(false); // Finish loading if no memberships
+                setGymProfile(null); // Ensure gym profile is also cleared
+                setLoading(false); 
             }
         }, (error) => {
             console.error("Error fetching memberships:", error);
@@ -84,17 +88,14 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
     // Effect for fetching gym profile when active membership changes
     useEffect(() => {
         if (!activeMembership) {
-            setGymProfile(null);
-            // If user exists but has no active membership, they are done loading
-            if (user) {
-                setLoading(false);
-            }
+            // This case is handled by the previous effect if there are no memberships at all.
+            // This effect now only cares about when a membership *exists*.
             return;
         }
 
         const unsubGym = onSnapshot(doc(db, 'gyms', activeMembership.gymId), (doc) => {
             setGymProfile(doc.exists() ? ({ id: doc.id, ...doc.data() } as GymProfile) : null);
-            setLoading(false); // Finish loading once gym profile is fetched
+            setLoading(false); // Finish loading only after the gym profile is fetched.
         }, (error) => {
             console.error("Error fetching gym profile:", error);
             setLoading(false);
@@ -102,7 +103,7 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
 
         return () => unsubGym();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeMembership, user]);
+    }, [activeMembership]);
     
     return <>{children}</>;
 }
