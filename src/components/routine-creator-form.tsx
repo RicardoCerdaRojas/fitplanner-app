@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -237,37 +238,18 @@ function ExerciseSheet({
 type RoutineCreatorFormProps = {
     blocks: BlockFormValues[];
     setBlocks: React.Dispatch<React.SetStateAction<BlockFormValues[]>>;
+    onUpdateBlock: (blockId: string, field: 'name' | 'sets', value: string) => void;
+    onIncrementSets: (blockId: string) => void;
+    onDecrementSets: (blockId: string) => void;
 }
-export function RoutineCreatorForm({ blocks, setBlocks }: RoutineCreatorFormProps) {
+export function RoutineCreatorForm({ 
+    blocks, 
+    setBlocks,
+    onUpdateBlock,
+    onIncrementSets,
+    onDecrementSets,
+}: RoutineCreatorFormProps) {
     const [editingExercise, setEditingExercise] = useState<{ blockId: string; exerciseIndex: number; exercise: ExerciseFormValues } | null>(null);
-
-    const handleUpdateBlock = (blockId: string, field: 'name' | 'sets', value: string) => {
-        setBlocks(prev => prev.map(b => 
-            b.id === blockId ? { ...b, [field]: value } : b
-        ));
-    };
-
-    const handleIncrementSets = (blockId: string) => {
-        setBlocks(prev => prev.map(b => {
-            if (b.id === blockId) {
-                const currentSets = parseInt(b.sets, 10);
-                const newSets = isNaN(currentSets) ? 1 : currentSets + 1;
-                return { ...b, sets: String(newSets) };
-            }
-            return b;
-        }));
-    };
-
-    const handleDecrementSets = (blockId: string) => {
-        setBlocks(prev => prev.map(b => {
-            if (b.id === blockId) {
-                const currentSets = parseInt(b.sets, 10);
-                const newSets = isNaN(currentSets) ? 0 : Math.max(0, currentSets - 1);
-                return { ...b, sets: String(newSets) };
-            }
-            return b;
-        }));
-    };
     
     const handleAddBlock = () => {
         setBlocks(prev => [...prev, { id: crypto.randomUUID(), name: `Block ${prev.length + 1}`, sets: '4', exercises: [] }]);
@@ -330,15 +312,15 @@ export function RoutineCreatorForm({ blocks, setBlocks }: RoutineCreatorFormProp
                          <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
                          <Input 
                             value={block.name} 
-                            onChange={(e) => handleUpdateBlock(block.id, 'name', e.target.value)} 
+                            onChange={(e) => onUpdateBlock(block.id, 'name', e.target.value)} 
                             className="text-lg font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent flex-1 mx-2"
                         />
                          <div className="flex items-center gap-2">
                              <div className="w-28">
                                 <StepperInput
                                     value={block.sets}
-                                    onIncrement={() => handleIncrementSets(block.id)}
-                                    onDecrement={() => handleDecrementSets(block.id)}
+                                    onIncrement={() => onIncrementSets(block.id)}
+                                    onDecrement={() => onDecrementSets(block.id)}
                                 />
                              </div>
                              <DropdownMenu>

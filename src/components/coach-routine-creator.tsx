@@ -292,6 +292,35 @@ export function CoachRoutineCreator() {
     }
   };
 
+  const handleUpdateBlock = (blockId: string, field: 'name' | 'sets', value: string) => {
+    setBlocks(prev => prev.map(b => 
+        b.id === blockId ? { ...b, [field]: value } : b
+    ));
+  };
+  
+  const handleIncrementSets = (blockId: string) => {
+    setBlocks(prev => prev.map(b => {
+        if (b.id === blockId) {
+            const currentSets = parseInt(b.sets, 10);
+            const newSets = isNaN(currentSets) ? 1 : currentSets + 1;
+            return { ...b, sets: String(newSets) };
+        }
+        return b;
+    }));
+  };
+
+  const handleDecrementSets = (blockId: string) => {
+    setBlocks(prev => prev.map(b => {
+        if (b.id === blockId) {
+            const currentSets = parseInt(b.sets, 10);
+            const newSets = isNaN(currentSets) ? 0 : Math.max(0, currentSets - 1);
+            return { ...b, sets: String(newSets) };
+        }
+        return b;
+    }));
+  };
+
+
   useEffect(() => {
     if(authLoading || !activeMembership?.gymId) return;
 
@@ -405,6 +434,9 @@ export function CoachRoutineCreator() {
           <RoutineCreatorForm 
             blocks={blocks}
             setBlocks={setBlocks}
+            onUpdateBlock={handleUpdateBlock}
+            onIncrementSets={handleIncrementSets}
+            onDecrementSets={handleDecrementSets}
           />
 
           <div className="flex justify-end pt-4 mt-auto">
