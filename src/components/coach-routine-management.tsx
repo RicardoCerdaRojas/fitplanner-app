@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { Trash2, Edit, ClipboardList, Search, FilterX, Plus, Copy, Calendar as CalendarIcon, Dumbbell, Repeat, Clock, Copy as CopyIcon, Eye } from 'lucide-react';
+import { Trash2, Edit, ClipboardList, Search, FilterX, Plus, Copy, Calendar as CalendarIcon, Dumbbell, Repeat, Clock, Copy as CopyIcon, Eye, SlidersHorizontal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Block, ExerciseProgress } from './athlete-routine-list'; 
 import type { Timestamp as FirestoreTimestamp } from 'firebase/firestore';
@@ -32,6 +32,15 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Label } from './ui/label';
 import { MemberCombobox } from './ui/member-combobox';
 import type { Member } from '@/app/coach/page';
@@ -77,6 +86,7 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
     const [memberFilter, setMemberFilter] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
     const [dateFilter, setDateFilter] = useState<DateRange | undefined>(undefined);
+    const [isSheetOpen, setIsSheetOpen] = useState(false);
 
     // Dialog states
     const [routineToDelete, setRoutineToDelete] = useState<ManagedRoutine | null>(null);
@@ -133,12 +143,11 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
     };
     
     const clearFilters = () => {
-        setSearchFilter('');
         setMemberFilter('');
         setTypeFilter('');
         setDateFilter(undefined);
     }
-    const areFiltersActive = searchFilter || memberFilter || typeFilter || dateFilter;
+    const areAdvancedFiltersActive = memberFilter || typeFilter || dateFilter;
 
     const copyForWhatsapp = () => {
         if (!routineToView) return;
@@ -310,40 +319,68 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                             </Button>
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                        <div className="relative">
+                    <div className="flex gap-2 pt-4">
+                        <div className="relative flex-1">
                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                              <Input 
-                                placeholder="Search routines..." 
+                                placeholder="Search by routine or member name..." 
                                 value={searchFilter} 
                                 onChange={(e) => setSearchFilter(e.target.value)} 
                                 className="pl-10"
                             />
                         </div>
-                        <MemberCombobox members={members} value={memberFilter} onChange={setMemberFilter} />
-                        <Select value={typeFilter} onValueChange={(value) => {
-                            setTypeFilter(value === 'all' ? '' : value);
-                        }}>
-                            <SelectTrigger><SelectValue placeholder="Filter by type..." /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Types</SelectItem>
-                                {routineTypes.map(rt => <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <div className="flex items-center gap-2">
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !dateFilter && "text-muted-foreground")}>
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {dateFilter?.from ? (dateFilter.to ? <>{format(dateFilter.from, "LLL dd, y")} - {format(dateFilter.to, "LLL dd, y")}</> : format(dateFilter.from, "LLL dd, y")) : <span>Pick a date range</span>}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar initialFocus mode="range" defaultMonth={dateFilter?.from} selected={dateFilter} onSelect={setDateFilter} numberOfMonths={2}/>
-                                </PopoverContent>
-                            </Popover>
-                            {areFiltersActive && <Button variant="ghost" onClick={clearFilters}><FilterX className="mr-2 h-4 w-4" /> Clear</Button>}
-                        </div>
+                        
+                        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                            <SheetTrigger asChild>
+                                <Button variant="outline" className="relative">
+                                    <SlidersHorizontal className="mr-2 h-4 w-4" />
+                                    Filters
+                                    {areAdvancedFiltersActive && <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-green-500 border-2 border-background" />}
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent>
+                                <SheetHeader>
+                                    <SheetTitle>Advanced Filters</SheetTitle>
+                                    <SheetDescription>
+                                        Refine your search for routines.
+                                    </SheetDescription>
+                                </SheetHeader>
+                                <div className="grid gap-4 py-4">
+                                    <div className="grid grid-cols-1 items-center gap-2">
+                                        <Label htmlFor="member-filter">Filter by Member</Label>
+                                        <MemberCombobox members={members} value={memberFilter} onChange={setMemberFilter} />
+                                    </div>
+                                    <div className="grid grid-cols-1 items-center gap-2">
+                                        <Label htmlFor="type-filter">Filter by Type</Label>
+                                        <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value === 'all' ? '' : value)}>
+                                            <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All Types</SelectItem>
+                                                {routineTypes.map(rt => <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid grid-cols-1 items-center gap-2">
+                                        <Label htmlFor="date-filter">Filter by Date</Label>
+                                         <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !dateFilter && "text-muted-foreground")}>
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {dateFilter?.from ? (dateFilter.to ? <>{format(dateFilter.from, "LLL dd, y")} - {format(dateFilter.to, "LLL dd, y")}</> : format(dateFilter.from, "LLL dd, y")) : <span>Pick a date range</span>}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar initialFocus mode="range" defaultMonth={dateFilter?.from} selected={dateFilter} onSelect={setDateFilter} numberOfMonths={1}/>
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                </div>
+                                <SheetFooter>
+                                    <Button variant="outline" onClick={clearFilters}>Clear</Button>
+                                    <Button onClick={() => setIsSheetOpen(false)}>Apply Filters</Button>
+                                </SheetFooter>
+                            </SheetContent>
+                        </Sheet>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -393,9 +430,9 @@ export function CoachRoutineManagement({ routines, members, routineTypes }: Prop
                                 <FilterX className="mx-auto h-12 w-12 text-muted-foreground" />
                                 <h3 className="mt-4 text-lg font-semibold">No Routines Found</h3>
                                 <p className="mt-1 text-sm text-muted-foreground">
-                                    Try adjusting your filters or creating a new routine.
+                                    Try adjusting your search or filters.
                                 </p>
-                                {areFiltersActive && <Button variant="outline" className="mt-4" onClick={clearFilters}>Clear Filters</Button>}
+                                {areAdvancedFiltersActive && <Button variant="outline" className="mt-4" onClick={clearFilters}>Clear Filters</Button>}
                             </div>
                         )}
                     </div>
