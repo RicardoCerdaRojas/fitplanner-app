@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -28,11 +27,11 @@ import { cn } from '@/lib/utils';
 function Stepper({ value, onIncrement, onDecrement }: { value: string, onIncrement: () => void, onDecrement: () => void }) {
   return (
     <div className="flex items-center gap-1">
-      <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={onDecrement}>
+      <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={onDecrement}>
         <Minus className="h-4 w-4" />
       </Button>
-      <div className="h-8 w-12 text-center font-bold flex items-center justify-center">{value}</div>
-      <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={onIncrement}>
+      <div className="h-9 w-12 text-center font-bold flex items-center justify-center text-lg">{value}</div>
+      <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={onIncrement}>
         <Plus className="h-4 w-4" />
       </Button>
     </div>
@@ -59,7 +58,7 @@ function EditableBlockHeader({
 }) {
 
   return (
-    <div className="flex flex-row items-center justify-between bg-muted/50 p-2 md:p-3">
+    <div className="flex flex-row items-center justify-between bg-muted/50 p-2 md:p-3 rounded-t-xl">
       <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab shrink-0" />
       <Input 
         value={block.name} 
@@ -115,12 +114,10 @@ export function TemplateLoader({ onTemplateLoad }: { onTemplateLoad: (template: 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                 <Button variant="outline" className="w-full justify-start text-left p-0">
-                    <div className="flex items-center gap-2 p-2">
-                        <Library className="h-4 w-4" />
-                        <span className="hidden sm:inline">Load Template</span>
-                    </div>
-                </Button>
+                 <div className="flex items-center gap-2 p-2 w-full text-left">
+                    <Library className="h-4 w-4" />
+                    <span>Load Template</span>
+                </div>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
@@ -161,12 +158,10 @@ export function SaveTemplateDialog({ onSave }: { onSave: (name: string) => Promi
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-left p-0">
-                    <div className="flex items-center gap-2 p-2">
-                      <Save className="h-4 w-4" />
-                      <span className="hidden sm:inline">Save as Template</span>
-                    </div>
-                </Button>
+                <div className="flex items-center gap-2 p-2 w-full text-left">
+                    <Save className="h-4 w-4" />
+                    <span>Save as Template</span>
+                </div>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
@@ -322,7 +317,7 @@ export function RoutineCreatorForm({
     return (
         <div className="space-y-4">
             {blocks.map((block) => (
-                <Card key={block.id} className="border-2 border-primary/10">
+                <div key={block.id} className="bg-card rounded-xl border">
                     <EditableBlockHeader
                         block={block}
                         onUpdate={(field, value) => onUpdateBlock(block.id, { [field]: value })}
@@ -332,7 +327,7 @@ export function RoutineCreatorForm({
                         onIncrementSets={() => onIncrementSets(block.id)}
                         onDecrementSets={() => onDecrementSets(block.id)}
                     />
-                    <CardContent className="p-3 space-y-2">
+                    <div className="p-3 space-y-2">
                        {block.exercises.map((exercise, exIndex) => (
                            <div 
                                 key={exIndex}
@@ -357,8 +352,8 @@ export function RoutineCreatorForm({
                        <Button variant="outline" className="w-full" onClick={() => onAddExercise(block.id)}>
                          <Plus className="mr-2 h-4 w-4" /> Add Exercise
                        </Button>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             ))}
 
             <Button variant="secondary" className="w-full" onClick={onAddBlock}>
@@ -374,4 +369,3 @@ export function RoutineCreatorForm({
         </div>
     );
 }
-

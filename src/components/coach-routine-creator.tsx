@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useForm, FormProvider, useFormContext } from 'react-hook-form';
@@ -18,7 +17,7 @@ import { Skeleton } from './ui/skeleton';
 import { RoutineCreatorForm, TemplateLoader, SaveTemplateDialog } from './routine-creator-form';
 import { Button } from './ui/button';
 import type { RoutineTemplate } from '@/app/coach/templates/page';
-import { ArrowLeft, Save, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Save, MoreVertical, Library, Send } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MemberCombobox } from '@/components/ui/member-combobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -80,12 +79,10 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
     const { control } = useFormContext<z.infer<typeof routineDetailsSchema>>();
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Routine Details</CardTitle>
-                <CardDescription>Select the member, type of routine, and the date it should be performed.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+        <div className="bg-card p-6 rounded-xl border">
+            <h2 className="text-xl font-bold font-headline mb-1">Routine Details</h2>
+            <p className="text-muted-foreground mb-6">Select the member, type, and date for this routine.</p>
+            <div className="space-y-6">
                 <FormField control={control} name="memberId" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Member</FormLabel>
@@ -124,8 +121,8 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
                         </FormItem>
                     )} />
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }
 
@@ -466,33 +463,28 @@ export function CoachRoutineCreator() {
 
   return (
       <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-              <Button variant="ghost" onClick={() => router.push('/coach')}>
+          <div className="flex items-center justify-between gap-4">
+              <Button variant="ghost" size="sm" onClick={() => router.push('/coach')} className="text-muted-foreground">
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back to Routines
               </Button>
-              <div className="flex items-center gap-2">
-                 <div className="sm:hidden">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="icon">
-                                <MoreVertical className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                                <TemplateLoader onTemplateLoad={loadTemplate} />
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                                <SaveTemplateDialog onSave={handleSaveAsTemplate} />
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                 </div>
-                 <div className="hidden sm:flex sm:items-center sm:gap-2">
-                    <TemplateLoader onTemplateLoad={loadTemplate} />
-                    <SaveTemplateDialog onSave={handleSaveAsTemplate} />
-                 </div>
-              </div>
+              <h1 className="text-xl sm:text-2xl font-bold font-headline text-center flex-1">
+                  {isEditing ? 'Edit Routine' : 'Create Routine'}
+              </h1>
+              <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-5 w-5" />
+                      </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                          <TemplateLoader onTemplateLoad={loadTemplate} />
+                      </DropdownMenuItem>
+                       <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                          <SaveTemplateDialog onSave={handleSaveAsTemplate} />
+                      </DropdownMenuItem>
+                  </DropdownMenuContent>
+              </DropdownMenu>
           </div>
           
           <FormProvider {...form}>
@@ -512,12 +504,18 @@ export function CoachRoutineCreator() {
             onDecrementSets={handleDecrementSets}
           />
 
-          <div className="flex justify-end pt-4 mt-auto">
-              <Button onClick={onFormSubmit} size="lg" className="w-full sm:w-auto" disabled={isSubmitting}>
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 border-t backdrop-blur-sm md:hidden">
+              <Button onClick={onFormSubmit} size="lg" className="w-full" disabled={isSubmitting}>
+                  <Send className="mr-2" />
+                  {isSubmitting ? 'Assigning...' : (isEditing && editRoutineId ? 'Update Routine' : 'Assign to Member')}
+              </Button>
+          </div>
+          <div className="hidden md:flex justify-end pt-4 mt-auto">
+              <Button onClick={onFormSubmit} size="lg" disabled={isSubmitting}>
+                   <Send className="mr-2" />
                   {isSubmitting ? 'Assigning...' : (isEditing && editRoutineId ? 'Update Routine' : 'Assign to Member')}
               </Button>
           </div>
       </div>
   );
 }
-
