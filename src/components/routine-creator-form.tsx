@@ -2,21 +2,9 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Calendar as CalendarIcon, Trash2, Library, Save } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { useRoutineCreator } from './coach-routine-creator';
-import { StepperInput } from './ui/stepper-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { MemberCombobox } from '@/components/ui/member-combobox';
-import { Separator } from './ui/separator';
-import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from './ui/dialog';
+import { Trash2, Library, Save, Plus, GripVertical, MoreVertical, Copy, Pencil } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -24,14 +12,19 @@ import { useAuth } from '@/contexts/auth-context';
 import type { RoutineTemplate } from '@/app/coach/templates/page';
 import { ScrollArea } from './ui/scroll-area';
 import { Skeleton } from './ui/skeleton';
-import { useForm, FormProvider } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from './ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { StepperInput } from './ui/stepper-input';
+import { useForm, Controller } from 'react-hook-form';
+import type { FieldValues } from 'react-hook-form';
+import type { BlockFormValues, ExerciseFormValues, defaultExerciseValues } from './coach-routine-creator';
 
-
-export function TemplateLoader() {
+// --- DIALOGS FOR TEMPLATES ---
+export function TemplateLoader({ onTemplateLoad }: { onTemplateLoad: (template: RoutineTemplate) => void }) {
     const { activeMembership } = useAuth();
-    const { loadTemplate } = useRoutineCreator();
     const [templates, setTemplates] = useState<RoutineTemplate[]>([]);
     const [loading, setLoading] = useState(true);
     const [open, setOpen] = useState(false);
@@ -49,14 +42,14 @@ export function TemplateLoader() {
     }, [activeMembership, open]);
 
     const handleSelect = (template: RoutineTemplate) => {
-        loadTemplate(template);
+        onTemplateLoad(template);
         setOpen(false);
     }
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="lg"><Library className="mr-2 h-4 w-4" /> Load from Template</Button>
+                <Button variant="outline"><Library className="mr-2 h-4 w-4" /> Load Template</Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
@@ -84,273 +77,292 @@ export function TemplateLoader() {
     )
 }
 
-const templateFormSchema = z.object({
-  templateName: z.string().min(3, { message: 'Template name must be at least 3 characters.' }),
-});
-
-export function SaveTemplateDialog() {
-    const { handleSaveAsTemplate } = useRoutineCreator();
+export function SaveTemplateDialog({ onSave }: { onSave: (name: string) => Promise<void> }) {
     const [open, setOpen] = useState(false);
-    
-    const form = useForm<z.infer<typeof templateFormSchema>>({
-        resolver: zodResolver(templateFormSchema),
-        defaultValues: { templateName: '' },
-    });
+    const [name, setName] = useState('');
 
-    const onSubmit = async (data: z.infer<typeof templateFormSchema>) => {
-        await handleSaveAsTemplate(data.templateName);
-        form.reset();
+    const handleSave = async () => {
+        await onSave(name);
+        setName('');
         setOpen(false);
     };
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="lg"><Save className="mr-2 h-4 w-4" /> Save as Template</Button>
+                <Button variant="outline"><Save className="mr-2 h-4 w-4" /> Save as Template</Button>
             </DialogTrigger>
             <DialogContent>
-                <FormProvider {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)}>
-                        <DialogHeader>
-                            <DialogTitle>Save New Template</DialogTitle>
-                            <DialogDescription>
-                                Give your new template a descriptive name so you can easily find it later.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="py-4">
-                            <FormField
-                                control={form.control}
-                                name="templateName"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Template Name</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="e.g., 'Beginner Full Body Strength'" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                        <DialogFooter>
-                            <DialogClose asChild>
-                                <Button type="button" variant="outline">Cancel</Button>
-                            </DialogClose>
-                            <Button type="submit">Save Template</Button>
-                        </DialogFooter>
-                    </form>
-                </FormProvider>
+                <DialogHeader>
+                    <DialogTitle>Save New Template</DialogTitle>
+                    <DialogDescription>
+                        Give your new template a descriptive name so you can easily find it later.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <Label>Template Name</Label>
+                    <Input 
+                        placeholder="e.g., 'Beginner Full Body Strength'" 
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                    />
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                    <Button type="button" onClick={handleSave}>Save Template</Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     );
 }
 
+function ExerciseSheet({
+    exercise,
+    isOpen,
+    onOpenChange,
+    onSave,
+}: {
+    exercise: ExerciseFormValues | null;
+    isOpen: boolean;
+    onOpenChange: (isOpen: boolean) => void;
+    onSave: (updatedExercise: ExerciseFormValues) => void;
+}) {
+    const { register, handleSubmit, control, watch, setValue } = useForm<ExerciseFormValues>();
+    const repType = watch('repType');
 
-function RoutineDetailsForm() {
-    const { form, members, routineTypes } = useRoutineCreator();
-    const { control } = form;
+    useEffect(() => {
+        if (exercise) {
+            setValue('name', exercise.name);
+            setValue('repType', exercise.repType);
+            setValue('reps', exercise.reps);
+            setValue('duration', exercise.duration);
+            setValue('weight', exercise.weight);
+            setValue('videoUrl', exercise.videoUrl);
+        }
+    }, [exercise, setValue]);
+    
+    if (!exercise) return null;
+
+    const handleRepTypeChange = (isDuration: boolean) => {
+        setValue('repType', isDuration ? 'duration' : 'reps');
+    };
+
+    const onSubmit = (data: FieldValues) => {
+        onSave(data as ExerciseFormValues);
+        onOpenChange(false);
+    };
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Routine Details</CardTitle>
-                <CardDescription>Select the member, type of routine, and the date it should be performed.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <FormField control={control} name="memberId" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Member</FormLabel>
-                        <MemberCombobox members={members} value={field.value ?? ''} onChange={field.onChange} />
-                        <FormMessage/>
-                    </FormItem>
-                )} />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <FormField control={control} name="routineTypeId" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Routine Type</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ''}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
-                                <SelectContent>
-                                    {routineTypes.map(rt => (<SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                    <FormField control={control} name="routineDate" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Routine Date</FormLabel>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <FormControl>
-                                        <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                        </Button>
-                                    </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                </div>
-            </CardContent>
-        </Card>
+        <Sheet open={isOpen} onOpenChange={onOpenChange}>
+            <SheetContent side="bottom" className="rounded-t-lg">
+                <form onSubmit={handleSubmit(onSubmit)}>
+                    <SheetHeader className="text-left">
+                        <SheetTitle>Edit Exercise</SheetTitle>
+                        <SheetDescription>Make changes to your exercise here. Click save when you're done.</SheetDescription>
+                    </SheetHeader>
+                    <div className="space-y-4 py-4">
+                        <div>
+                            <Label>Exercise Name</Label>
+                            <Input {...register('name')} placeholder="e.g., Bench Press" />
+                        </div>
+                        <div className="p-4 rounded-lg bg-muted">
+                            <div className="flex items-center justify-between">
+                                <Label className={repType === 'reps' ? 'font-bold' : ''}>Reps</Label>
+                                <Controller
+                                    name="repType"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Switch
+                                            checked={field.value === 'duration'}
+                                            onCheckedChange={(checked) => field.onChange(checked ? 'duration' : 'reps')}
+                                        />
+                                    )}
+                                />
+                                <Label className={repType === 'duration' ? 'font-bold' : ''}>Duration</Label>
+                            </div>
+                        </div>
+
+                        {repType === 'reps' ? (
+                            <Controller
+                                name="reps"
+                                control={control}
+                                render={({ field }) => (
+                                    <div><Label>Reps</Label><StepperInput field={field} /></div>
+                                )}
+                            />
+                        ) : (
+                            <Controller
+                                name="duration"
+                                control={control}
+                                render={({ field }) => (
+                                    <div><Label>Duration (min)</Label><StepperInput field={field} /></div>
+                                )}
+                            />
+                        )}
+                        <Controller
+                            name="weight"
+                            control={control}
+                            render={({ field }) => (
+                                <div><Label>Weight (kg or text)</Label><StepperInput field={field} allowText /></div>
+                            )}
+                        />
+                        <div>
+                            <Label>Example Video URL</Label>
+                            <Input {...register('videoUrl')} placeholder="https://youtube.com/..." />
+                        </div>
+                    </div>
+                    <SheetFooter>
+                        <Button type="submit">Save Changes</Button>
+                    </SheetFooter>
+                </form>
+            </SheetContent>
+        </Sheet>
     );
 }
 
-function BlockForm({ blockIndex }: { blockIndex: number }) {
-    const { form, removeBlock } = useRoutineCreator();
-    const { control } = form;
 
-    return (
-        <Card className="bg-muted/30">
-            <CardHeader className="flex flex-row items-center justify-between pb-4">
-                 <FormField control={control} name={`blocks.${blockIndex}.name`} render={({ field }) => (
-                    <FormItem className='flex-1'>
-                        <FormLabel className="sr-only">Block Name</FormLabel>
-                        <FormControl>
-                            <Input placeholder="Block Name" className="text-xl font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-                <Button type="button" variant="ghost" size="icon" onClick={() => removeBlock(blockIndex)} className="text-muted-foreground hover:text-destructive shrink-0">
-                    <Trash2 className="w-5 h-5"/>
-                </Button>
-            </CardHeader>
-            <Separator />
-            <CardContent className="pt-6 space-y-6">
-                <div className="flex items-center justify-between">
-                    <FormLabel className="font-semibold text-card-foreground">Sets</FormLabel>
-                    <FormField control={control} name={`blocks.${blockIndex}.sets`} render={({ field }) => (
-                        <FormItem>
-                            <FormControl>
-                                <StepperInput field={field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                </div>
-                <Separator />
-                <p className="text-sm text-muted-foreground text-center pt-4">
-                    Select an exercise from the left panel to edit its details, or add a new one.
-                </p>
-            </CardContent>
-        </Card>
-    )
+// --- MAIN FORM COMPONENT ---
+type RoutineCreatorFormProps = {
+    blocks: BlockFormValues[];
+    setBlocks: React.Dispatch<React.SetStateAction<BlockFormValues[]>>;
 }
+export function RoutineCreatorForm({ blocks, setBlocks }: RoutineCreatorFormProps) {
+    const [editingExercise, setEditingExercise] = useState<{ blockId: string; exerciseIndex: number; exercise: ExerciseFormValues } | null>(null);
 
-function ExerciseForm({ blockIndex, exerciseIndex }: { blockIndex: number, exerciseIndex: number }) {
-    const { form, removeExercise } = useRoutineCreator();
-    const { control, watch, setValue, trigger } = form;
-    const repType = watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`);
-
-    const handleRepTypeChange = (isDuration: boolean) => {
-        const newType = isDuration ? 'duration' : 'reps';
-        setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`, newType);
-        
-        if (newType === 'reps') {
-            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`, '10');
-            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`, '5');
-        } else { 
-            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`, '1');
-            setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`, '0');
-        }
-        
-        trigger(`blocks.${blockIndex}.exercises.${exerciseIndex}`);
-    }
+    const handleUpdateBlock = (blockId: string, newName?: string, newSets?: string) => {
+        setBlocks(prev => prev.map(b => {
+            if (b.id === blockId) {
+                return { ...b, name: newName ?? b.name, sets: newSets ?? b.sets };
+            }
+            return b;
+        }));
+    };
     
+    const handleAddBlock = () => {
+        setBlocks(prev => [...prev, { id: crypto.randomUUID(), name: `Block ${prev.length + 1}`, sets: '3', exercises: [] }]);
+    };
+
+    const handleDuplicateBlock = (blockId: string) => {
+        setBlocks(prev => {
+            const blockToDuplicate = prev.find(b => b.id === blockId);
+            if (!blockToDuplicate) return prev;
+            const newBlock = { ...blockToDuplicate, id: crypto.randomUUID() };
+            const index = prev.findIndex(b => b.id === blockId);
+            const newBlocks = [...prev];
+            newBlocks.splice(index + 1, 0, newBlock);
+            return newBlocks;
+        });
+    };
+    
+    const handleRemoveBlock = (blockId: string) => {
+        setBlocks(prev => prev.filter(b => b.id !== blockId));
+    };
+
+    const handleAddExercise = (blockId: string) => {
+        setBlocks(prev => prev.map(b => {
+            if (b.id === blockId) {
+                return { ...b, exercises: [...b.exercises, { ...defaultExerciseValues, name: `New Exercise ${b.exercises.length + 1}` }] };
+            }
+            return b;
+        }));
+    };
+
+    const handleRemoveExercise = (blockId: string, exerciseIndex: number) => {
+        setBlocks(prev => prev.map(b => {
+            if (b.id === blockId) {
+                const newExercises = [...b.exercises];
+                newExercises.splice(exerciseIndex, 1);
+                return { ...b, exercises: newExercises };
+            }
+            return b;
+        }));
+    };
+    
+    const handleSaveExercise = (updatedExercise: ExerciseFormValues) => {
+        if (!editingExercise) return;
+        const { blockId, exerciseIndex } = editingExercise;
+        setBlocks(prev => prev.map(b => {
+            if (b.id === blockId) {
+                const newExercises = [...b.exercises];
+                newExercises[exerciseIndex] = updatedExercise;
+                return { ...b, exercises: newExercises };
+            }
+            return b;
+        }));
+    };
+
     return (
-        <Card>
-            <CardHeader className='pb-4 flex flex-row items-center justify-between'>
-                 <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`} render={({ field }) => (
-                    <FormItem className='flex-1'>
-                        <FormLabel className="sr-only">Exercise Name</FormLabel>
-                        <FormControl>
-                            <Input placeholder="Exercise Name" className="text-xl font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent" {...field} />
-                        </FormControl>
-                        <FormMessage className="pl-2" />
-                    </FormItem>
-                )} />
-                 <Button type="button" variant="ghost" size="icon" onClick={() => removeExercise(blockIndex, exerciseIndex)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="w-5 h-5"/></Button>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <Card className="p-4 bg-muted/30">
-                    <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`} render={({ field }) => (
-                        <FormItem className="flex items-center justify-between">
-                            <FormLabel className={cn(
-                                "font-semibold transition-all",
-                                repType === 'reps' ? 'text-primary text-lg' : 'text-muted-foreground'
-                            )}>Reps</FormLabel>
-                            <FormControl>
-                                <Switch
-                                    checked={repType === 'duration'}
-                                    onCheckedChange={handleRepTypeChange}
+        <div className="space-y-4">
+            {blocks.map((block) => (
+                <Card key={block.id} className="border-2 border-primary/10">
+                    <CardHeader className="flex flex-row items-center justify-between bg-muted/50 p-3">
+                         <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+                         <Input 
+                            value={block.name} 
+                            onChange={(e) => handleUpdateBlock(block.id, e.target.value, undefined)} 
+                            className="text-lg font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent flex-1 mx-2"
+                        />
+                         <div className="flex items-center gap-2">
+                             <div className="w-24">
+                                <StepperInput
+                                    field={{
+                                        value: block.sets,
+                                        onChange: (val: string) => handleUpdateBlock(block.id, undefined, val),
+                                        name: 'sets'
+                                    }}
                                 />
-                            </FormControl>
-                             <FormLabel className={cn(
-                                "font-semibold transition-all",
-                                repType === 'duration' ? 'text-primary text-lg' : 'text-muted-foreground'
-                            )}>Duration</FormLabel>
-                        </FormItem>
-                    )} />
+                             </div>
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon"><MoreVertical className="h-5 w-5" /></Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleAddExercise(block.id)}><Plus className="mr-2 h-4 w-4" /> Add Exercise</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleDuplicateBlock(block.id)}><Copy className="mr-2 h-4 w-4" /> Duplicate Block</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleRemoveBlock(block.id)} className="text-destructive focus:bg-destructive/10"><Trash2 className="mr-2 h-4 w-4" /> Delete Block</DropdownMenuItem>
+                                </DropdownMenuContent>
+                             </DropdownMenu>
+                         </div>
+                    </CardHeader>
+                    <CardContent className="p-3 space-y-2">
+                       {block.exercises.map((exercise, exIndex) => (
+                           <div 
+                                key={exIndex}
+                                className="flex items-center gap-2 p-2 rounded-md border bg-background group"
+                                onClick={() => setEditingExercise({ blockId: block.id, exerciseIndex: exIndex, exercise })}
+                           >
+                                <div className="flex-1 cursor-pointer">
+                                    <p className="font-semibold">{exercise.name}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {exercise.repType === 'reps' ? `${exercise.reps} reps` : `${exercise.duration} min`}
+                                        {exercise.weight && ` / ${exercise.weight}`}
+                                    </p>
+                                </div>
+                                <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
+                                    <Pencil className="h-4 w-4"/>
+                                </Button>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); handleRemoveExercise(block.id, exIndex); }}>
+                                    <Trash2 className="h-4 w-4"/>
+                                </Button>
+                           </div>
+                       ))}
+                       <Button variant="outline" className="w-full" onClick={() => handleAddExercise(block.id)}>
+                         <Plus className="mr-2 h-4 w-4" /> Add Exercise
+                       </Button>
+                    </CardContent>
                 </Card>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {repType === 'reps' ? (
-                        <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`} render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Reps</FormLabel>
-                                <FormControl>
-                                    <StepperInput field={field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                    ) : (
-                        <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`} render={({ field }) => (
-                             <FormItem>
-                                <FormLabel>Duration (min)</FormLabel>
-                                <FormControl>
-                                    <StepperInput field={field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                    )}
-                    <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`} render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Weight (kg)</FormLabel>
-                            <FormControl>
-                                <StepperInput field={field} allowText={true} step={5} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                </div>
-                <FormField control={control} name={`blocks.${blockIndex}.exercises.${exerciseIndex}.videoUrl`} render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Example Video URL</FormLabel>
-                        <FormControl>
-                            <Input placeholder="https://example.com/video.mp4" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-            </CardContent>
-        </Card>
-    )
-}
+            ))}
 
-export function RoutineCreatorForm() {
-    const { activeSelection } = useRoutineCreator();
-    
-    return (
-        <div className="w-full h-full">
-            {activeSelection.type === 'details' && <RoutineDetailsForm />}
-            {activeSelection.type === 'block' && <BlockForm blockIndex={activeSelection.index} />}
-            {activeSelection.type === 'exercise' && <ExerciseForm blockIndex={activeSelection.blockIndex} exerciseIndex={activeSelection.exerciseIndex} />}
+            <Button variant="secondary" className="w-full" onClick={handleAddBlock}>
+                <Plus className="mr-2 h-4 w-4" /> Add New Block
+            </Button>
+
+            <ExerciseSheet 
+                isOpen={!!editingExercise}
+                onOpenChange={(isOpen) => !isOpen && setEditingExercise(null)}
+                exercise={editingExercise?.exercise ?? null}
+                onSave={handleSaveExercise}
+            />
         </div>
     );
 }

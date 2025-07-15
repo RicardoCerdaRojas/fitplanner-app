@@ -4,23 +4,29 @@
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useState, useMemo, useEffect, createContext, useContext, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { addDoc, collection, Timestamp, doc, updateDoc, onSnapshot, getDoc, query, where, orderBy, writeBatch } from 'firebase/firestore';
+import { addDoc, collection, Timestamp, doc, updateDoc, onSnapshot, getDoc, query, where, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Member } from '@/app/coach/page';
 import type { ManagedRoutine } from './coach-routine-management';
 import type { RoutineType } from '@/app/admin/routine-types/page';
 import { Skeleton } from './ui/skeleton';
 import { RoutineCreatorForm, TemplateLoader, SaveTemplateDialog } from './routine-creator-form';
-import { RoutineCreatorNav } from './routine-creator-nav';
 import { Button } from './ui/button';
-import { RoutineCreatorLayout } from './routine-creator-layout';
-import { useFieldArray } from 'react-hook-form';
 import type { RoutineTemplate } from '@/app/coach/templates/page';
+import { ArrowLeft, Save } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { MemberCombobox } from '@/components/ui/member-combobox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 
 const exerciseSchema = z.object({
@@ -40,60 +46,86 @@ const exerciseSchema = z.object({
 });
 
 const blockSchema = z.object({
+    id: z.string(),
     name: z.string().min(2, 'Block name is required.'),
     sets: z.string().min(1, 'Sets are required.'),
     exercises: z.array(exerciseSchema).min(1, 'Please add at least one exercise.'),
 });
 
-export const routineSchema = z.object({
+const routineDetailsSchema = z.object({
   routineTypeId: z.string({ required_error: "Please select a routine type." }).min(1, 'Please select a routine type.'),
   memberId: z.string().optional(),
   routineDate: z.date().optional(),
-  blocks: z.array(blockSchema).min(1, 'Please add at least one block.'),
-  templateName: z.string().optional(), // For saving as a new template
 });
 
-export type RoutineFormValues = z.infer<typeof routineSchema>;
+export type RoutineFormValues = {
+  details: z.infer<typeof routineDetailsSchema>;
+  blocks: z.infer<typeof blockSchema>[];
+}
 export type BlockFormValues = z.infer<typeof blockSchema>;
 export type ExerciseFormValues = z.infer<typeof exerciseSchema>;
-export type ActiveSelection = { type: 'details' } | { type: 'block', index: number } | { type: 'exercise', blockIndex: number, exerciseIndex: number };
 
-
-type RoutineCreatorContextType = {
-  form: ReturnType<typeof useForm<RoutineFormValues>>;
-  members: Member[];
-  routineTypes: RoutineType[];
-  isEditing: boolean;
-  isSubmitting: boolean;
-  activeSelection: ActiveSelection;
-  setActiveSelection: React.Dispatch<React.SetStateAction<ActiveSelection>>;
-  blockFields: ReturnType<typeof useFieldArray>['fields'];
-  appendBlock: (block: Partial<BlockFormValues>) => void;
-  removeBlock: (index: number) => void;
-  appendExercise: (blockIndex: number) => void;
-  removeExercise: (blockIndex: number, exerciseIndex: number) => void;
-  onFormSubmit: () => void;
-  handleSaveAsTemplate: (templateName: string) => Promise<void>;
-  loadTemplate: (template: RoutineTemplate) => void;
-};
-
-const RoutineCreatorContext = createContext<RoutineCreatorContextType | null>(null);
-
-export function useRoutineCreator() {
-  const context = useContext(RoutineCreatorContext);
-  if (!context) {
-    throw new Error('useRoutineCreator must be used within a RoutineCreatorProvider');
-  }
-  return context;
-}
-
-export const defaultExerciseValues: Omit<ExerciseFormValues, 'name'> = { 
+export const defaultExerciseValues: ExerciseFormValues = { 
+  name: 'New Exercise',
   repType: 'reps' as const, 
   reps: '10', 
   duration: '',
-  weight: '5', 
+  weight: 'Bodyweight', 
   videoUrl: '' 
 };
+
+function RoutineDetailsSection({ members, routineTypes }: { members: Member[], routineTypes: RoutineType[] }) {
+    const { control } = useFormContext<z.infer<typeof routineDetailsSchema>>();
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Routine Details</CardTitle>
+                <CardDescription>Select the member, type of routine, and the date it should be performed.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <FormField control={control} name="memberId" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Member</FormLabel>
+                        <MemberCombobox members={members} value={field.value ?? ''} onChange={field.onChange} />
+                        <FormMessage/>
+                    </FormItem>
+                )} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <FormField control={control} name="routineTypeId" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Routine Type</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                    {routineTypes.map(rt => (<SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    <FormField control={control} name="routineDate" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Routine Date</FormLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                        </Button>
+                                    </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
 
 export function CoachRoutineCreator() {
   const router = useRouter();
@@ -106,121 +138,64 @@ export function CoachRoutineCreator() {
   const [dataToEdit, setDataToEdit] = useState<ManagedRoutine | RoutineTemplate | null>(null);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [blocks, setBlocks] = useState<BlockFormValues[]>([]);
   
   const editRoutineId = searchParams.get('edit');
   const templateId = searchParams.get('template');
   const isEditing = !!editRoutineId || !!templateId;
 
-  const [activeSelection, setActiveSelection] = useState<ActiveSelection>({ type: 'details' });
-
-  const defaultValues = useMemo(() => {
+  const defaultDetails = useMemo(() => {
     if (dataToEdit) {
       const isRoutine = 'memberId' in dataToEdit;
       return {
         routineTypeId: dataToEdit.routineTypeId || '',
         memberId: isRoutine ? dataToEdit.memberId : '',
         routineDate: isRoutine ? dataToEdit.routineDate : new Date(),
-        blocks: dataToEdit.blocks,
-        templateName: isRoutine ? '' : dataToEdit.templateName,
       }
     }
     return {
       routineTypeId: '',
       memberId: '',
       routineDate: new Date(),
-      blocks: [{ name: 'Warm-up', sets: '1', exercises: [] }],
-      templateName: ''
     };
   }, [dataToEdit]);
 
-  const form = useForm<RoutineFormValues>({
-    resolver: zodResolver(routineSchema),
-    defaultValues,
+  const form = useForm<z.infer<typeof routineDetailsSchema>>({
+    resolver: zodResolver(routineDetailsSchema),
+    defaultValues: defaultDetails,
     mode: 'onBlur'
   });
 
-  const { control, getValues, setValue, handleSubmit, reset } = form;
-
-  const { fields: blockFields, append, remove, update } = useFieldArray({
-    control,
-    name: 'blocks',
-  });
-
-  const appendBlock = useCallback((block: Partial<BlockFormValues>) => {
-    append(block);
-    setActiveSelection({ type: 'block', index: blockFields.length });
-  }, [append, blockFields.length]);
-
-  const removeBlock = useCallback((index: number) => {
-    remove(index);
-    if ((activeSelection.type === 'block' && activeSelection.index === index) || (activeSelection.type === 'exercise' && activeSelection.blockIndex === index)) {
-        setActiveSelection({ type: 'details' });
-    } else if ((activeSelection.type === 'block' && activeSelection.index > index) || (activeSelection.type === 'exercise' && activeSelection.blockIndex > index)) {
-        if (activeSelection.type === 'block') {
-            setActiveSelection({ type: 'block', index: activeSelection.index - 1 });
-        }
-        if (activeSelection.type === 'exercise') {
-            setActiveSelection({ type: 'exercise', blockIndex: activeSelection.blockIndex - 1, exerciseIndex: activeSelection.exerciseIndex });
-        }
-    }
-  }, [remove, activeSelection]);
-  
-  const appendExercise = useCallback((blockIndex: number) => {
-    const currentBlock = getValues(`blocks.${blockIndex}`);
-    const newExerciseName = `Exercise ${currentBlock.exercises.length + 1}`;
-    const newExercise: ExerciseFormValues = { name: newExerciseName, ...defaultExerciseValues };
-    
-    const updatedExercises = [...currentBlock.exercises, newExercise];
-    const updatedBlock = { ...currentBlock, exercises: updatedExercises };
-    update(blockIndex, updatedBlock);
-
-    setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: currentBlock.exercises.length });
-  }, [getValues, update]);
-
-  const removeExercise = useCallback((blockIndex: number, exerciseIndex: number) => {
-    const currentBlock = getValues(`blocks.${blockIndex}`);
-    const newExercises = currentBlock.exercises.filter((_, i) => i !== exerciseIndex);
-    const updatedBlock = { ...currentBlock, exercises: newExercises };
-    update(blockIndex, updatedBlock);
-    
-    if (newExercises.length > 0) {
-        setActiveSelection({ type: 'exercise', blockIndex, exerciseIndex: Math.max(0, exerciseIndex - 1) });
-    } else {
-        setActiveSelection({ type: 'block', index: blockIndex });
-    }
-  }, [getValues, update]);
+  const { getValues, handleSubmit, reset } = form;
 
   const loadTemplate = useCallback((template: RoutineTemplate) => {
       reset({
           routineTypeId: template.routineTypeId,
-          blocks: template.blocks,
-          templateName: template.templateName,
           memberId: '',
           routineDate: new Date(),
       });
-      setActiveSelection({type: 'details'});
+      setBlocks(template.blocks.map(b => ({...b, id: crypto.randomUUID()})));
       toast({title: "Template Loaded", description: `"${template.templateName}" has been loaded into the editor.`});
   }, [reset, toast]);
-
   
-  const onFormSubmit = handleSubmit(async (values) => {
+  const onFormSubmit = handleSubmit(async (details) => {
     if (!user || !activeMembership?.gymId) {
       toast({ variant: 'destructive', title: 'Not Authenticated', description: 'You must be logged in to save a routine.' });
       return;
     }
 
-    if (!values.memberId || !values.routineDate) {
+    if (!details.memberId || !details.routineDate) {
         toast({ variant: 'destructive', title: 'Missing Information', description: 'Please select a member and a date to assign the routine.' });
         return;
     }
 
-    const selectedMember = members.find((a) => a.uid === values.memberId);
+    const selectedMember = members.find((a) => a.uid === details.memberId);
     if (!selectedMember) {
       toast({ variant: 'destructive', title: 'Invalid Member', description: 'Please select a member for this routine.' });
       return;
     }
     
-    const selectedRoutineType = routineTypes.find((rt) => rt.id === values.routineTypeId);
+    const selectedRoutineType = routineTypes.find((rt) => rt.id === details.routineTypeId);
     if (!selectedRoutineType) {
         toast({ variant: 'destructive', title: 'Invalid Routine Type', description: 'Please select a valid routine type.' });
         return;
@@ -228,31 +203,30 @@ export function CoachRoutineCreator() {
     
     setIsSubmitting(true);
     try {
-        const cleanedBlocks = values.blocks.map(block => ({
-            ...block,
-            exercises: block.exercises.map(exercise => {
-                const cleanedExercise: Partial<ExerciseFormValues> = { ...exercise };
-                if (cleanedExercise.repType === 'reps') {
-                    delete cleanedExercise.duration;
-                } else if (cleanedExercise.repType === 'duration') {
-                    delete cleanedExercise.reps;
-                }
-                return cleanedExercise as ExerciseFormValues;
-            })
-        }));
-
+        const cleanedBlocks = blocks.map(block => {
+            const { id, ...restOfBlock } = block;
+            return {
+                ...restOfBlock,
+                exercises: block.exercises.map(exercise => {
+                    const cleanedExercise: Partial<ExerciseFormValues> = { ...exercise };
+                    if (cleanedExercise.repType === 'reps') delete cleanedExercise.duration;
+                    else if (cleanedExercise.repType === 'duration') delete cleanedExercise.reps;
+                    return cleanedExercise as ExerciseFormValues;
+                })
+            };
+        });
+        
         const routineData = {
-            ...values,
+            ...details,
             blocks: cleanedBlocks,
             routineTypeName: selectedRoutineType.name,
             userName: selectedMember.name,
             coachId: user.uid,
             gymId: activeMembership.gymId,
-            routineDate: Timestamp.fromDate(values.routineDate),
+            routineDate: Timestamp.fromDate(details.routineDate),
             createdAt: (editRoutineId && 'createdAt' in dataToEdit!) ? dataToEdit.createdAt : Timestamp.now(),
             updatedAt: Timestamp.now(),
         };
-        delete routineData.templateName;
 
         if(editRoutineId && dataToEdit) {
             const routineRef = doc(db, 'routines', dataToEdit.id);
@@ -271,34 +245,38 @@ export function CoachRoutineCreator() {
     }
   });
 
-
   const handleSaveAsTemplate = async (templateName: string) => {
     if (!user || !activeMembership?.gymId) {
       toast({ variant: 'destructive', title: 'Not Authenticated' });
       return;
     }
 
-    const values = getValues();
-    const selectedRoutineType = routineTypes.find((rt) => rt.id === values.routineTypeId);
+    const details = getValues();
+    const selectedRoutineType = routineTypes.find((rt) => rt.id === details.routineTypeId);
 
     if (!selectedRoutineType) {
       toast({ variant: 'destructive', title: 'Invalid Routine Type', description: 'Please select a type for the template.' });
       return;
     }
 
+    const cleanedBlocks = blocks.map(block => {
+        const { id, ...restOfBlock } = block;
+        return {
+            ...restOfBlock,
+            exercises: block.exercises.map(ex => {
+              const cleanedEx: Partial<ExerciseFormValues> = { ...ex };
+              if (cleanedEx.repType === 'reps') delete cleanedEx.duration;
+              else delete cleanedEx.reps;
+              return cleanedEx;
+            })
+        };
+    });
+
     const dataToSave = {
       templateName,
-      routineTypeId: values.routineTypeId,
+      routineTypeId: details.routineTypeId,
       routineTypeName: selectedRoutineType.name,
-      blocks: values.blocks.map(block => ({
-        ...block,
-        exercises: block.exercises.map(ex => {
-          const cleanedEx: Partial<ExerciseFormValues> = { ...ex };
-          if (cleanedEx.repType === 'reps') delete cleanedEx.duration;
-          else delete cleanedEx.reps;
-          return cleanedEx;
-        })
-      })),
+      blocks: cleanedBlocks,
       gymId: activeMembership.gymId,
       createdAt: Timestamp.now(),
     };
@@ -312,7 +290,6 @@ export function CoachRoutineCreator() {
       toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
     }
   };
-
 
   useEffect(() => {
     if(authLoading || !activeMembership?.gymId) return;
@@ -350,15 +327,9 @@ export function CoachRoutineCreator() {
 
     const fetchEditData = async () => {
         let docRef;
-        let collectionName: 'routines' | 'routineTemplates' = 'routines';
-        if (editRoutineId) {
-            docRef = doc(db, 'routines', editRoutineId);
-        } else if (templateId) {
-            collectionName = 'routineTemplates';
-            docRef = doc(db, 'routineTemplates', templateId);
-        } else {
-            return;
-        }
+        if (editRoutineId) docRef = doc(db, 'routines', editRoutineId);
+        else if (templateId) docRef = doc(db, 'routineTemplates', templateId);
+        else return;
 
         try {
           const docSnap = await getDoc(docRef);
@@ -367,10 +338,12 @@ export function CoachRoutineCreator() {
             const loadedData = {
                 id: docSnap.id,
                 ...data,
-                // Ensure date is a Date object if it exists
                 ...((data.routineDate instanceof Timestamp) && { routineDate: data.routineDate.toDate() }),
             } as ManagedRoutine | RoutineTemplate;
             setDataToEdit(loadedData);
+            if (data.blocks) {
+                setBlocks(data.blocks.map((b: any) => ({...b, id: crypto.randomUUID()})));
+            }
           } else {
             toast({ variant: 'destructive', title: 'Error', description: 'Item to edit not found.' });
             router.push('/coach');
@@ -386,69 +359,58 @@ export function CoachRoutineCreator() {
     };
 
     fetchEditData();
+    if (!isEditing) {
+        setBlocks([{ name: 'Warm-up', sets: '1', exercises: [], id: crypto.randomUUID() }]);
+    }
 
     return () => {
       unsubscribeMembers();
       unsubscribeTypes();
     };
 
-  }, [authLoading, activeMembership, editRoutineId, templateId, router, toast]);
+  }, [authLoading, activeMembership, editRoutineId, templateId, router, toast, isEditing]);
 
   useEffect(() => {
-      reset(defaultValues);
-  }, [dataToEdit, reset, defaultValues]);
-  
-
-  const contextValue: RoutineCreatorContextType = {
-    form,
-    members,
-    routineTypes,
-    isEditing,
-    isSubmitting,
-    activeSelection,
-    setActiveSelection,
-    blockFields: blockFields as any,
-    appendBlock,
-    removeBlock,
-    appendExercise,
-    removeExercise,
-    onFormSubmit,
-    loadTemplate,
-    handleSaveAsTemplate,
-  };
+      reset(defaultDetails);
+  }, [dataToEdit, reset, defaultDetails]);
   
   if (isDataLoading || authLoading) {
       return (
-        <RoutineCreatorLayout
-          sidebar={<Skeleton className="h-full w-full" />}
-        >
-          <div className="space-y-4 h-full">
-             <Skeleton className="h-full w-full" />
-          </div>
-        </RoutineCreatorLayout>
+        <div className="p-4 sm:p-8 space-y-4">
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-64 w-full" />
+        </div>
       )
   }
 
   return (
-    <RoutineCreatorContext.Provider value={contextValue}>
-       <FormProvider {...form}>
-        <RoutineCreatorLayout
-            sidebar={<RoutineCreatorNav />}
-        >
-            <div className="h-full flex flex-col">
-                <div className="flex-grow">
-                    <RoutineCreatorForm />
-                </div>
-                <div className="flex flex-col sm:flex-row justify-end pt-4 mt-auto gap-2">
-                    <TemplateLoader />
-                    <SaveTemplateDialog />
-                    <Button type="button" onClick={onFormSubmit} size="lg" className="w-full sm:w-auto" disabled={isSubmitting}>
-                        {isSubmitting ? 'Assigning...' : 'Assign to Member'}
-                    </Button>
-                </div>
-            </div>
-        </RoutineCreatorLayout>
-       </FormProvider>
-    </RoutineCreatorContext.Provider>
+      <div className="space-y-6">
+          <div className="flex justify-between items-center">
+              <Button variant="ghost" onClick={() => router.push('/coach')}>
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Back to Routines
+              </Button>
+              <div className="flex items-center gap-2">
+                 <TemplateLoader onTemplateLoad={loadTemplate} />
+                  <SaveTemplateDialog onSave={handleSaveAsTemplate} />
+              </div>
+          </div>
+          
+          <FormProvider {...form}>
+              <RoutineDetailsSection members={members} routineTypes={routineTypes} />
+          </FormProvider>
+          
+          <RoutineCreatorForm 
+            blocks={blocks}
+            setBlocks={setBlocks}
+          />
+
+          <div className="flex justify-end pt-4 mt-auto">
+              <Button onClick={onFormSubmit} size="lg" className="w-full sm:w-auto" disabled={isSubmitting}>
+                  {isSubmitting ? 'Assigning...' : (isEditing && editRoutineId ? 'Update Routine' : 'Assign to Member')}
+              </Button>
+          </div>
+      </div>
   );
 }
