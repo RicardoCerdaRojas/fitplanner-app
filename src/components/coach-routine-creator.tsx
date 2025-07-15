@@ -79,48 +79,48 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
     const { control } = useFormContext<z.infer<typeof routineDetailsSchema>>();
 
     return (
-        <div className="bg-card p-6 rounded-xl border">
-            <h2 className="text-xl font-bold font-headline mb-1">Routine Details</h2>
-            <p className="text-muted-foreground mb-6">Select the member, type, and date for this routine.</p>
-            <div className="space-y-6">
-                <FormField control={control} name="memberId" render={({ field }) => (
+        <div className="space-y-6">
+             <div>
+                <h2 className="text-xl font-bold font-headline mb-1">Routine Details</h2>
+                <p className="text-muted-foreground">Select the member, type, and date for this routine.</p>
+            </div>
+            <FormField control={control} name="memberId" render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Member</FormLabel>
+                    <MemberCombobox members={members} value={field.value ?? ''} onChange={field.onChange} />
+                    <FormMessage/>
+                </FormItem>
+            )} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <FormField control={control} name="routineTypeId" render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Member</FormLabel>
-                        <MemberCombobox members={members} value={field.value ?? ''} onChange={field.onChange} />
-                        <FormMessage/>
+                        <FormLabel>Routine Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {routineTypes.map(rt => (<SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
                     </FormItem>
                 )} />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <FormField control={control} name="routineTypeId" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Routine Type</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ''}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
-                                <SelectContent>
-                                    {routineTypes.map(rt => (<SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                    <FormField control={control} name="routineDate" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Routine Date</FormLabel>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <FormControl>
-                                        <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                        </Button>
-                                    </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                </div>
+                <FormField control={control} name="routineDate" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Routine Date</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                    </Button>
+                                </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                    </FormItem>
+                )} />
             </div>
         </div>
     );
@@ -452,7 +452,7 @@ export function CoachRoutineCreator() {
   
   if (isDataLoading || authLoading) {
       return (
-        <div className="p-4 sm:p-8 space-y-4">
+        <div className="space-y-4">
             <Skeleton className="h-10 w-48" />
             <Skeleton className="h-40 w-full" />
             <Skeleton className="h-64 w-full" />
@@ -465,7 +465,7 @@ export function CoachRoutineCreator() {
       <div className="space-y-6">
           <div className="flex items-center justify-between gap-4">
               <Button variant="ghost" size="sm" onClick={() => router.push('/coach')} className="text-muted-foreground">
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Back to Routines
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
               <h1 className="text-xl sm:text-2xl font-bold font-headline text-center flex-1">
                   {isEditing ? 'Edit Routine' : 'Create Routine'}
@@ -488,26 +488,32 @@ export function CoachRoutineCreator() {
           </div>
           
           <FormProvider {...form}>
-            <RoutineDetailsSection members={members} routineTypes={routineTypes} />
+            <div className="bg-background sm:p-6 sm:rounded-xl sm:border space-y-6">
+                <RoutineDetailsSection members={members} routineTypes={routineTypes} />
+            </div>
           </FormProvider>
           
-          <RoutineCreatorForm 
-            blocks={blocks}
-            onUpdateBlock={handleUpdateBlock}
-            onAddBlock={handleAddBlock}
-            onRemoveBlock={handleRemoveBlock}
-            onDuplicateBlock={handleDuplicateBlock}
-            onAddExercise={handleAddExercise}
-            onRemoveExercise={handleRemoveExercise}
-            onSaveExercise={handleSaveExercise}
-            onIncrementSets={handleIncrementSets}
-            onDecrementSets={handleDecrementSets}
-          />
+          <div className="mt-6">
+            <RoutineCreatorForm 
+                blocks={blocks}
+                onUpdateBlock={handleUpdateBlock}
+                onAddBlock={handleAddBlock}
+                onRemoveBlock={handleRemoveBlock}
+                onDuplicateBlock={handleDuplicateBlock}
+                onAddExercise={handleAddExercise}
+                onRemoveExercise={handleRemoveExercise}
+                onSaveExercise={handleSaveExercise}
+                onIncrementSets={handleIncrementSets}
+                onDecrementSets={handleDecrementSets}
+            />
+          </div>
 
           <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 border-t backdrop-blur-sm md:hidden">
               <Button onClick={onFormSubmit} size="lg" className="w-full" disabled={isSubmitting}>
-                  <Send className="mr-2" />
-                  {isSubmitting ? 'Assigning...' : (isEditing && editRoutineId ? 'Update Routine' : 'Assign to Member')}
+                  <Send className="mr-2 h-5 w-5" />
+                  <span className="text-lg">
+                    {isSubmitting ? 'Assigning...' : (isEditing && editRoutineId ? 'Update Routine' : 'Assign to Member')}
+                  </span>
               </Button>
           </div>
           <div className="hidden md:flex justify-end pt-4 mt-auto">
@@ -519,3 +525,4 @@ export function CoachRoutineCreator() {
       </div>
   );
 }
+
