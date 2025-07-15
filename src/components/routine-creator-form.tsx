@@ -21,7 +21,8 @@ import { Switch } from '@/components/ui/switch';
 import { StepperInput } from './ui/stepper-input';
 import { useForm, Controller } from 'react-hook-form';
 import type { FieldValues } from 'react-hook-form';
-import { defaultExerciseValues, type BlockFormValues, type ExerciseFormValues } from './coach-routine-creator';
+import { defaultExerciseValues } from './coach-routine-creator';
+import type { BlockFormValues, ExerciseFormValues } from './coach-routine-creator';
 
 // --- DIALOGS FOR TEMPLATES ---
 export function TemplateLoader({ onTemplateLoad }: { onTemplateLoad: (template: RoutineTemplate) => void }) {
@@ -241,6 +242,9 @@ type RoutineCreatorFormProps = {
     onUpdateBlock: (blockId: string, field: 'name' | 'sets', value: string) => void;
     onIncrementSets: (blockId: string) => void;
     onDecrementSets: (blockId: string) => void;
+    onAddBlock: () => void;
+    onRemoveBlock: (blockId: string) => void;
+    onAddExercise: (blockId: string) => void;
 }
 export function RoutineCreatorForm({ 
     blocks, 
@@ -248,12 +252,11 @@ export function RoutineCreatorForm({
     onUpdateBlock,
     onIncrementSets,
     onDecrementSets,
+    onAddBlock,
+    onRemoveBlock,
+    onAddExercise
 }: RoutineCreatorFormProps) {
     const [editingExercise, setEditingExercise] = useState<{ blockId: string; exerciseIndex: number; exercise: ExerciseFormValues } | null>(null);
-    
-    const handleAddBlock = () => {
-        setBlocks(prev => [...prev, { id: crypto.randomUUID(), name: `Block ${prev.length + 1}`, sets: '4', exercises: [] }]);
-    };
 
     const handleDuplicateBlock = (blockId: string) => {
         setBlocks(prev => {
@@ -265,19 +268,6 @@ export function RoutineCreatorForm({
             newBlocks.splice(index + 1, 0, newBlock);
             return newBlocks;
         });
-    };
-    
-    const handleRemoveBlock = (blockId: string) => {
-        setBlocks(prev => prev.filter(b => b.id !== blockId));
-    };
-
-    const handleAddExercise = (blockId: string) => {
-        setBlocks(prev => prev.map(b => {
-            if (b.id === blockId) {
-                return { ...b, exercises: [...b.exercises, { ...defaultExerciseValues, name: `New Exercise ${b.exercises.length + 1}` }] };
-            }
-            return b;
-        }));
     };
 
     const handleRemoveExercise = (blockId: string, exerciseIndex: number) => {
@@ -328,9 +318,9 @@ export function RoutineCreatorForm({
                                     <Button variant="ghost" size="icon"><MoreVertical className="h-5 w-5" /></Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleAddExercise(block.id)}><Plus className="mr-2 h-4 w-4" /> Add Exercise</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => onAddExercise(block.id)}><Plus className="mr-2 h-4 w-4" /> Add Exercise</DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleDuplicateBlock(block.id)}><Copy className="mr-2 h-4 w-4" /> Duplicate Block</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleRemoveBlock(block.id)} className="text-destructive focus:bg-destructive/10"><Trash2 className="mr-2 h-4 w-4" /> Delete Block</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => onRemoveBlock(block.id)} className="text-destructive focus:bg-destructive/10"><Trash2 className="mr-2 h-4 w-4" /> Delete Block</DropdownMenuItem>
                                 </DropdownMenuContent>
                              </DropdownMenu>
                          </div>
@@ -357,14 +347,14 @@ export function RoutineCreatorForm({
                                 </Button>
                            </div>
                        ))}
-                       <Button variant="outline" className="w-full" onClick={() => handleAddExercise(block.id)}>
+                       <Button variant="outline" className="w-full" onClick={() => onAddExercise(block.id)}>
                          <Plus className="mr-2 h-4 w-4" /> Add Exercise
                        </Button>
                     </CardContent>
                 </Card>
             ))}
 
-            <Button variant="secondary" className="w-full" onClick={handleAddBlock}>
+            <Button variant="secondary" className="w-full" onClick={onAddBlock}>
                 <Plus className="mr-2 h-4 w-4" /> Add New Block
             </Button>
 

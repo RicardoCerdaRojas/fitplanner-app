@@ -292,6 +292,14 @@ export function CoachRoutineCreator() {
     }
   };
 
+  const handleAddBlock = () => {
+    setBlocks(prev => [...prev, { id: crypto.randomUUID(), name: `Block ${prev.length + 1}`, sets: '4', exercises: [] }]);
+  };
+  
+  const handleRemoveBlock = (blockId: string) => {
+    setBlocks(prev => prev.filter(b => b.id !== blockId));
+  };
+  
   const handleUpdateBlock = (blockId: string, field: 'name' | 'sets', value: string) => {
     setBlocks(prev => prev.map(b => 
         b.id === blockId ? { ...b, [field]: value } : b
@@ -319,7 +327,15 @@ export function CoachRoutineCreator() {
         return b;
     }));
   };
-
+  
+  const handleAddExercise = (blockId: string) => {
+        setBlocks(prev => prev.map(b => {
+            if (b.id === blockId) {
+                return { ...b, exercises: [...b.exercises, { ...defaultExerciseValues, name: `New Exercise ${b.exercises.length + 1}` }] };
+            }
+            return b;
+        }));
+  };
 
   useEffect(() => {
     if(authLoading || !activeMembership?.gymId) return;
@@ -437,6 +453,9 @@ export function CoachRoutineCreator() {
             onUpdateBlock={handleUpdateBlock}
             onIncrementSets={handleIncrementSets}
             onDecrementSets={handleDecrementSets}
+            onAddBlock={handleAddBlock}
+            onRemoveBlock={handleRemoveBlock}
+            onAddExercise={handleAddExercise}
           />
 
           <div className="flex justify-end pt-4 mt-auto">

@@ -6,17 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Minus, Plus } from 'lucide-react';
 
 type StepperInputProps = {
-  value?: string;
+  value: string;
   onIncrement: () => void;
   onDecrement: () => void;
-  allowText?: boolean;
 };
 
 export function StepperInput({ 
   value, 
   onIncrement, 
   onDecrement,
-  allowText = false
 }: StepperInputProps) {
 
   return (
@@ -31,7 +29,7 @@ export function StepperInput({
         <Minus className="h-4 w-4" />
       </Button>
       <Input
-        value={value ?? ''}
+        value={value}
         readOnly
         className="text-center font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
       />
