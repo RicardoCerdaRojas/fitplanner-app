@@ -12,13 +12,11 @@ service cloud.firestore {
       // Allow updates from webhooks (like Stripe) which are not authenticated.
       allow create, update: if true;
       
-      // Allow a signed-in user to read their own document.
-      allow get: if isSignedIn() && request.auth.uid == userId;
-
-      // Allow querying the 'users' collection by email, which is necessary for the /join page
-      // to check if an email is already registered, even for unauthenticated users.
-      // This is secure because it only allows querying on a specific, non-sensitive field.
-      allow list: if query.keys().hasOnly(['email']);
+      // Allow read access under two conditions:
+      // 1. If the user is signed in (for dashboards, admin lists, etc.).
+      // OR
+      // 2. If the query is specifically filtering by the 'email' field (for the /join page).
+      allow read: if isSignedIn() || request.query.keys.hasAny(['email']);
     }
 
     match /gyms/{gymId} {
@@ -52,8 +50,7 @@ service cloud.firestore {
     }
     
     match /workoutSessions/{sessionId} {
-      // Live workout sessions can only be created/updated by signed-in users.
-      // Deletion is handled by the backend.
+      // Live workout sessions can only be created/updated/read by signed-in users.
       allow read, write: if isSignedIn();
     }
   }
