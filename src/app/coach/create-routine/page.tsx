@@ -30,25 +30,11 @@ function PageContent() {
         return <CreateRoutinePageSkeleton />;
     }
 
-    return (
-        <div className="flex flex-col min-h-screen bg-muted/30">
-            <AppHeader />
-            {isTrialActive === false ? (
-                 <TrialEnded />
-            ) : (
-                <>
-                    <main className="flex-grow flex flex-col items-center pb-28 md:pb-8">
-                        <div className="w-full max-w-2xl">
-                            <CoachRoutineCreator />
-                        </div>
-                    </main>
-                    <footer className="w-full text-center p-4 text-muted-foreground text-sm bg-muted/30">
-                        <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
-                    </footer>
-                </>
-            )}
-        </div>
-    );
+    if (isTrialActive === false) {
+        return <TrialEnded />;
+    }
+
+    return <CoachRoutineCreator />;
 }
 
 export default function CreateRoutinePage() {

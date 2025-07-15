@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm, FormProvider, useFormContext } from 'react-hook-form';
@@ -27,6 +28,7 @@ import { format } from 'date-fns';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { AppHeader } from './app-header';
 
 const exerciseSchema = z.object({
   name: z.string().min(2, 'Exercise name is required.'),
@@ -456,8 +458,9 @@ export function CoachRoutineCreator() {
   }
 
   return (
-      <div className="h-full grid grid-rows-[auto_1fr_auto]">
-          <div className="flex items-center justify-between p-4 border-b bg-background flex-shrink-0">
+      <div className="h-screen w-full bg-background grid grid-rows-[auto_1fr_auto] overflow-hidden">
+          <AppHeader />
+          <div className="flex items-center justify-between p-4 border-b">
               <Button variant="ghost" size="sm" onClick={() => router.back()}>
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
@@ -488,12 +491,12 @@ export function CoachRoutineCreator() {
             </TabsList>
             
             <FormProvider {...form}>
-                 <TabsContent value="details" className="flex-grow p-4 overflow-y-auto">
+                 <TabsContent value="details" className="flex-grow p-4 md:p-6 overflow-y-auto">
                     <RoutineDetailsSection members={members} routineTypes={routineTypes} />
                 </TabsContent>
             </FormProvider>
 
-            <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 overflow-y-auto">
+            <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 md:p-6 overflow-y-auto">
                 <RoutineCreatorForm 
                     blocks={blocks}
                     onUpdateBlock={handleUpdateBlock}
