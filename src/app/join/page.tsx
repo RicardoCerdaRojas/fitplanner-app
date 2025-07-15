@@ -19,7 +19,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc, writeBatch, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, writeBatch, Timestamp, query, collection, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
 import { useEffect, useState, useTransition } from 'react';
@@ -28,17 +28,12 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle, Mail, AlertTriangle, User, Lock } from 'lucide-react';
 import { debounce } from 'lodash';
 
-const emailSchema = z.object({
-  email: z.string().email({ message: 'Por favor, ingresa un email válido.' }),
-});
-
 const fullSchema = z.object({
   email: z.string().email(),
   name: z.string().min(2, { message: 'Tu nombre debe tener al menos 2 caracteres.' }),
   password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres.' }),
 });
 
-type EmailFormValues = z.infer<typeof emailSchema>;
 type FullFormValues = z.infer<typeof fullSchema>;
 
 export default function JoinPage() {
@@ -246,4 +241,3 @@ export default function JoinPage() {
     </div>
   );
 }
-
