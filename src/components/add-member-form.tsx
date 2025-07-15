@@ -24,7 +24,7 @@ import {
 import { DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, Timestamp, getDoc } from 'firebase/firestore';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -44,16 +44,28 @@ export function AddMemberForm({ gymId, gymName, onFormSubmitted }: AddMemberForm
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { email: '', role: undefined },
+    defaultValues: { email: '', role: 'member' },
   });
 
   async function onSubmit(values: FormValues) {
-    const docRef = doc(db, 'memberships', values.email.toLowerCase());
+    const lowerCaseEmail = values.email.toLowerCase();
+    const docRef = doc(db, 'memberships', lowerCaseEmail);
+
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        toast({
+            variant: 'destructive',
+            title: 'Invitation Exists',
+            description: `An invitation for ${lowerCaseEmail} already exists.`,
+        });
+        return;
+    }
+
     const dataToSave = {
       gymId,
       gymName,
       status: 'pending' as const,
-      email: values.email.toLowerCase(),
+      email: lowerCaseEmail,
       role: values.role,
       createdAt: Timestamp.now(),
     };
@@ -62,7 +74,7 @@ export function AddMemberForm({ gymId, gymName, onFormSubmitted }: AddMemberForm
       await setDoc(docRef, dataToSave);
       toast({
         title: 'Success!',
-        description: `Membership for ${values.email} is ready. They can now sign up.`,
+        description: `Invitation for ${values.email} has been sent. They can now join from the login page.`,
       });
       onFormSubmitted();
     } catch (error: any) {
@@ -119,7 +131,7 @@ export function AddMemberForm({ gymId, gymName, onFormSubmitted }: AddMemberForm
             </Button>
           </DialogClose>
           <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? 'Creating...' : 'Create Membership'}
+            {form.formState.isSubmitting ? 'Sending...' : 'Send Invitation'}
           </Button>
         </DialogFooter>
       </form>

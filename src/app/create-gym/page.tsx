@@ -18,10 +18,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
-import { Building, Palette } from 'lucide-react';
+import { Building, Palette, User, Mail, Lock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { writeBatch, doc, collection, Timestamp } from 'firebase/firestore';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { themes } from '@/lib/themes';
@@ -30,36 +31,36 @@ import { AppHeader } from '@/components/app-header';
 import { addDays } from 'date-fns';
 
 const formSchema = z.object({
-  gymName: z.string().min(3, { message: 'El nombre debe tener al menos 3 caracteres.' }),
+  name: z.string().min(2, { message: 'Tu nombre debe tener al menos 2 caracteres.' }),
+  email: z.string().email({ message: 'Por favor, ingresa un email válido.' }),
+  password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres.' }),
+  gymName: z.string().min(3, { message: 'El nombre del centro debe tener al menos 3 caracteres.' }),
   theme: z.string({ required_error: 'Por favor, selecciona un tema.' }),
 });
 
 export default function CreateGymPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user, userProfile, loading, activeMembership } = useAuth();
+  const { user, loading, activeMembership } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: '',
+      email: '',
+      password: '',
       gymName: '',
       theme: 'slate-mint',
     },
   });
 
   useEffect(() => {
-    // Redirect away if the user already has a gym
     if (!loading && activeMembership) {
       router.push('/');
     }
   }, [loading, activeMembership, router]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user || !userProfile) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para crear un centro.' });
-        return;
-    }
-    
     const selectedTheme = themes.find(t => t.id === values.theme);
     if (!selectedTheme) {
         toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona un tema válido.' });
@@ -67,32 +68,38 @@ export default function CreateGymPage() {
     }
 
     try {
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+        const authUser = userCredential.user;
+
         const batch = writeBatch(db);
         const trialEndDate = addDays(new Date(), 14);
         
         const gymRef = doc(collection(db, 'gyms'));
         batch.set(gymRef, {
             name: values.gymName,
-            adminUid: user.uid,
+            adminUid: authUser.uid,
             createdAt: Timestamp.now(),
             trialEndsAt: Timestamp.fromDate(trialEndDate),
             logoUrl: `https://placehold.co/100x50.png?text=${encodeURIComponent(values.gymName)}`,
             theme: selectedTheme.colors,
         });
 
-        const membershipId = `${user.uid}_${gymRef.id}`;
+        const membershipId = `${authUser.uid}_${gymRef.id}`;
         const membershipRef = doc(db, 'memberships', membershipId); 
         batch.set(membershipRef, {
-            userId: user.uid,
+            userId: authUser.uid,
             gymId: gymRef.id,
             role: 'gym-admin',
-            userName: userProfile.name || user.email,
+            userName: values.name,
             gymName: values.gymName,
             status: 'active'
         });
         
-        const userRef = doc(db, 'users', user.uid);
-        batch.update(userRef, {
+        const userRef = doc(db, 'users', authUser.uid);
+        batch.set(userRef, {
+            name: values.name,
+            email: values.email.toLowerCase(),
+            createdAt: Timestamp.now(),
             gymId: gymRef.id,
             role: 'gym-admin'
         });
@@ -143,54 +150,34 @@ export default function CreateGymPage() {
             <CardContent>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                    control={form.control}
-                    name="gymName"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="text-gray-300">Nombre del Centro</FormLabel>
-                        <FormControl>
-                          <Input 
-                              placeholder="Ej: 'Gimnasio Power', 'Estudio Pilates Zen'" 
-                              {...field} 
-                              className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
 
-                <FormField
-                    control={form.control}
-                    name="theme"
-                    render={({ field }) => (
+                <FormField control={form.control} name="name" render={({ field }) => (
+                    <FormItem><FormLabel className="text-gray-300">Tu Nombre</FormLabel><FormControl><Input placeholder="John Doe" {...field} className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"/></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="email" render={({ field }) => (
+                    <FormItem><FormLabel className="text-gray-300">Tu Email</FormLabel><FormControl><Input type="email" placeholder="you@example.com" {...field} className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"/></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="password" render={({ field }) => (
+                    <FormItem><FormLabel className="text-gray-300">Tu Contraseña</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"/></FormControl><FormMessage /></FormItem>
+                )}/>
+
+                <hr className="border-white/10" />
+
+                <FormField control={form.control} name="gymName" render={({ field }) => (
+                    <FormItem><FormLabel className="text-gray-300">Nombre del Centro</FormLabel><FormControl><Input placeholder="Ej: 'Gimnasio Power', 'Estudio Pilates Zen'" {...field} className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"/></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="theme" render={({ field }) => (
                     <FormItem className="space-y-3">
                         <FormLabel className="flex items-center gap-2 text-gray-300"><Palette/> Selecciona un Tema</FormLabel>
                         <FormControl>
-                        <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="grid grid-cols-1 gap-4"
-                        >
+                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="grid grid-cols-1 gap-4">
                             {themes.map(theme => (
                                 <FormItem key={theme.id} className="w-full">
-                                    <FormControl>
-                                    <RadioGroupItem value={theme.id} id={theme.id} className="sr-only" />
-                                    </FormControl>
-                                    <FormLabel 
-                                        htmlFor={theme.id}
-                                        className={cn(
-                                            "flex flex-col items-start w-full p-4 rounded-lg border-2 cursor-pointer transition-all bg-gray-800/20",
-                                            field.value === theme.id ? "border-emerald-400 shadow-md" : "border-white/10"
-                                        )}
-                                    >
+                                    <FormControl><RadioGroupItem value={theme.id} id={theme.id} className="sr-only" /></FormControl>
+                                    <FormLabel htmlFor={theme.id} className={cn("flex flex-col items-start w-full p-4 rounded-lg border-2 cursor-pointer transition-all bg-gray-800/20", field.value === theme.id ? "border-emerald-400 shadow-md" : "border-white/10")}>
                                         <div className="flex justify-between items-center w-full">
                                             <div className="font-bold text-white">{theme.name}</div>
-                                            <div className="flex items-center gap-2">
-                                                <div className="h-5 w-5 rounded-full" style={{backgroundColor: `hsl(${theme.colors.primary})`}}/>
-                                                <div className="h-5 w-5 rounded-full" style={{backgroundColor: `hsl(${theme.colors.accent})`}}/>
-                                            </div>
+                                            <div className="flex items-center gap-2"><div className="h-5 w-5 rounded-full" style={{backgroundColor: `hsl(${theme.colors.primary})`}}/><div className="h-5 w-5 rounded-full" style={{backgroundColor: `hsl(${theme.colors.accent})`}}/></div>
                                         </div>
                                         <p className="text-sm text-gray-400 mt-1">{theme.description}</p>
                                     </FormLabel>
@@ -200,8 +187,7 @@ export default function CreateGymPage() {
                         </FormControl>
                         <FormMessage />
                     </FormItem>
-                    )}
-                />
+                )} />
 
                 <Button type="submit" className="w-full bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-base py-6" disabled={form.formState.isSubmitting}>
                     {form.formState.isSubmitting ? 'Creando...' : 'Crear Centro y Continuar'}

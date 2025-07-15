@@ -172,7 +172,7 @@ const HeroV2 = () => {
                     <span className="text-2xl font-black text-white tracking-tight">Fit Planner</span>
                     <div className="flex items-center gap-2">
                         <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white" asChild><Link href="/login">Ingresar</Link></Button>
-                        <Button className="bg-white text-black hover:bg-gray-200 font-semibold" asChild><Link href="/signup">Comenzar Prueba</Link></Button>
+                        <Button className="bg-white text-black hover:bg-gray-200 font-semibold" asChild><Link href="/create-gym">Comenzar Prueba</Link></Button>
                     </div>
                 </div>
             </header>
@@ -193,7 +193,7 @@ const HeroV2 = () => {
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Button size="lg" className="bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-lg py-7 px-8 transform hover:scale-105 transition-transform shadow-lg shadow-emerald-500/20" asChild>
-                            <Link href="/signup">
+                            <Link href="/create-gym">
                                 Prueba 14 Días Gratis <ArrowRight className="w-5 h-5 ml-2" />
                             </Link>
                         </Button>
@@ -754,7 +754,7 @@ export default function V2LandingPage() {
                      <h2 className="text-3xl md:text-5xl font-bold mb-4">Es hora de construir un negocio de fitness <span className="text-emerald-400">a prueba de abandonos.</span></h2>
                     <p className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto">Únete a la nueva generación de líderes del fitness en Chile. Empieza tu transformación hoy.</p>
                     <Button size="lg" className="bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-xl py-8 px-10 transform hover:scale-105 transition-transform" asChild>
-                        <Link href="/signup">
+                        <Link href="/create-gym">
                          Comenzar mi Prueba Gratuita de 14 Días
                         </Link>
                     </Button>

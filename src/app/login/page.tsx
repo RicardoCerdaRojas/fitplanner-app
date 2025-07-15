@@ -126,11 +126,17 @@ export default function LoginPage() {
                 </form>
               </Form>
             </CardContent>
-            <CardFooter className="text-center text-sm">
+            <CardFooter className="flex-col text-center text-sm">
                 <p className="w-full text-gray-400">
-                    No tienes una cuenta?{' '}
-                    <Link href="/signup" className="text-emerald-400 font-semibold hover:underline">
-                        Regístrate aquí
+                    ¿Fuiste invitado a un centro?{' '}
+                    <Link href="/join" className="text-emerald-400 font-semibold hover:underline">
+                        Únete aquí
+                    </Link>
+                </p>
+                 <p className="w-full text-gray-400 mt-2">
+                    ¿Quieres crear tu propio centro?{' '}
+                    <Link href="/create-gym" className="text-emerald-400 font-semibold hover:underline">
+                        Comienza tu prueba
                     </Link>
                 </p>
             </CardFooter>

@@ -37,7 +37,7 @@ export function AppHeader() {
         setTheme(theme === 'dark' ? 'light' : 'dark');
     };
     
-    const isTransparentHeader = (!user && ['/', '/login', '/signup', '/create-gym'].includes(pathname)) || (user && !activeMembership) || isTrialActive === false;
+    const isTransparentHeader = (!user && ['/', '/login', '/create-gym', '/join'].includes(pathname)) || (user && !activeMembership) || isTrialActive === false;
 
 
     return (
@@ -119,7 +119,7 @@ export function AppHeader() {
                                 </Link>
                             </Button>
                              <Button asChild className={cn(isTransparentHeader ? "bg-white text-black hover:bg-gray-200" : "bg-primary text-primary-foreground")}>
-                                <Link href="/signup">
+                                <Link href="/create-gym">
                                     Comenzar Prueba
                                 </Link>
                             </Button>
