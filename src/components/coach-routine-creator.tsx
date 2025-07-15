@@ -456,7 +456,7 @@ export function CoachRoutineCreator() {
   }
 
   return (
-      <div className="flex flex-col h-full overflow-hidden">
+      <div className="h-full grid grid-rows-[auto_1fr_auto]">
           <div className="flex items-center justify-between p-4 border-b bg-background flex-shrink-0">
               <Button variant="ghost" size="sm" onClick={() => router.back()}>
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back
@@ -488,12 +488,12 @@ export function CoachRoutineCreator() {
             </TabsList>
             
             <FormProvider {...form}>
-                 <TabsContent value="details" className="flex-grow p-4 pb-24 overflow-y-auto">
+                 <TabsContent value="details" className="flex-grow p-4 overflow-y-auto">
                     <RoutineDetailsSection members={members} routineTypes={routineTypes} />
                 </TabsContent>
             </FormProvider>
 
-            <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 pb-24 overflow-y-auto">
+            <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 overflow-y-auto">
                 <RoutineCreatorForm 
                     blocks={blocks}
                     onUpdateBlock={handleUpdateBlock}
