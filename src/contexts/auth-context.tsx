@@ -7,14 +7,8 @@ import { db } from '@/lib/firebase';
 import {
   doc,
   getDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
   writeBatch,
   Timestamp,
-  collection,
-  query,
-  where,
 } from 'firebase/firestore';
 import { AuthProviderClient } from '@/components/auth-provider-client';
 
@@ -62,7 +56,6 @@ type AuthContextType = {
   setMemberships: (memberships: Membership[]) => void;
   setActiveMembership: (membership: Membership | null) => void;
   setGymProfile: (gym: GymProfile | null) => void;
-  setIsTrialActive: (isActive: boolean | null) => void;
   setLoading: (loading: boolean) => void;
 };
 
@@ -77,62 +70,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isTrialActive, setIsTrialActive] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Effect to check for and process pending memberships when a user logs in.
-  useEffect(() => {
-    const claimPendingMembership = async () => {
-      // Don't run if we don't have a user/email, or if the user already has a gymId
-      if (!user?.email || (userProfile && userProfile.gymId)) {
-        return;
-      }
-
-      const pendingMembershipRef = doc(db, 'memberships', user.email.toLowerCase());
-      const pendingSnap = await getDoc(pendingMembershipRef);
-
-      // If a pending membership exists for this email, claim it.
-      if (pendingSnap.exists() && pendingSnap.data().status === 'pending') {
-        setLoading(true);
-        const pendingData = pendingSnap.data();
-        const batch = writeBatch(db);
-
-        // 1. Create a new 'active' membership document with the correct composite key
-        const newMembershipId = `${user.uid}_${pendingData.gymId}`;
-        const newMembershipRef = doc(db, 'memberships', newMembershipId);
-        batch.set(newMembershipRef, {
-          userId: user.uid,
-          gymId: pendingData.gymId,
-          role: pendingData.role,
-          userName: userProfile?.name, // Use name from user's profile
-          gymName: pendingData.gymName,
-          status: 'active',
-        });
-
-        // 2. Update the user's profile with gymId and role
-        const userRef = doc(db, 'users', user.uid);
-        const userUpdateData: any = {
-          gymId: pendingData.gymId,
-          role: pendingData.role,
-        };
-        batch.update(userRef, userUpdateData);
-
-        // 3. Delete the processed pending membership document
-        batch.delete(pendingMembershipRef);
-
-        try {
-          await batch.commit();
-          // State will be updated by the realtime listeners in AuthProviderClient
-        } catch (error) {
-          console.error("Error claiming pending membership:", error);
-          setLoading(false); // Stop loading on error
-        }
-      }
-    };
-
-    // We need both the user and their profile to be loaded before we can check for pending memberships
-    if (user && userProfile) {
-        claimPendingMembership();
-    }
-  }, [user, userProfile]);
-  
   // Effect to determine trial status
   useEffect(() => {
     if (loading) return;
@@ -172,7 +109,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setMemberships,
     setActiveMembership,
     setGymProfile,
-    setIsTrialActive,
     setLoading,
   };
 
