@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2, Plus, GripVertical, MoreVertical, Copy, Pencil, Minus } from 'lucide-react';
 import React, { useState, useEffect, useCallback, memo } from 'react';
-import { Controller, useFieldArray, useFormContext } from 'react-hook-form';
+import { Controller, useFieldArray, useForm, useFormContext } from 'react-hook-form';
 import type { FieldValues } from 'react-hook-form';
 import {
   Dialog,
