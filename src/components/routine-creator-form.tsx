@@ -152,16 +152,6 @@ function ExerciseSheet({
         onOpenChange(false);
     };
 
-    const handleWeightChange = (newValue: string) => {
-        setValue('weight', newValue);
-    }
-    const handleRepsChange = (newValue: string) => {
-        setValue('reps', newValue);
-    }
-    const handleDurationChange = (newValue: string) => {
-        setValue('duration', newValue);
-    }
-
     return (
         <Sheet open={isOpen} onOpenChange={onOpenChange}>
             <SheetContent side="bottom" className="rounded-t-lg">
@@ -195,30 +185,17 @@ function ExerciseSheet({
                         {repType === 'reps' ? (
                             <div>
                                 <Label>Reps</Label>
-                                <StepperInput 
-                                    value={watch('reps') || '0'}
-                                    onIncrement={() => handleRepsChange(String(parseInt(watch('reps') || '0') + 1))}
-                                    onDecrement={() => handleRepsChange(String(Math.max(0, parseInt(watch('reps') || '0') - 1)))}
-                                />
+                                <Input {...register('reps')} placeholder="e.g., 8-12" />
                             </div>
                         ) : (
                              <div>
                                 <Label>Duration (min)</Label>
-                                <StepperInput 
-                                    value={watch('duration') || '0'}
-                                    onIncrement={() => handleDurationChange(String(parseInt(watch('duration') || '0') + 1))}
-                                    onDecrement={() => handleDurationChange(String(Math.max(0, parseInt(watch('duration') || '0') - 1)))}
-                                />
+                                <Input {...register('duration')} placeholder="e.g., 30s" />
                             </div>
                         )}
                         <div>
                             <Label>Weight (kg or text)</Label>
-                            <StepperInput 
-                                value={watch('weight') || '0'}
-                                onIncrement={() => handleWeightChange(String(parseFloat(watch('weight')?.replace(/[^0-9.-]+/g,"") || '0') + 5))}
-                                onDecrement={() => handleWeightChange(String(Math.max(0, parseFloat(watch('weight')?.replace(/[^0-9.-]+/g,"") || '0') - 5)))}
-                                allowText 
-                            />
+                            <Input {...register('weight')} placeholder="e.g., 50kg, Bodyweight" />
                         </div>
                         <div>
                             <Label>Example Video URL</Label>
@@ -238,60 +215,34 @@ function ExerciseSheet({
 // --- MAIN FORM COMPONENT ---
 type RoutineCreatorFormProps = {
     blocks: BlockFormValues[];
-    setBlocks: React.Dispatch<React.SetStateAction<BlockFormValues[]>>;
     onUpdateBlock: (blockId: string, field: 'name' | 'sets', value: string) => void;
     onIncrementSets: (blockId: string) => void;
     onDecrementSets: (blockId: string) => void;
     onAddBlock: () => void;
     onRemoveBlock: (blockId: string) => void;
     onAddExercise: (blockId: string) => void;
+    onSaveExercise: (blockId: string, exerciseIndex: number, updatedExercise: ExerciseFormValues) => void;
+    onRemoveExercise: (blockId: string, exerciseIndex: number) => void;
+    onDuplicateBlock: (blockId: string) => void;
 }
 export function RoutineCreatorForm({ 
-    blocks, 
-    setBlocks,
+    blocks,
     onUpdateBlock,
     onIncrementSets,
     onDecrementSets,
     onAddBlock,
     onRemoveBlock,
-    onAddExercise
+    onAddExercise,
+    onSaveExercise,
+    onRemoveExercise,
+    onDuplicateBlock,
 }: RoutineCreatorFormProps) {
     const [editingExercise, setEditingExercise] = useState<{ blockId: string; exerciseIndex: number; exercise: ExerciseFormValues } | null>(null);
 
-    const handleDuplicateBlock = (blockId: string) => {
-        setBlocks(prev => {
-            const blockToDuplicate = prev.find(b => b.id === blockId);
-            if (!blockToDuplicate) return prev;
-            const newBlock = { ...blockToDuplicate, id: crypto.randomUUID() };
-            const index = prev.findIndex(b => b.id === blockId);
-            const newBlocks = [...prev];
-            newBlocks.splice(index + 1, 0, newBlock);
-            return newBlocks;
-        });
-    };
-
-    const handleRemoveExercise = (blockId: string, exerciseIndex: number) => {
-        setBlocks(prev => prev.map(b => {
-            if (b.id === blockId) {
-                const newExercises = [...b.exercises];
-                newExercises.splice(exerciseIndex, 1);
-                return { ...b, exercises: newExercises };
-            }
-            return b;
-        }));
-    };
-    
-    const handleSaveExercise = (updatedExercise: ExerciseFormValues) => {
+    const handleSaveAndCloseSheet = (updatedExercise: ExerciseFormValues) => {
         if (!editingExercise) return;
-        const { blockId, exerciseIndex } = editingExercise;
-        setBlocks(prev => prev.map(b => {
-            if (b.id === blockId) {
-                const newExercises = [...b.exercises];
-                newExercises[exerciseIndex] = updatedExercise;
-                return { ...b, exercises: newExercises };
-            }
-            return b;
-        }));
+        onSaveExercise(editingExercise.blockId, editingExercise.exerciseIndex, updatedExercise);
+        setEditingExercise(null);
     };
 
     return (
@@ -319,7 +270,7 @@ export function RoutineCreatorForm({
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={() => onAddExercise(block.id)}><Plus className="mr-2 h-4 w-4" /> Add Exercise</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleDuplicateBlock(block.id)}><Copy className="mr-2 h-4 w-4" /> Duplicate Block</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => onDuplicateBlock(block.id)}><Copy className="mr-2 h-4 w-4" /> Duplicate Block</DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => onRemoveBlock(block.id)} className="text-destructive focus:bg-destructive/10"><Trash2 className="mr-2 h-4 w-4" /> Delete Block</DropdownMenuItem>
                                 </DropdownMenuContent>
                              </DropdownMenu>
@@ -342,7 +293,7 @@ export function RoutineCreatorForm({
                                 <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
                                     <Pencil className="h-4 w-4"/>
                                 </Button>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); handleRemoveExercise(block.id, exIndex); }}>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); onRemoveExercise(block.id, exIndex); }}>
                                     <Trash2 className="h-4 w-4"/>
                                 </Button>
                            </div>
@@ -362,7 +313,7 @@ export function RoutineCreatorForm({
                 isOpen={!!editingExercise}
                 onOpenChange={(isOpen) => !isOpen && setEditingExercise(null)}
                 exercise={editingExercise?.exercise ?? null}
-                onSave={handleSaveExercise}
+                onSave={handleSaveAndCloseSheet}
             />
         </div>
     );

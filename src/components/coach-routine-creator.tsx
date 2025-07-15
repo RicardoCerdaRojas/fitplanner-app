@@ -299,7 +299,7 @@ export function CoachRoutineCreator() {
   const handleRemoveBlock = (blockId: string) => {
     setBlocks(prev => prev.filter(b => b.id !== blockId));
   };
-  
+
   const handleUpdateBlock = (blockId: string, field: 'name' | 'sets', value: string) => {
     setBlocks(prev => prev.map(b => 
         b.id === blockId ? { ...b, [field]: value } : b
@@ -321,7 +321,7 @@ export function CoachRoutineCreator() {
     setBlocks(prev => prev.map(b => {
         if (b.id === blockId) {
             const currentSets = parseInt(b.sets, 10);
-            const newSets = isNaN(currentSets) ? 0 : Math.max(0, currentSets - 1);
+            const newSets = isNaN(currentSets) ? 1 : Math.max(1, currentSets - 1);
             return { ...b, sets: String(newSets) };
         }
         return b;
@@ -336,6 +336,40 @@ export function CoachRoutineCreator() {
             return b;
         }));
   };
+
+  const handleDuplicateBlock = (blockId: string) => {
+        setBlocks(prev => {
+            const blockToDuplicate = prev.find(b => b.id === blockId);
+            if (!blockToDuplicate) return prev;
+            const newBlock = { ...blockToDuplicate, id: crypto.randomUUID() };
+            const index = prev.findIndex(b => b.id === blockId);
+            const newBlocks = [...prev];
+            newBlocks.splice(index + 1, 0, newBlock);
+            return newBlocks;
+        });
+    };
+
+    const handleRemoveExercise = (blockId: string, exerciseIndex: number) => {
+        setBlocks(prev => prev.map(b => {
+            if (b.id === blockId) {
+                const newExercises = [...b.exercises];
+                newExercises.splice(exerciseIndex, 1);
+                return { ...b, exercises: newExercises };
+            }
+            return b;
+        }));
+    };
+    
+    const handleSaveExercise = (blockId: string, exerciseIndex: number, updatedExercise: ExerciseFormValues) => {
+        setBlocks(prev => prev.map(b => {
+            if (b.id === blockId) {
+                const newExercises = [...b.exercises];
+                newExercises[exerciseIndex] = updatedExercise;
+                return { ...b, exercises: newExercises };
+            }
+            return b;
+        }));
+    };
 
   useEffect(() => {
     if(authLoading || !activeMembership?.gymId) return;
@@ -449,13 +483,15 @@ export function CoachRoutineCreator() {
           
           <RoutineCreatorForm 
             blocks={blocks}
-            setBlocks={setBlocks}
             onUpdateBlock={handleUpdateBlock}
             onIncrementSets={handleIncrementSets}
             onDecrementSets={handleDecrementSets}
             onAddBlock={handleAddBlock}
             onRemoveBlock={handleRemoveBlock}
             onAddExercise={handleAddExercise}
+            onSaveExercise={handleSaveExercise}
+            onRemoveExercise={handleRemoveExercise}
+            onDuplicateBlock={handleDuplicateBlock}
           />
 
           <div className="flex justify-end pt-4 mt-auto">

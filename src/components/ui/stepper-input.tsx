@@ -24,7 +24,10 @@ export function StepperInput({
         variant="outline"
         size="icon"
         className="h-10 w-10 shrink-0"
-        onClick={onDecrement}
+        onClick={(e) => {
+          e.preventDefault();
+          onDecrement();
+        }}
       >
         <Minus className="h-4 w-4" />
       </Button>
@@ -38,7 +41,10 @@ export function StepperInput({
         variant="outline"
         size="icon"
         className="h-10 w-10 shrink-0"
-        onClick={onIncrement}
+        onClick={(e) => {
+          e.preventDefault();
+          onIncrement();
+        }}
       >
         <Plus className="h-4 w-4" />
       </Button>
