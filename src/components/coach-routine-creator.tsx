@@ -295,15 +295,78 @@ export function CoachRoutineCreator() {
   const handleAddBlock = () => {
     setBlocks(prev => [...prev, { id: crypto.randomUUID(), name: `Block ${prev.length + 1}`, sets: '4', exercises: [] }]);
   };
-  
+
+  const handleUpdateBlock = (blockId: string, updatedFields: Partial<BlockFormValues>) => {
+    setBlocks(prev => prev.map(b => (b.id === blockId ? { ...b, ...updatedFields } : b)));
+  };
+
   const handleRemoveBlock = (blockId: string) => {
     setBlocks(prev => prev.filter(b => b.id !== blockId));
   };
 
-  const handleUpdateBlock = (blockId: string, updatedBlock: Partial<BlockFormValues>) => {
-    setBlocks(prev => prev.map(b => 
-        b.id === blockId ? { ...b, ...updatedBlock } : b
-    ));
+  const handleDuplicateBlock = (blockId: string) => {
+    setBlocks(prev => {
+      const blockToDuplicate = prev.find(b => b.id === blockId);
+      if (!blockToDuplicate) return prev;
+      const newBlock = { ...blockToDuplicate, id: crypto.randomUUID() };
+      const index = prev.findIndex(b => b.id === blockId);
+      const newBlocks = [...prev];
+      newBlocks.splice(index + 1, 0, newBlock);
+      return newBlocks;
+    });
+  };
+
+  const handleAddExercise = (blockId: string) => {
+    setBlocks(prev => prev.map(b => {
+      if (b.id === blockId) {
+        return { ...b, exercises: [...b.exercises, { ...defaultExerciseValues, name: `New Exercise ${b.exercises.length + 1}` }] };
+      }
+      return b;
+    }));
+  };
+
+  const handleRemoveExercise = (blockId: string, exerciseIndex: number) => {
+    setBlocks(prev => prev.map(b => {
+      if (b.id === blockId) {
+        const newExercises = [...b.exercises];
+        newExercises.splice(exerciseIndex, 1);
+        return { ...b, exercises: newExercises };
+      }
+      return b;
+    }));
+  };
+
+  const handleSaveExercise = (blockId: string, exerciseIndex: number, updatedExercise: ExerciseFormValues) => {
+    setBlocks(prev => prev.map(b => {
+      if (b.id === blockId) {
+        const newExercises = [...b.exercises];
+        newExercises[exerciseIndex] = updatedExercise;
+        return { ...b, exercises: newExercises };
+      }
+      return b;
+    }));
+  };
+
+  const handleIncrementSets = (blockId: string) => {
+    setBlocks(prev => prev.map(b => {
+        if (b.id === blockId) {
+            const currentSets = parseInt(b.sets, 10);
+            return { ...b, sets: String(currentSets + 1) };
+        }
+        return b;
+    }));
+  };
+    
+  const handleDecrementSets = (blockId: string) => {
+    setBlocks(prev => prev.map(b => {
+        if (b.id === blockId) {
+            const currentSets = parseInt(b.sets, 10);
+            if (currentSets > 1) {
+                return { ...b, sets: String(currentSets - 1) };
+            }
+        }
+        return b;
+    }));
   };
 
   useEffect(() => {
@@ -418,7 +481,15 @@ export function CoachRoutineCreator() {
           
           <RoutineCreatorForm 
             blocks={blocks}
-            setBlocks={setBlocks}
+            onUpdateBlock={handleUpdateBlock}
+            onAddBlock={handleAddBlock}
+            onRemoveBlock={handleRemoveBlock}
+            onDuplicateBlock={handleDuplicateBlock}
+            onAddExercise={handleAddExercise}
+            onRemoveExercise={handleRemoveExercise}
+            onSaveExercise={handleSaveExercise}
+            onIncrementSets={handleIncrementSets}
+            onDecrementSets={handleDecrementSets}
           />
 
           <div className="flex justify-end pt-4 mt-auto">
