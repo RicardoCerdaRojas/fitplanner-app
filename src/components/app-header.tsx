@@ -88,7 +88,10 @@ export function AppHeader() {
                     ) : user ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className={cn("relative h-8 w-8 rounded-full", isTransparentHeader && "hover:bg-white/10")}>
+                                <Button variant="ghost" className={cn(
+                                    "relative h-9 w-9 rounded-full border-2",
+                                    isTransparentHeader ? "border-white/20 hover:bg-white/10" : "border-primary/20"
+                                )}>
                                     <Avatar className="h-8 w-8">
                                          <AvatarFallback className={cn(isTransparentHeader && "bg-transparent text-white")}>{userProfile?.name?.charAt(0) || user.email?.charAt(0) || <UserIcon />}</AvatarFallback>
                                     </Avatar>

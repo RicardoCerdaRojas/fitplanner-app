@@ -1,8 +1,9 @@
 
+
 'use client';
 
 import { Suspense } from 'react';
-import { CoachRoutineCreator } from '@/components/coach-routine-creator';
+import CoachRoutineCreator from '@/components/coach-routine-creator';
 import { Skeleton } from '@/components/ui/skeleton';
 
 function CreateRoutinePage() {

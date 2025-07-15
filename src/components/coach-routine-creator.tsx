@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useForm, FormProvider, useFormContext } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -76,7 +76,8 @@ export const defaultExerciseValues: ExerciseFormValues = {
 };
 
 function RoutineDetailsSection({ members, routineTypes }: { members: Member[], routineTypes: RoutineType[] }) {
-    const { control } = useFormContext<z.infer<typeof routineDetailsSchema>>();
+    const { control, setValue } = useForm<z.infer<typeof routineDetailsSchema>>();
+    const [calendarOpen, setCalendarOpen] = useState(false);
 
     return (
         <div className="space-y-6">
@@ -103,7 +104,7 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
                 <FormField control={control} name="routineDate" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Routine Date</FormLabel>
-                        <Popover>
+                        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                             <PopoverTrigger asChild>
                                 <FormControl>
                                     <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
@@ -112,7 +113,10 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
                                     </Button>
                                 </FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
+                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(date) => {
+                                field.onChange(date);
+                                setCalendarOpen(false);
+                            }} initialFocus /></PopoverContent>
                         </Popover>
                         <FormMessage />
                     </FormItem>
@@ -122,7 +126,7 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
     );
 }
 
-export function CoachRoutineCreator() {
+export default function CoachRoutineCreator() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -448,17 +452,20 @@ export function CoachRoutineCreator() {
   
   if (isDataLoading || authLoading) {
       return (
-        <div className="space-y-4 p-4">
-            <Skeleton className="h-10 w-48" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-64 w-full" />
+        <div className="flex flex-col h-screen">
+            <AppHeader />
+            <div className="flex-1 p-4 space-y-4">
+                <Skeleton className="h-10 w-48" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+            </div>
         </div>
       )
   }
 
   return (
-      <div className="h-screen w-full bg-background flex flex-col overflow-hidden">
+      <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
           <AppHeader />
           <div className="flex-shrink-0 flex items-center justify-between p-4 border-b">
               <Button variant="ghost" size="sm" onClick={() => router.back()}>
@@ -485,7 +492,7 @@ export function CoachRoutineCreator() {
           </div>
           
           <div className="flex-1 flex flex-col overflow-y-auto">
-            <Tabs defaultValue="details" className="flex-grow flex flex-col">
+            <Tabs defaultValue="details" className="flex-grow flex flex-col h-full">
                 <TabsList className="w-full rounded-none justify-start px-4 flex-shrink-0">
                     <TabsTrigger value="details">Details</TabsTrigger>
                     <TabsTrigger value="blocks">Blocks</TabsTrigger>
@@ -497,7 +504,7 @@ export function CoachRoutineCreator() {
                     </TabsContent>
                 </FormProvider>
 
-                <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 md:p-6 overflow-y-auto">
+                <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 md:p-6 overflow-y-auto pb-24">
                     <RoutineCreatorForm 
                         blocks={blocks}
                         onUpdateBlock={handleUpdateBlock}
@@ -514,7 +521,7 @@ export function CoachRoutineCreator() {
             </Tabs>
           </div>
           
-          <div className="p-4 bg-background border-t flex-shrink-0">
+          <div className="flex-shrink-0 p-4 bg-background border-t">
               <Button onClick={onFormSubmit} size="lg" className="w-full" disabled={isSubmitting}>
                   <Send className="mr-2 h-5 w-5" />
                   <span className="text-lg">

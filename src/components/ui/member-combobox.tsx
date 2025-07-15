@@ -1,15 +1,16 @@
+
 "use client"
 
 import * as React from "react"
 import { User, ChevronsUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import type { Member } from "@/app/coach/page"
 import { ScrollArea } from "./scroll-area"
 import { Input } from "./input"
@@ -43,8 +44,8 @@ export function MemberCombobox({ members = [], value, onChange, placeholder = "S
   }, [search, members]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
         <Button
           variant="outline"
           role="combobox"
@@ -56,11 +57,11 @@ export function MemberCombobox({ members = [], value, onChange, placeholder = "S
             : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
-      </DialogTrigger>
-      <DialogContent className="p-0 gap-0">
-          <DialogHeader className="p-4 pb-2 border-b">
-              <DialogTitle>Select a Member</DialogTitle>
-          </DialogHeader>
+      </SheetTrigger>
+      <SheetContent side="bottom" className="p-0 flex flex-col h-[60vh]">
+          <SheetHeader className="p-4 pb-2 border-b">
+              <SheetTitle>Select a Member</SheetTitle>
+          </SheetHeader>
           <div className="p-4">
               <Input 
                   placeholder="Search member name or email..." 
@@ -68,8 +69,8 @@ export function MemberCombobox({ members = [], value, onChange, placeholder = "S
                   onChange={(e) => setSearch(e.target.value)}
               />
           </div>
-          <div className="border-t">
-              <ScrollArea className="h-72">
+          <div className="border-t flex-1">
+              <ScrollArea className="h-full">
                   <div className="p-2 space-y-1">
                       {filteredMembers.length > 0 ? (
                         <div
@@ -105,7 +106,7 @@ export function MemberCombobox({ members = [], value, onChange, placeholder = "S
                   </div>
               </ScrollArea>
           </div>
-    </DialogContent>
-    </Dialog>
+    </SheetContent>
+    </Sheet>
   )
 }
