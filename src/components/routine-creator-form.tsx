@@ -4,7 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2, Library, Save, Plus, GripVertical, MoreVertical, Copy, Pencil, Minus, Check } from 'lucide-react';
-import React, { useState, useEffect, useCallback, ChangeEvent } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/contexts/auth-context';
@@ -164,50 +164,6 @@ export function TemplateLoader({ onTemplateLoad }: { onTemplateLoad: (template: 
         </Dialog>
     )
 }
-
-export const SaveTemplateDialog = React.memo(({ onSave }: { onSave: (name: string) => Promise<void> }) => {
-    const [open, setOpen] = useState(false);
-    const [name, setName] = useState('');
-
-    const handleSave = async () => {
-        await onSave(name);
-        setName('');
-        setOpen(false);
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <div className="flex items-center gap-2 p-2 w-full text-left">
-                    <Save className="h-4 w-4" />
-                    <span>Save as Template</span>
-                </div>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Save New Template</DialogTitle>
-                    <DialogDescription>
-                        Give your new template a descriptive name so you can easily find it later.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="py-4">
-                    <Label>Template Name</Label>
-                    <Input 
-                        placeholder="e.g., 'Beginner Full Body Strength'" 
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                    />
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                    <Button type="button" onClick={handleSave}>Save Template</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-});
-SaveTemplateDialog.displayName = 'SaveTemplateDialog';
-
 
 function ExerciseSheet({
     exercise,

@@ -5,7 +5,7 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { addDoc, collection, Timestamp, doc, updateDoc, onSnapshot, getDoc, query, where, orderBy } from 'firebase/firestore';
@@ -14,7 +14,7 @@ import type { Member } from '@/app/coach/page';
 import type { ManagedRoutine } from './coach-routine-management';
 import type { RoutineType } from '@/app/admin/routine-types/page';
 import { Skeleton } from './ui/skeleton';
-import { RoutineCreatorForm, TemplateLoader, SaveTemplateDialog } from './routine-creator-form';
+import { RoutineCreatorForm, TemplateLoader } from './routine-creator-form';
 import { Button } from './ui/button';
 import type { RoutineTemplate } from '@/app/coach/templates/page';
 import { ArrowLeft, Save, MoreVertical, Library, Send } from 'lucide-react';
@@ -29,6 +29,9 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage, useFormContex
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AppHeader } from './app-header';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Label } from './ui/label';
+import { Input } from './ui/input';
 
 const exerciseSchema = z.object({
   name: z.string().min(2, 'Exercise name is required.'),
@@ -130,6 +133,38 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
     );
 }
 
+const SaveTemplateDialog = ({ onSave, children }: { onSave: (name: string) => Promise<void>; children: React.ReactNode }) => {
+    const [name, setName] = useState('');
+
+    const handleSave = async () => {
+        await onSave(name);
+        setName('');
+    };
+
+    return (
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Save New Template</DialogTitle>
+                <DialogDescription>
+                    Give your new template a descriptive name so you can easily find it later.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                <Label>Template Name</Label>
+                <Input
+                    placeholder="e.g., 'Beginner Full Body Strength'"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                />
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                <DialogClose asChild><Button type="button" onClick={handleSave}>Save Template</Button></DialogClose>
+            </DialogFooter>
+        </DialogContent>
+    );
+};
+
 export default function CoachRoutineCreator() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -175,9 +210,7 @@ export default function CoachRoutineCreator() {
     mode: 'onBlur'
   });
 
-  const { handleSubmit, reset, watch, control } = form;
-  const blocks = watch('blocks');
-
+  const { handleSubmit, reset, watch } = form;
 
   const loadTemplate = useCallback((template: RoutineTemplate) => {
       reset({
@@ -398,59 +431,69 @@ export default function CoachRoutineCreator() {
   }
 
   return (
-      <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
-          <AppHeader />
-          <div className="flex-shrink-0 flex items-center justify-between p-4 border-b">
-              <Button variant="ghost" size="sm" onClick={() => router.back()}>
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
-              </Button>
-              <h1 className="text-lg font-bold font-headline text-center">
-                  {isEditing ? 'Edit Routine' : 'Create Routine'}
-              </h1>
-              <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="w-9 h-9">
-                          <MoreVertical className="h-5 w-5" />
-                      </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                          <TemplateLoader onTemplateLoad={loadTemplate} />
-                      </DropdownMenuItem>
-                       <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                          <SaveTemplateDialog onSave={handleSaveAsTemplate} />
-                      </DropdownMenuItem>
-                  </DropdownMenuContent>
-              </DropdownMenu>
-          </div>
-          
-          <FormProvider {...form}>
-            <div className="flex-1 flex flex-col overflow-y-auto">
-              <Tabs defaultValue="details" className="flex-grow flex flex-col h-full">
-                  <TabsList className="w-full rounded-none justify-start px-4 flex-shrink-0">
-                      <TabsTrigger value="details">Details</TabsTrigger>
-                      <TabsTrigger value="blocks">Blocks</TabsTrigger>
-                  </TabsList>
-                  
-                      <TabsContent value="details" className="flex-grow p-4 md:p-6 overflow-y-auto pb-24">
-                          <RoutineDetailsSection members={members} routineTypes={routineTypes} />
-                      </TabsContent>
-
-                      <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 md:p-6 overflow-y-auto pb-24">
-                          <RoutineCreatorForm control={control} />
-                      </TabsContent>
-              </Tabs>
+      <Dialog>
+        <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
+            <AppHeader />
+            <div className="flex-shrink-0 flex items-center justify-between p-4 border-b">
+                <Button variant="ghost" size="sm" onClick={() => router.back()}>
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                </Button>
+                <h1 className="text-lg font-bold font-headline text-center">
+                    {isEditing ? 'Edit Routine' : 'Create Routine'}
+                </h1>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="w-9 h-9">
+                            <MoreVertical className="h-5 w-5" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            <TemplateLoader onTemplateLoad={loadTemplate} />
+                        </DropdownMenuItem>
+                         <DialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                <div className="flex items-center gap-2 w-full text-left">
+                                    <Save className="h-4 w-4" />
+                                    <span>Save as Template</span>
+                                </div>
+                            </DropdownMenuItem>
+                        </DialogTrigger>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
-          </FormProvider>
-          
-          <div className="flex-shrink-0 p-4 bg-background border-t">
-              <Button onClick={onFormSubmit} size="lg" className="w-full" disabled={isSubmitting}>
-                  <Send className="mr-2 h-5 w-5" />
-                  <span className="text-lg">
-                    {isSubmitting ? 'Assigning...' : (isEditing && editRoutineId ? 'Update Routine' : 'Assign to Member')}
-                  </span>
-              </Button>
-          </div>
-      </div>
+            
+            <FormProvider {...form}>
+              <div className="flex-1 flex flex-col overflow-y-auto">
+                <Tabs defaultValue="details" className="flex-grow flex flex-col h-full">
+                    <TabsList className="w-full rounded-none justify-start px-4 flex-shrink-0">
+                        <TabsTrigger value="details">Details</TabsTrigger>
+                        <TabsTrigger value="blocks">Blocks</TabsTrigger>
+                    </TabsList>
+                    
+                        <TabsContent value="details" className="flex-grow p-4 md:p-6 overflow-y-auto pb-24">
+                            <RoutineDetailsSection members={members} routineTypes={routineTypes} />
+                        </TabsContent>
+
+                        <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 md:p-6 overflow-y-auto pb-24">
+                            <RoutineCreatorForm control={form.control} />
+                        </TabsContent>
+                </Tabs>
+              </div>
+            </FormProvider>
+            
+            <div className="flex-shrink-0 p-4 bg-background border-t">
+                <Button onClick={onFormSubmit} size="lg" className="w-full" disabled={isSubmitting}>
+                    <Send className="mr-2 h-5 w-5" />
+                    <span className="text-lg">
+                      {isSubmitting ? 'Assigning...' : (isEditing && editRoutineId ? 'Update Routine' : 'Assign to Member')}
+                    </span>
+                </Button>
+            </div>
+        </div>
+        <SaveTemplateDialog onSave={handleSaveAsTemplate}>
+            {/* The trigger is in the dropdown menu */}
+        </SaveTemplateDialog>
+      </Dialog>
   );
 }
