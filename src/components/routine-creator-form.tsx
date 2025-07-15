@@ -12,7 +12,6 @@ import type { RoutineTemplate } from '@/app/coach/templates/page';
 import { ScrollArea } from './ui/scroll-area';
 import { Skeleton } from './ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from './ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -91,16 +90,9 @@ function EditableBlockHeader({
             onIncrement={handleIncrementSets}
             onDecrement={handleDecrementSets}
          />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+         <DialogTrigger asChild>
             <Button variant="ghost" size="icon"><MoreVertical className="h-5 w-5" /></Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleAddExercise}><Plus className="mr-2 h-4 w-4" /> Add Exercise</DropdownMenuItem>
-            <DropdownMenuItem onClick={onDuplicateBlock}><Copy className="mr-2 h-4 w-4" /> Duplicate Block</DropdownMenuItem>
-            <DropdownMenuItem onClick={onRemoveBlock} className="text-destructive focus:bg-destructive/10"><Trash2 className="mr-2 h-4 w-4" /> Delete Block</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+         </DialogTrigger>
       </div>
     </div>
   );
@@ -258,20 +250,49 @@ function ExerciseSheet({
     );
 }
 
+const MemoizedSaveTemplateDialog = React.memo(({ onSave }: { onSave: (name: string) => Promise<void> }) => {
+    const [name, setName] = useState('');
+
+    const handleSave = async () => {
+        await onSave(name);
+        setName('');
+    };
+
+    return (
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Save New Template</DialogTitle>
+                <DialogDescription>
+                    Give your new template a descriptive name so you can easily find it later.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                <Label>Template Name</Label>
+                <Input
+                    placeholder="e.g., 'Beginner Full Body Strength'"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                />
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                <DialogClose asChild><Button type="button" onClick={handleSave}>Save Template</Button></DialogClose>
+            </DialogFooter>
+        </DialogContent>
+    );
+});
+MemoizedSaveTemplateDialog.displayName = 'SaveTemplateDialog';
+
 
 // --- MAIN FORM COMPONENT ---
-type RoutineCreatorFormProps = {
-    control: any; // Simplified for this context
-}
-export function RoutineCreatorForm({ control }: RoutineCreatorFormProps) {
+export function RoutineCreatorForm() {
+    const { control, getValues, setValue } = useFormContext<RoutineFormValues>();
     const { fields, append, remove, insert } = useFieldArray({
         control,
         name: "blocks",
     });
     
     const [editingExercise, setEditingExercise] = useState<{ blockIndex: number; exerciseIndex: number; exercise: ExerciseFormValues } | null>(null);
-
-    const { setValue, getValues } = useFormContext<RoutineFormValues>();
 
     const onSaveExercise = (updatedExercise: ExerciseFormValues) => {
         if (!editingExercise) return;
@@ -353,3 +374,5 @@ export function RoutineCreatorForm({ control }: RoutineCreatorFormProps) {
         </div>
     );
 }
+
+export { MemoizedSaveTemplateDialog as SaveTemplateDialog };

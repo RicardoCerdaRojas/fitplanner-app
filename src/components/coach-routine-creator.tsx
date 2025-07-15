@@ -5,7 +5,7 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { addDoc, collection, Timestamp, doc, updateDoc, onSnapshot, getDoc, query, where, orderBy } from 'firebase/firestore';
@@ -122,7 +122,7 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(date) => {
                                 field.onChange(date);
-                                setCalendarOpen(false);
+                                if (date) setCalendarOpen(false);
                             }} initialFocus /></PopoverContent>
                         </Popover>
                         <FormMessage />
@@ -448,9 +448,14 @@ export default function CoachRoutineCreator() {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                            <TemplateLoader onTemplateLoad={loadTemplate} />
-                        </DropdownMenuItem>
+                        <DialogTrigger asChild>
+                           <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                <div className="flex items-center gap-2 w-full text-left">
+                                    <Library className="h-4 w-4" />
+                                    <span>Load Template</span>
+                                </div>
+                            </DropdownMenuItem>
+                        </DialogTrigger>
                          <DialogTrigger asChild>
                             <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                 <div className="flex items-center gap-2 w-full text-left">
@@ -476,7 +481,7 @@ export default function CoachRoutineCreator() {
                         </TabsContent>
 
                         <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 md:p-6 overflow-y-auto pb-24">
-                            <RoutineCreatorForm control={form.control} />
+                            <RoutineCreatorForm />
                         </TabsContent>
                 </Tabs>
               </div>
@@ -491,8 +496,8 @@ export default function CoachRoutineCreator() {
                 </Button>
             </div>
         </div>
+        <TemplateLoader onTemplateLoad={loadTemplate} />
         <SaveTemplateDialog onSave={handleSaveAsTemplate}>
-            {/* The trigger is in the dropdown menu */}
         </SaveTemplateDialog>
       </Dialog>
   );
