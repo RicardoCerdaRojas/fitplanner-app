@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -188,7 +187,10 @@ function ExerciseSheet({
                                 render={({ field }) => (
                                     <div>
                                         <Label>Reps</Label>
-                                        <StepperInput field={{...field, value: field.value || '0'}} />
+                                        <StepperInput 
+                                            value={field.value || '0'}
+                                            onValueChange={field.onChange}
+                                        />
                                     </div>
                                 )}
                             />
@@ -199,7 +201,10 @@ function ExerciseSheet({
                                 render={({ field }) => (
                                     <div>
                                         <Label>Duration (min)</Label>
-                                        <StepperInput field={{...field, value: field.value || '0'}} />
+                                        <StepperInput 
+                                            value={field.value || '0'}
+                                            onValueChange={field.onChange}
+                                        />
                                     </div>
                                 )}
                             />
@@ -210,7 +215,11 @@ function ExerciseSheet({
                             render={({ field }) => (
                                 <div>
                                     <Label>Weight (kg or text)</Label>
-                                    <StepperInput field={{...field, value: field.value || '0'}} allowText step={5} />
+                                    <StepperInput 
+                                        value={field.value || '0'}
+                                        onValueChange={field.onChange}
+                                        allowText 
+                                        step={5} />
                                 </div>
                             )}
                         />
@@ -237,13 +246,10 @@ type RoutineCreatorFormProps = {
 export function RoutineCreatorForm({ blocks, setBlocks }: RoutineCreatorFormProps) {
     const [editingExercise, setEditingExercise] = useState<{ blockId: string; exerciseIndex: number; exercise: ExerciseFormValues } | null>(null);
 
-    const handleUpdateBlock = (blockId: string, newName?: string, newSets?: string) => {
-        setBlocks(prev => prev.map(b => {
-            if (b.id === blockId) {
-                return { ...b, name: newName ?? b.name, sets: newSets ?? b.sets };
-            }
-            return b;
-        }));
+    const handleUpdateBlock = (blockId: string, field: 'name' | 'sets', value: string) => {
+        setBlocks(prev => prev.map(b => 
+            b.id === blockId ? { ...b, [field]: value } : b
+        ));
     };
     
     const handleAddBlock = () => {
@@ -307,17 +313,14 @@ export function RoutineCreatorForm({ blocks, setBlocks }: RoutineCreatorFormProp
                          <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
                          <Input 
                             value={block.name} 
-                            onChange={(e) => handleUpdateBlock(block.id, e.target.value, undefined)} 
+                            onChange={(e) => handleUpdateBlock(block.id, 'name', e.target.value)} 
                             className="text-lg font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent flex-1 mx-2"
                         />
                          <div className="flex items-center gap-2">
-                             <div className="w-24">
+                             <div className="w-28">
                                 <StepperInput
-                                    field={{
-                                        value: block.sets,
-                                        onChange: (val) => handleUpdateBlock(block.id, undefined, val),
-                                        name: `blocks[${block.id}].sets`
-                                    }}
+                                    value={block.sets}
+                                    onValueChange={(val) => handleUpdateBlock(block.id, 'sets', val)}
                                 />
                              </div>
                              <DropdownMenu>

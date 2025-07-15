@@ -225,7 +225,7 @@ export function CoachRoutineCreator() {
             coachId: user.uid,
             gymId: activeMembership.gymId,
             routineDate: Timestamp.fromDate(details.routineDate),
-            createdAt: (editRoutineId && 'createdAt' in dataToEdit!) ? dataToEdit.createdAt : Timestamp.now(),
+            createdAt: (editRoutineId && dataToEdit && 'createdAt' in dataToEdit) ? dataToEdit.createdAt : Timestamp.now(),
             updatedAt: Timestamp.now(),
         };
 

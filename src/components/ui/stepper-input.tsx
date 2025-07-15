@@ -1,69 +1,45 @@
 
-
 'use client';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus } from 'lucide-react';
-import { useState, useEffect } from 'react';
 
 type StepperInputProps = {
-  field: {
-    value?: string | number;
-    onChange: (value: string) => void;
-    name: string;
-  };
+  value?: string | number;
+  onValueChange: (value: string) => void;
   step?: number;
   allowText?: boolean;
 };
 
-export function StepperInput({ field, step = 1, allowText = false }: StepperInputProps) {
-  const [internalValue, setInternalValue] = useState(String(field.value ?? ''));
-
-  useEffect(() => {
-    // Sync with external form state when it changes
-    setInternalValue(String(field.value ?? ''));
-  }, [field.value]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInternalValue(e.target.value);
-    field.onChange(e.target.value);
+export function StepperInput({ value, onValueChange, step = 1, allowText = false }: StepperInputProps) {
+  const isNumericString = (val: string | number | undefined): val is (string | number) => {
+    if (val === undefined || val === null || val === '') return false;
+    const num = Number(val);
+    return !isNaN(num) && isFinite(num);
   };
-  
-  const isNumericString = (val: string): boolean => val !== '' && !isNaN(parseFloat(val)) && isFinite(Number(val));
 
   const handleStep = (direction: 'increment' | 'decrement') => {
-    const numValue = isNumericString(internalValue) ? parseFloat(internalValue) : 0;
-    
-    let newValue;
-    if (direction === 'increment') {
-      newValue = numValue + step;
-    } else {
-      newValue = numValue - step;
-    }
-
-    const finalValue = String(Math.max(0, newValue));
-    setInternalValue(finalValue);
-    field.onChange(finalValue);
+    const numValue = isNumericString(value) ? parseFloat(String(value)) : 0;
+    const newValue = direction === 'increment' ? numValue + step : numValue - step;
+    onValueChange(String(Math.max(0, newValue)));
   };
   
   return (
-    <div className="flex items-center gap-1 w-full max-w-[150px]">
+    <div className="flex items-center gap-1 w-full">
       <Button
         type="button"
         variant="outline"
         size="icon"
         className="h-10 w-10 shrink-0"
         onClick={() => handleStep('decrement')}
-        disabled={allowText && !isNumericString(internalValue)}
+        disabled={allowText && !isNumericString(value)}
       >
         <Minus className="h-4 w-4" />
       </Button>
       <Input
-        name={field.name}
-        value={internalValue}
-        onChange={handleInputChange}
-        onBlur={() => field.onChange(internalValue)} // Ensure value is passed on blur
+        value={value ?? ''}
+        onChange={(e) => onValueChange(e.target.value)}
         className="text-center font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         type={allowText ? 'text' : 'number'}
         min={0}
@@ -74,7 +50,7 @@ export function StepperInput({ field, step = 1, allowText = false }: StepperInpu
         size="icon"
         className="h-10 w-10 shrink-0"
         onClick={() => handleStep('increment')}
-        disabled={allowText && !isNumericString(internalValue)}
+        disabled={allowText && !isNumericString(value)}
       >
         <Plus className="h-4 w-4" />
       </Button>
