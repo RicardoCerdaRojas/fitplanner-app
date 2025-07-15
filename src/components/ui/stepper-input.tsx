@@ -6,25 +6,21 @@ import { Button } from '@/components/ui/button';
 import { Minus, Plus } from 'lucide-react';
 
 type StepperInputProps = {
-  value?: string | number;
-  onValueChange: (value: string) => void;
-  step?: number;
+  value?: string;
+  onIncrement: () => void;
+  onDecrement: () => void;
   allowText?: boolean;
 };
 
-export function StepperInput({ value, onValueChange, step = 1, allowText = false }: StepperInputProps) {
-  const isNumericString = (val: string | number | undefined): val is (string | number) => {
+export function StepperInput({ value, onIncrement, onDecrement, allowText = false }: StepperInputProps) {
+  const isNumericString = (val: string | undefined): boolean => {
     if (val === undefined || val === null || val === '') return false;
     const num = Number(val);
     return !isNaN(num) && isFinite(num);
   };
-
-  const handleStep = (direction: 'increment' | 'decrement') => {
-    const numValue = isNumericString(value) ? parseFloat(String(value)) : 0;
-    const newValue = direction === 'increment' ? numValue + step : numValue - step;
-    onValueChange(String(Math.max(0, newValue)));
-  };
   
+  const displayValue = value ?? '';
+
   return (
     <div className="flex items-center gap-1 w-full">
       <Button
@@ -32,24 +28,22 @@ export function StepperInput({ value, onValueChange, step = 1, allowText = false
         variant="outline"
         size="icon"
         className="h-10 w-10 shrink-0"
-        onClick={() => handleStep('decrement')}
+        onClick={onDecrement}
         disabled={allowText && !isNumericString(value)}
       >
         <Minus className="h-4 w-4" />
       </Button>
       <Input
-        value={value ?? ''}
-        onChange={(e) => onValueChange(e.target.value)}
+        value={displayValue}
+        readOnly // Input is display-only, logic is handled by buttons
         className="text-center font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-        type={allowText ? 'text' : 'number'}
-        min={0}
       />
       <Button
         type="button"
         variant="outline"
         size="icon"
         className="h-10 w-10 shrink-0"
-        onClick={() => handleStep('increment')}
+        onClick={onIncrement}
         disabled={allowText && !isNumericString(value)}
       >
         <Plus className="h-4 w-4" />

@@ -150,6 +150,16 @@ function ExerciseSheet({
         onOpenChange(false);
     };
 
+    const handleWeightChange = (newValue: string) => {
+        setValue('weight', newValue);
+    }
+    const handleRepsChange = (newValue: string) => {
+        setValue('reps', newValue);
+    }
+    const handleDurationChange = (newValue: string) => {
+        setValue('duration', newValue);
+    }
+
     return (
         <Sheet open={isOpen} onOpenChange={onOpenChange}>
             <SheetContent side="bottom" className="rounded-t-lg">
@@ -181,48 +191,33 @@ function ExerciseSheet({
                         </div>
 
                         {repType === 'reps' ? (
-                            <Controller
-                                name="reps"
-                                control={control}
-                                render={({ field }) => (
-                                    <div>
-                                        <Label>Reps</Label>
-                                        <StepperInput 
-                                            value={field.value || '0'}
-                                            onValueChange={field.onChange}
-                                        />
-                                    </div>
-                                )}
-                            />
+                            <div>
+                                <Label>Reps</Label>
+                                <StepperInput 
+                                    value={watch('reps') || '0'}
+                                    onIncrement={() => handleRepsChange(String(parseInt(watch('reps') || '0') + 1))}
+                                    onDecrement={() => handleRepsChange(String(Math.max(0, parseInt(watch('reps') || '0') - 1)))}
+                                />
+                            </div>
                         ) : (
-                            <Controller
-                                name="duration"
-                                control={control}
-                                render={({ field }) => (
-                                    <div>
-                                        <Label>Duration (min)</Label>
-                                        <StepperInput 
-                                            value={field.value || '0'}
-                                            onValueChange={field.onChange}
-                                        />
-                                    </div>
-                                )}
-                            />
+                             <div>
+                                <Label>Duration (min)</Label>
+                                <StepperInput 
+                                    value={watch('duration') || '0'}
+                                    onIncrement={() => handleDurationChange(String(parseInt(watch('duration') || '0') + 1))}
+                                    onDecrement={() => handleDurationChange(String(Math.max(0, parseInt(watch('duration') || '0') - 1)))}
+                                />
+                            </div>
                         )}
-                        <Controller
-                            name="weight"
-                            control={control}
-                            render={({ field }) => (
-                                <div>
-                                    <Label>Weight (kg or text)</Label>
-                                    <StepperInput 
-                                        value={field.value || '0'}
-                                        onValueChange={field.onChange}
-                                        allowText 
-                                        step={5} />
-                                </div>
-                            )}
-                        />
+                        <div>
+                            <Label>Weight (kg or text)</Label>
+                            <StepperInput 
+                                value={watch('weight') || '0'}
+                                onIncrement={() => handleWeightChange(String(parseFloat(watch('weight')?.replace(/[^0-9.-]+/g,"") || '0') + 5))}
+                                onDecrement={() => handleWeightChange(String(Math.max(0, parseFloat(watch('weight')?.replace(/[^0-9.-]+/g,"") || '0') - 5)))}
+                                allowText 
+                            />
+                        </div>
                         <div>
                             <Label>Example Video URL</Label>
                             <Input {...register('videoUrl')} placeholder="https://youtube.com/..." />
@@ -250,6 +245,28 @@ export function RoutineCreatorForm({ blocks, setBlocks }: RoutineCreatorFormProp
         setBlocks(prev => prev.map(b => 
             b.id === blockId ? { ...b, [field]: value } : b
         ));
+    };
+
+    const handleIncrementSets = (blockId: string) => {
+        setBlocks(prev => prev.map(b => {
+            if (b.id === blockId) {
+                const currentSets = parseInt(b.sets, 10);
+                const newSets = isNaN(currentSets) ? 1 : currentSets + 1;
+                return { ...b, sets: String(newSets) };
+            }
+            return b;
+        }));
+    };
+
+    const handleDecrementSets = (blockId: string) => {
+        setBlocks(prev => prev.map(b => {
+            if (b.id === blockId) {
+                const currentSets = parseInt(b.sets, 10);
+                const newSets = isNaN(currentSets) ? 0 : Math.max(0, currentSets - 1);
+                return { ...b, sets: String(newSets) };
+            }
+            return b;
+        }));
     };
     
     const handleAddBlock = () => {
@@ -320,7 +337,8 @@ export function RoutineCreatorForm({ blocks, setBlocks }: RoutineCreatorFormProp
                              <div className="w-28">
                                 <StepperInput
                                     value={block.sets}
-                                    onValueChange={(val) => handleUpdateBlock(block.id, 'sets', val)}
+                                    onIncrement={() => handleIncrementSets(block.id)}
+                                    onDecrement={() => handleDecrementSets(block.id)}
                                 />
                              </div>
                              <DropdownMenu>
