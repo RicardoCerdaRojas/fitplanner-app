@@ -71,7 +71,7 @@ export const defaultExerciseValues: ExerciseFormValues = {
   repType: 'reps' as const, 
   reps: '10', 
   duration: '',
-  weight: 'Bodyweight', 
+  weight: '5', 
   videoUrl: '' 
 };
 

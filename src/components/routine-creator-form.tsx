@@ -127,7 +127,9 @@ function ExerciseSheet({
     onOpenChange: (isOpen: boolean) => void;
     onSave: (updatedExercise: ExerciseFormValues) => void;
 }) {
-    const { register, handleSubmit, control, watch, setValue } = useForm<ExerciseFormValues>();
+    const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm<ExerciseFormValues>({
+         defaultValues: exercise || defaultExerciseValues,
+    });
     const repType = watch('repType');
 
     useEffect(() => {
@@ -142,10 +144,6 @@ function ExerciseSheet({
     }, [exercise, setValue]);
     
     if (!exercise) return null;
-
-    const handleRepTypeChange = (isDuration: boolean) => {
-        setValue('repType', isDuration ? 'duration' : 'reps');
-    };
 
     const onSubmit = (data: FieldValues) => {
         onSave(data as ExerciseFormValues);
@@ -187,7 +185,10 @@ function ExerciseSheet({
                                 name="reps"
                                 control={control}
                                 render={({ field }) => (
-                                    <div><Label>Reps</Label><StepperInput field={field} /></div>
+                                    <div>
+                                        <Label>Reps</Label>
+                                        <StepperInput field={{...field, value: field.value || '0'}} />
+                                    </div>
                                 )}
                             />
                         ) : (
@@ -195,7 +196,10 @@ function ExerciseSheet({
                                 name="duration"
                                 control={control}
                                 render={({ field }) => (
-                                    <div><Label>Duration (min)</Label><StepperInput field={field} /></div>
+                                    <div>
+                                        <Label>Duration (min)</Label>
+                                        <StepperInput field={{...field, value: field.value || '0'}} />
+                                    </div>
                                 )}
                             />
                         )}
@@ -203,7 +207,10 @@ function ExerciseSheet({
                             name="weight"
                             control={control}
                             render={({ field }) => (
-                                <div><Label>Weight (kg or text)</Label><StepperInput field={field} allowText /></div>
+                                <div>
+                                    <Label>Weight (kg or text)</Label>
+                                    <StepperInput field={{...field, value: field.value || '0'}} allowText step={5} />
+                                </div>
                             )}
                         />
                         <div>
@@ -307,8 +314,8 @@ export function RoutineCreatorForm({ blocks, setBlocks }: RoutineCreatorFormProp
                                 <StepperInput
                                     field={{
                                         value: block.sets,
-                                        onChange: (val: string) => handleUpdateBlock(block.id, undefined, val),
-                                        name: 'sets'
+                                        onChange: (val) => handleUpdateBlock(block.id, undefined, val),
+                                        name: `blocks[${block.id}].sets`
                                     }}
                                 />
                              </div>
@@ -335,7 +342,7 @@ export function RoutineCreatorForm({ blocks, setBlocks }: RoutineCreatorFormProp
                                     <p className="font-semibold">{exercise.name}</p>
                                     <p className="text-xs text-muted-foreground">
                                         {exercise.repType === 'reps' ? `${exercise.reps} reps` : `${exercise.duration} min`}
-                                        {exercise.weight && ` / ${exercise.weight}`}
+                                        {exercise.weight && ` / ${exercise.weight}kg`}
                                     </p>
                                 </div>
                                 <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
