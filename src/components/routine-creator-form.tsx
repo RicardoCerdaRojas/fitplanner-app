@@ -20,7 +20,7 @@ import { Switch } from '@/components/ui/switch';
 import { StepperInput } from './ui/stepper-input';
 import { useForm, Controller } from 'react-hook-form';
 import type { FieldValues } from 'react-hook-form';
-import type { BlockFormValues, ExerciseFormValues, defaultExerciseValues } from './coach-routine-creator';
+import { defaultExerciseValues, type BlockFormValues, type ExerciseFormValues } from './coach-routine-creator';
 
 // --- DIALOGS FOR TEMPLATES ---
 export function TemplateLoader({ onTemplateLoad }: { onTemplateLoad: (template: RoutineTemplate) => void }) {
