@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, useFormContext } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -14,7 +13,7 @@ import type { Member } from '@/app/coach/page';
 import type { ManagedRoutine } from './coach-routine-management';
 import type { RoutineType } from '@/app/admin/routine-types/page';
 import { Skeleton } from './ui/skeleton';
-import { RoutineCreatorForm, TemplateLoader, SaveTemplateDialog } from './routine-creator-form';
+import { RoutineCreatorForm, SaveTemplateDialog, TemplateLoader } from './routine-creator-form';
 import { Button } from './ui/button';
 import type { RoutineTemplate } from '@/app/coach/templates/page';
 import { ArrowLeft, Save, MoreVertical, Library, Send } from 'lucide-react';
@@ -25,12 +24,11 @@ import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { FormControl, FormField, FormItem, FormLabel, FormMessage, useFormContext } from '@/components/ui/form';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AppHeader } from './app-header';
 import { Dialog, DialogTrigger } from './ui/dialog';
-
 
 const exerciseSchema = z.object({
   name: z.string().min(2, 'Exercise name is required.'),
@@ -85,6 +83,13 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
     const { control } = useFormContext<RoutineFormValues>();
     const [calendarOpen, setCalendarOpen] = useState(false);
 
+    const handleDateSelect = (date: Date | undefined) => {
+        control.setValue('details.routineDate', date);
+        if (date) {
+            setCalendarOpen(false);
+        }
+    }
+    
     return (
         <div className="space-y-6">
             <FormField control={control} name="details.memberId" render={({ field }) => (
@@ -119,10 +124,7 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
                                     </Button>
                                 </FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(date) => {
-                                field.onChange(date);
-                                if (date) setCalendarOpen(false);
-                            }} initialFocus /></PopoverContent>
+                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={handleDateSelect} initialFocus /></PopoverContent>
                         </Popover>
                         <FormMessage />
                     </FormItem>
@@ -414,7 +416,7 @@ export default function CoachRoutineCreator() {
                       </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                       <Dialog>
+                      <Dialog>
                           <DialogTrigger asChild>
                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                   <div className="flex items-center gap-2 w-full text-left">
@@ -424,17 +426,17 @@ export default function CoachRoutineCreator() {
                               </DropdownMenuItem>
                           </DialogTrigger>
                           <TemplateLoader onTemplateLoad={loadTemplate} />
-                       </Dialog>
-                       <Dialog>
-                           <DialogTrigger asChild>
+                      </Dialog>
+                      <Dialog>
+                          <DialogTrigger asChild>
                               <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                   <div className="flex items-center gap-2 w-full text-left">
                                       <Save className="h-4 w-4" />
                                       <span>Save as Template</span>
                                   </div>
                               </DropdownMenuItem>
-                           </DialogTrigger>
-                           <SaveTemplateDialog onSave={handleSaveAsTemplate} />
+                          </DialogTrigger>
+                          <SaveTemplateDialog onSave={handleSaveAsTemplate} />
                        </Dialog>
                   </DropdownMenuContent>
               </DropdownMenu>

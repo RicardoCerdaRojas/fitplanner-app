@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -100,14 +99,13 @@ function EditableBlockHeader({
 
 
 // --- DIALOGS FOR TEMPLATES ---
-export function TemplateLoader({ onTemplateLoad, children }: { onTemplateLoad: (template: RoutineTemplate) => void; children: React.ReactNode }) {
+export function TemplateLoader({ onTemplateLoad }: { onTemplateLoad: (template: RoutineTemplate) => void; }) {
     const { activeMembership } = useAuth();
     const [templates, setTemplates] = useState<RoutineTemplate[]>([]);
     const [loading, setLoading] = useState(true);
-    const [open, setOpen] = useState(false);
 
     useEffect(() => {
-        if (!activeMembership?.gymId || !open) return;
+        if (!activeMembership?.gymId) return;
         setLoading(true);
         const q = query(collection(db, 'routineTemplates'), where('gymId', '==', activeMembership.gymId));
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -116,11 +114,10 @@ export function TemplateLoader({ onTemplateLoad, children }: { onTemplateLoad: (
             setLoading(false);
         });
         return () => unsubscribe();
-    }, [activeMembership, open]);
+    }, [activeMembership]);
 
     const handleSelect = (template: RoutineTemplate) => {
         onTemplateLoad(template);
-        setOpen(false);
     }
 
     return (
@@ -137,10 +134,12 @@ export function TemplateLoader({ onTemplateLoad, children }: { onTemplateLoad: (
                     <p className="text-center text-sm text-muted-foreground py-4">No templates found.</p>
                 ) : (
                     templates.map(template => (
-                        <div key={template.id} onClick={() => handleSelect(template)} className="p-2 rounded-md hover:bg-muted cursor-pointer">
-                            <p className="font-semibold">{template.templateName}</p>
-                            <p className="text-sm text-muted-foreground">{template.routineTypeName}</p>
-                        </div>
+                        <DialogClose asChild key={template.id}>
+                            <div onClick={() => handleSelect(template)} className="p-2 rounded-md hover:bg-muted cursor-pointer">
+                                <p className="font-semibold">{template.templateName}</p>
+                                <p className="text-sm text-muted-foreground">{template.routineTypeName}</p>
+                            </div>
+                        </DialogClose>
                     ))
                 )}
                 </div>
@@ -242,7 +241,7 @@ function ExerciseSheet({
     );
 }
 
-const SaveTemplateDialog = memo(function SaveTemplateDialog({ onSave }: { onSave: (name: string) => Promise<void> }) {
+const SaveTemplateDialog = React.memo(function SaveTemplateDialog({ onSave }: { onSave: (name: string) => Promise<void> }) {
     const [name, setName] = useState('');
 
     const handleSave = async () => {
@@ -273,7 +272,7 @@ const SaveTemplateDialog = memo(function SaveTemplateDialog({ onSave }: { onSave
         </DialogContent>
     );
 });
-
+SaveTemplateDialog.displayName = 'SaveTemplateDialog';
 
 // --- MAIN FORM COMPONENT ---
 export function RoutineCreatorForm() {
