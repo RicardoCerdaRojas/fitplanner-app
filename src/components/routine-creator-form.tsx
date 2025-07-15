@@ -1,10 +1,11 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2, Plus, GripVertical, MoreVertical, Copy } from 'lucide-react';
+import { Trash2, Plus, GripVertical, MoreVertical, Copy, Pencil, Minus } from 'lucide-react';
 import React, { useState, useEffect, useCallback, memo } from 'react';
-import { useForm, Controller, useFieldArray, useFormContext } from 'react-hook-form';
+import { Controller, useFieldArray, useFormContext } from 'react-hook-form';
 import type { FieldValues } from 'react-hook-form';
 import {
   Dialog,
