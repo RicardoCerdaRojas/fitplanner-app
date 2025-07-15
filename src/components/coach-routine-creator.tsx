@@ -1,9 +1,10 @@
+
 'use client';
 
-import { useForm, FormProvider, useFormContext } from 'react-hook-form';
+import * as React from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +25,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage, useFormContext } from '@/components/ui/form';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AppHeader } from './app-header';
@@ -84,7 +85,7 @@ export const defaultExerciseValues: ExerciseFormValues = {
 
 function RoutineDetailsSection({ members, routineTypes }: { members: Member[], routineTypes: RoutineType[] }) {
     const { control } = useFormContext<RoutineFormValues>();
-    const [calendarOpen, setCalendarOpen] = useState(false);
+    const [calendarOpen, setCalendarOpen] = React.useState(false);
 
     const handleDateSelect = (date: Date | undefined) => {
         if(control && date) {
@@ -142,10 +143,10 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
 const TemplateLoader = React.memo(({ onTemplateLoad }: { onTemplateLoad: (template: RoutineTemplate) => void }) => {
     const { toast } = useToast();
     const { activeMembership, loading: authLoading } = useAuth();
-    const [templates, setTemplates] = useState<RoutineTemplate[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [templates, setTemplates] = React.useState<RoutineTemplate[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (authLoading || !activeMembership?.gymId) return;
 
         setIsLoading(true);
@@ -199,8 +200,12 @@ const TemplateLoader = React.memo(({ onTemplateLoad }: { onTemplateLoad: (templa
 });
 TemplateLoader.displayName = 'TemplateLoader';
 
-const SaveTemplateDialog = React.memo(({ onSave }: { onSave: (name: string) => void }) => {
-    const [name, setName] = useState('');
+const SaveTemplateDialog = React.memo(({ onSave, initialName }: { onSave: (name: string) => void, initialName: string }) => {
+    const [name, setName] = React.useState(initialName);
+
+    React.useEffect(() => {
+        setName(initialName);
+    }, [initialName]);
 
     const handleSave = () => {
         if(name.trim()) {
@@ -235,23 +240,25 @@ const SaveTemplateDialog = React.memo(({ onSave }: { onSave: (name: string) => v
 });
 SaveTemplateDialog.displayName = 'SaveTemplateDialog';
 
+
 export default function CoachRoutineCreator() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { user, activeMembership, loading: authLoading } = useAuth();
 
-  const [members, setMembers] = useState<Member[]>([]);
-  const [routineTypes, setRoutineTypes] = useState<RoutineType[]>([]);
-  const [dataToEdit, setDataToEdit] = useState<ManagedRoutine | RoutineTemplate | null>(null);
-  const [isDataLoading, setIsDataLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [members, setMembers] = React.useState<Member[]>([]);
+  const [routineTypes, setRoutineTypes] = React.useState<RoutineType[]>([]);
+  const [dataToEdit, setDataToEdit] = React.useState<ManagedRoutine | RoutineTemplate | null>(null);
+  const [isDataLoading, setIsDataLoading] = React.useState(true);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isSaveTemplateOpen, setSaveTemplateOpen] = React.useState(false);
   
   const editRoutineId = searchParams.get('edit');
   const templateId = searchParams.get('template');
   const isEditing = !!editRoutineId || !!templateId;
 
-  const defaultValues: RoutineFormValues = useMemo(() => {
+  const defaultValues: RoutineFormValues = React.useMemo(() => {
     let details: DetailsFormValues;
     let blocks: BlockFormValues[];
 
@@ -282,7 +289,7 @@ export default function CoachRoutineCreator() {
 
   const { handleSubmit, reset } = form;
 
-  const loadTemplate = useCallback((template: RoutineTemplate) => {
+  const loadTemplate = React.useCallback((template: RoutineTemplate) => {
       reset({
           details: {
             routineTypeId: template.routineTypeId,
@@ -402,6 +409,7 @@ export default function CoachRoutineCreator() {
     try {
       await addDoc(collection(db, 'routineTemplates'), dataToSave);
       toast({ title: 'Template Saved!', description: `"${templateName}" is now in your library.` });
+      setSaveTemplateOpen(false);
       router.push('/coach/templates');
     } catch (error: any) {
       console.error('Error saving template:', error);
@@ -409,7 +417,7 @@ export default function CoachRoutineCreator() {
     }
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     if(authLoading || !activeMembership?.gymId) return;
 
     const gymId = activeMembership.gymId;
@@ -482,7 +490,7 @@ export default function CoachRoutineCreator() {
 
   }, [authLoading, activeMembership, editRoutineId, templateId, router, toast, isEditing]);
 
-  useEffect(() => {
+  React.useEffect(() => {
       reset(defaultValues);
   }, [dataToEdit, reset, defaultValues]);
   
@@ -498,6 +506,15 @@ export default function CoachRoutineCreator() {
             </div>
         </div>
       )
+  }
+
+  const getInitialTemplateName = () => {
+      const routineTypeId = form.getValues('details.routineTypeId');
+      if (routineTypeId) {
+          const routineType = routineTypes.find(rt => rt.id === routineTypeId);
+          return routineType?.name || '';
+      }
+      return '';
   }
 
   return (
@@ -525,14 +542,11 @@ export default function CoachRoutineCreator() {
                               </DialogTrigger>
                               <TemplateLoader onTemplateLoad={loadTemplate} />
                          </Dialog>
-                         <Dialog>
-                              <DialogTrigger asChild>
-                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                      <Save className="mr-2 h-4 w-4" /> Save as Template
-                                  </DropdownMenuItem>
-                              </DialogTrigger>
-                              <SaveTemplateDialog onSave={handleSaveAsTemplate} />
-                         </Dialog>
+                         <DialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSaveTemplateOpen(true); }}>
+                                <Save className="mr-2 h-4 w-4" /> Save as Template
+                            </DropdownMenuItem>
+                         </DialogTrigger>
                     </DropdownMenuContent>
                 </DropdownMenu>
           </div>
@@ -564,6 +578,11 @@ export default function CoachRoutineCreator() {
                   </span>
               </Button>
           </div>
+          
+          <Dialog open={isSaveTemplateOpen} onOpenChange={setSaveTemplateOpen}>
+              <SaveTemplateDialog onSave={handleSaveAsTemplate} initialName={getInitialTemplateName()} />
+          </Dialog>
+
       </div>
   );
 }
