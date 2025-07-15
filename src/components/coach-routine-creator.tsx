@@ -456,9 +456,9 @@ export function CoachRoutineCreator() {
   }
 
   return (
-      <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between p-4 border-b bg-background">
-              <Button variant="ghost" size="sm" onClick={() => router.push('/coach')}>
+      <div className="flex flex-col h-full overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b bg-background flex-shrink-0">
+              <Button variant="ghost" size="sm" onClick={() => router.back()}>
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
               <h1 className="text-lg font-bold font-headline text-center">
@@ -481,19 +481,19 @@ export function CoachRoutineCreator() {
               </DropdownMenu>
           </div>
           
-          <Tabs defaultValue="details" className="flex-grow flex flex-col">
-            <TabsList className="w-full rounded-none justify-start px-4">
+          <Tabs defaultValue="details" className="flex-grow flex flex-col overflow-hidden">
+            <TabsList className="w-full rounded-none justify-start px-4 flex-shrink-0">
                 <TabsTrigger value="details">Details</TabsTrigger>
                 <TabsTrigger value="blocks">Blocks</TabsTrigger>
             </TabsList>
             
             <FormProvider {...form}>
-                 <TabsContent value="details" className="flex-grow p-4 pb-24">
+                 <TabsContent value="details" className="flex-grow p-4 pb-24 overflow-y-auto">
                     <RoutineDetailsSection members={members} routineTypes={routineTypes} />
                 </TabsContent>
             </FormProvider>
 
-            <TabsContent value="blocks" className="flex-grow p-4 bg-muted/30 pb-24">
+            <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 pb-24 overflow-y-auto">
                 <RoutineCreatorForm 
                     blocks={blocks}
                     onUpdateBlock={handleUpdateBlock}
@@ -509,8 +509,7 @@ export function CoachRoutineCreator() {
             </TabsContent>
           </Tabs>
           
-
-          <div className="p-4 bg-background/80 border-t backdrop-blur-sm">
+          <div className="p-4 bg-background/80 border-t backdrop-blur-sm flex-shrink-0">
               <Button onClick={onFormSubmit} size="lg" className="w-full" disabled={isSubmitting}>
                   <Send className="mr-2 h-5 w-5" />
                   <span className="text-lg">
