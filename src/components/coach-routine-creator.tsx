@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm, FormProvider, useFormContext } from 'react-hook-form';
@@ -489,12 +488,12 @@ export function CoachRoutineCreator() {
             </TabsList>
             
             <FormProvider {...form}>
-                 <TabsContent value="details" className="flex-grow p-4">
+                 <TabsContent value="details" className="flex-grow p-4 pb-24">
                     <RoutineDetailsSection members={members} routineTypes={routineTypes} />
                 </TabsContent>
             </FormProvider>
 
-            <TabsContent value="blocks" className="flex-grow p-4 bg-muted/30">
+            <TabsContent value="blocks" className="flex-grow p-4 bg-muted/30 pb-24">
                 <RoutineCreatorForm 
                     blocks={blocks}
                     onUpdateBlock={handleUpdateBlock}
