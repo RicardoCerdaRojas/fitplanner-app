@@ -4,68 +4,80 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // =================================
+    // Helper Functions
+    // =================================
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // This function checks if the requesting user has an active membership for a given gym.
-    // This is the cornerstone of our multi-tenant security.
+    // Checks if the requesting user is a member of the specified gym.
     function isMemberOfGym(gymId) {
-      return isSignedIn() && exists(/databases/$(database)/documents/memberships/$(request.auth.uid)_$(gymId));
+      return isSignedIn() && exists(path('/databases/' + database + '/documents/memberships/' + request.auth.uid + '_' + gymId));
     }
 
+    // Checks if the requesting user is the admin of the specified gym.
+    function isGymAdmin(gymId) {
+      return isSignedIn() && get(path('/databases/' + database + '/documents/gyms/' + gymId)).data.adminUid == request.auth.uid;
+    }
+
+    // =================================
+    // Collection Rules
+    // =================================
     match /users/{userId} {
       // Allow user creation from anywhere (e.g., /create-gym, /join).
       // Allow updates from unauthenticated webhooks (Stripe).
       allow create, update: if true;
       
       // Allow a user to read their own profile.
-      allow get: if isSignedIn() && request.auth.uid == userId;
+      // Allow admins to read profiles within their gym.
+      allow get: if isSignedIn() && (request.auth.uid == userId || isMemberOfGym(resource.data.gymId));
       
       // Allow listing users ONLY if the query is filtered by the gymId of which the user is a member.
-      // This is crucial for the admin dashboard to work.
-      allow list: if isMemberOfGym(request.query.gymId);
+      // This is crucial for the admin dashboard to work securely.
+      allow list: if isSignedIn() && isMemberOfGym(request.query.gymId);
     }
 
     match /gyms/{gymId} {
       // Allow a user to update a gym's profile ONLY if they are an admin of that gym.
-      allow write: if isMemberOfGym(gymId) && get(/databases/$(database)/documents/memberships/$(request.auth.uid)_$(gymId)).data.role == 'gym-admin';
-      
-      // Allow any signed-in user to read gym data (for themes, names, etc.).
-      // This is safe because gym profiles do not contain sensitive data.
-      allow read: if isSignedIn();
+      allow update: if isGymAdmin(gymId);
+      // Anyone signed in can create a gym.
+      allow create: if isSignedIn();
+      // Any member of the gym can read its profile (for theme, name, etc.).
+      allow read: if isMemberOfGym(gymId);
     }
 
     match /memberships/{membershipId} {
-      // Allow an unauthenticated user to check if an invitation exists for their email.
-      // This is required for the /join page.
-      allow get: if request.auth == null;
+        // Allow unauthenticated checks for PENDING memberships by email (document ID).
+        allow get: if request.resource == null && resource == null;
+        
+        // Allow signed-in users to list memberships ONLY if filtered by their gym.
+        allow list: if isSignedIn() && isMemberOfGym(request.query.gymId);
 
-      // Allow a user to read their own membership document.
-      allow get: if isSignedIn() && membershipId == request.auth.uid + '_' + get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId;
-
-      // Allow listing memberships ONLY if filtered by a gymId the user belongs to.
-      allow list: if isMemberOfGym(request.query.gymId);
-      
-      // Allow a user to create their own membership (when joining/creating a gym).
-      // Allow an admin to delete a membership from their gym.
-      allow write: if isSignedIn();
+        // Allow write access (creating invites, activating accounts) if the user is a gym admin.
+        allow write: if isSignedIn() && isGymAdmin(request.resource.data.gymId);
     }
     
     match /routines/{routineId} {
-        allow read, write: if isSignedIn();
+        // Allow read/write only if the user is a member of the gym associated with the routine.
+        allow read, write: if isSignedIn() && isMemberOfGym(request.resource.data.gymId);
     }
 
     match /routineTypes/{typeId} {
-        allow read, write: if isSignedIn();
+        // Allow read for any member of the gym.
+        allow read: if isSignedIn() && isMemberOfGym(get(path('/databases/' + database + '/documents/routineTypes/' + typeId)).data.gymId);
+        // Allow write only for gym admins.
+        allow write: if isSignedIn() && isGymAdmin(request.resource.data.gymId);
     }
     
     match /routineTemplates/{templateId} {
-        allow read, write: if isSignedIn();
+        // Allow read/write only if the user is a member of the gym associated with the template.
+        allow read, write: if isSignedIn() && isMemberOfGym(request.resource.data.gymId);
     }
     
     match /workoutSessions/{sessionId} {
-      allow read, write: if isSignedIn();
+      // Allow read/write only if the user is the one in the session.
+      allow read, write: if isSignedIn() && request.auth.uid == sessionId;
     }
   }
 }
