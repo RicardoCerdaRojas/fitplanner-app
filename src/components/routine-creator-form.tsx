@@ -4,7 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2, Library, Save, Plus, GripVertical, MoreVertical, Copy, Pencil, Minus, Check } from 'lucide-react';
-import { useState, useEffect, useCallback, ChangeEvent } from 'react';
+import React, { useState, useEffect, useCallback, ChangeEvent } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/contexts/auth-context';
@@ -165,7 +165,7 @@ export function TemplateLoader({ onTemplateLoad }: { onTemplateLoad: (template: 
     )
 }
 
-export function SaveTemplateDialog({ onSave }: { onSave: (name: string) => Promise<void> }) {
+export const SaveTemplateDialog = React.memo(({ onSave }: { onSave: (name: string) => Promise<void> }) => {
     const [open, setOpen] = useState(false);
     const [name, setName] = useState('');
 
@@ -205,7 +205,9 @@ export function SaveTemplateDialog({ onSave }: { onSave: (name: string) => Promi
             </DialogContent>
         </Dialog>
     );
-}
+});
+SaveTemplateDialog.displayName = 'SaveTemplateDialog';
+
 
 function ExerciseSheet({
     exercise,
