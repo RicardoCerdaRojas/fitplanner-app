@@ -76,7 +76,7 @@ export default function LoginPage() {
             <CardHeader className="text-center">
                 <div className="flex justify-center items-center gap-3 mb-2">
                     <h1 className="text-3xl font-black tracking-tighter bg-gradient-to-r from-emerald-400 to-blue-400 text-transparent bg-clip-text">
-                      Fit Planner
+                      Bienvenido de Vuelta
                     </h1>
                 </div>
               <CardDescription className="text-gray-400">Accede a tu cuenta para continuar</CardDescription>
@@ -130,7 +130,7 @@ export default function LoginPage() {
                 <p className="w-full text-gray-400">
                     No tienes una cuenta?{' '}
                     <Link href="/signup" className="text-emerald-400 font-semibold hover:underline">
-                        Regístrate
+                        Regístrate aquí
                     </Link>
                 </p>
             </CardFooter>

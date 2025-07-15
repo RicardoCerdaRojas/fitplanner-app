@@ -165,7 +165,7 @@ export default function SignupPage() {
                     )}
                   />
                   <Button type="submit" className="w-full bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-base py-6" disabled={form.formState.isSubmitting}>
-                    {form.formState.isSubmitting ? 'Creando cuenta...' : 'Crear Cuenta'}
+                    {form.formState.isSubmitting ? 'Creando cuenta...' : 'Crear Cuenta y Continuar'}
                   </Button>
                 </form>
               </Form>
