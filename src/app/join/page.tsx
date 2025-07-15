@@ -22,7 +22,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc, writeBatch, Timestamp, query, collection, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, useCallback } from 'react';
 import { AppHeader } from '@/components/app-header';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle, Mail, AlertTriangle, User, Lock } from 'lucide-react';
@@ -59,7 +59,7 @@ export default function JoinPage() {
     }
   }, [user, loading, router]);
   
-  const checkEmail = async (email: string) => {
+  const checkEmail = useCallback(async (email: string) => {
     if (!z.string().email().safeParse(email).success) {
       setEmailStatus('idle');
       return;
@@ -74,17 +74,25 @@ export default function JoinPage() {
       setGymName(membershipSnap.data().gymName);
       setEmailStatus('valid');
     } else {
-        const userQuery = query(collection(db, 'users'), where('email', '==', email.toLowerCase()));
-        const userSnap = await getDocs(userQuery);
-        if (!userSnap.empty) {
-            setEmailStatus('registered');
-        } else {
-            setEmailStatus('invalid');
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("email", "==", email.toLowerCase()));
+        
+        try {
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                setEmailStatus('registered');
+            } else {
+                setEmailStatus('invalid');
+            }
+        } catch (error) {
+            console.error("Error checking user email:", error);
+            // Fallback for safety, though rules should prevent this.
+            setEmailStatus('invalid'); 
         }
     }
-  };
+  }, []);
   
-  const debouncedCheckEmail = debounce(checkEmail, 500);
+  const debouncedCheckEmail = useCallback(debounce(checkEmail, 500), [checkEmail]);
   
   useEffect(() => {
       debouncedCheckEmail(emailValue);
