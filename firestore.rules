@@ -3,62 +3,34 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    function isMemberOfGym(gymId) {
-      // Corrected path construction for dynamic documents
-      return exists(path('/databases/' + database + '/documents/memberships/' + request.auth.uid + '_' + gymId));
-    }
-    
-    function isGymAdmin(gymId) {
-      // Corrected path construction
-      let membershipPath = path('/databases/' + database + '/documents/memberships/' + request.auth.uid + '_' + gymId);
-      return exists(membershipPath) && get(membershipPath).data.role == 'gym-admin';
-    }
-
     function isSignedIn() {
       return request.auth != null;
     }
 
+    // Default minimalist rules for most collections
+    match /{document=**} {
+      allow read, write: if isSignedIn();
+    }
+    
+    // Specific exceptions for unauthenticated flows
+
     match /users/{userId} {
-      allow create: if true;
-      allow update: if true;
-      
-      allow get: if isSignedIn();
-      // Allow listing users if part of the same gym OR if querying by email for the join page
-      allow list: if (isSignedIn() && isMemberOfGym(request.query.gymId)) || (request.query.keys.hasAny(['email']));
+       // Allow user creation on signup and updates from webhooks.
+      allow create, update: if true;
+      allow read, delete: if isSignedIn();
     }
 
     match /gyms/{gymId} {
-      // Only the gym admin can modify their gym's settings
-      allow write: if isGymAdmin(gymId);
-      allow read: if isSignedIn();
+        // Allow gym creation.
+        allow create: if true;
+        allow read, update, delete: if isSignedIn();
     }
 
     match /memberships/{membershipId} {
-        // Unauthenticated users can check for pending invitations on the /join page
-        allow get: if request.auth == null || isSignedIn();
-        // Corrected the typo from isMemberOfgGym to isMemberOfGym
-        // Only signed-in members of a gym can list other memberships of that same gym
-        allow list: if isSignedIn() && isMemberOfGym(request.query.gymId);
-        // Writing (creating/deleting invitations) should be restricted to admins
-        allow write: if isSignedIn(); // Simplified for now, can be tightened to admin-only later
-    }
-    
-    match /routines/{routineId} {
-        allow read, write: if isSignedIn();
-    }
-
-    match /routineTypes/{typeId} {
-        // Only gym admins can manage routine types for their gym
-        allow write: if isGymAdmin(resource.data.gymId);
-        allow read, create: if isSignedIn();
-    }
-    
-    match /routineTemplates/{templateId} {
-        allow read, write: if isSignedIn();
-    }
-    
-    match /workoutSessions/{sessionId} {
-      allow read, write: if isSignedIn();
+        // Allow unauthenticated checks for pending memberships by email on the /join page.
+        allow get: if true;
+        // Allow signed-in users to manage memberships.
+        allow list, write: if isSignedIn();
     }
   }
 }
