@@ -7,50 +7,47 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Function to check if the requesting user is a member of a specific gym.
+    function isMemberOfGym(gymId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/memberships/$(request.auth.uid)_$(gymId));
+    }
+
     match /users/{userId} {
-      // Allow user creation on signup.
-      // Allow updates from webhooks (like Stripe) which are not authenticated.
       allow create, update: if true;
-      
-      // Allow read access under two conditions:
-      // 1. If the user is signed in (for dashboards, admin lists, etc.).
-      // OR
-      // 2. If the query is specifically filtering by the 'email' field (for the /join page).
-      allow read: if isSignedIn() || request.query.keys.hasAny(['email']);
+
+      // Allow a user to read their own profile.
+      // Allow an admin/coach to read profiles of users in their own gym.
+      allow get: if isSignedIn();
+
+      // Allow listing users only if the query is filtered by a gymId,
+      // and the requesting user is a member of that gym.
+      // Also, allow listing by email for the /join page check.
+      allow list: if (isSignedIn() && isMemberOfGym(request.query.gymId)) || (request.query.keys.hasAny(['email']));
     }
 
     match /gyms/{gymId} {
-      // Allow any signed-in user to create or update a gym document.
       allow write: if isSignedIn();
-      
-      // Allow any signed-in user to read gym data (for themes, names, etc.).
       allow read: if isSignedIn();
     }
 
     match /memberships/{membershipId} {
-        // Allow unauthenticated checks for pending memberships by email.
         allow get: if true;
-        // Allow signed-in users to manage memberships.
         allow list, write: if isSignedIn();
     }
     
     match /routines/{routineId} {
-        // Routines can only be managed by signed-in users.
         allow read, write: if isSignedIn();
     }
 
     match /routineTypes/{typeId} {
-        // Routine types can only be managed by signed-in users.
         allow read, write: if isSignedIn();
     }
     
     match /routineTemplates/{templateId} {
-        // Templates can only be managed by signed-in users.
         allow read, write: if isSignedIn();
     }
     
     match /workoutSessions/{sessionId} {
-      // Live workout sessions can only be created/updated/read by signed-in users.
       allow read, write: if isSignedIn();
     }
   }

@@ -42,6 +42,7 @@ type Member = {
     dob?: Timestamp;
     gender?: 'male' | 'female' | 'other';
     gymName: string;
+    gymId: string;
 };
 
 type PendingMembership = {
@@ -67,18 +68,26 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
     const [selectedUser, setSelectedUser] = useState<CombinedUser | null>(null);
     
     useEffect(() => {
+        if (!gymId) return;
         setIsLoading(true);
+
         const usersQuery = query(collection(db, 'users'), where('gymId', '==', gymId));
         const pendingQuery = query(collection(db, 'memberships'), where('gymId', '==', gymId), where('status', '==', 'pending'));
 
         const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
             const fetchedUsers = snapshot.docs.map(doc => ({ id: doc.id, type: 'member' as const, ...doc.data() } as Member));
             setAllUsers(prev => [...fetchedUsers, ...prev.filter(p => p.type !== 'member')]);
+        }, (error) => {
+            console.error("Error fetching users:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not load users. Check permissions.' });
         });
 
         const unsubscribePending = onSnapshot(pendingQuery, (snapshot) => {
             const fetchedPending = snapshot.docs.map(doc => ({ id: doc.id, type: 'pending' as const, ...doc.data() } as PendingMembership));
             setAllUsers(prev => [...fetchedPending, ...prev.filter(p => p.type !== 'pending')]);
+        }, (error) => {
+            console.error("Error fetching pending members:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not load pending members. Check permissions.' });
         });
         
         const timer = setTimeout(() => setIsLoading(false), 1500);
@@ -88,22 +97,29 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
             unsubscribePending();
             clearTimeout(timer);
         };
-    }, [gymId]);
+    }, [gymId, toast]);
     
     async function deleteItem(item: CombinedUser) {
-        const collectionName = item.type === 'member' ? 'memberships' : 'memberships';
-        const docId = item.type === 'member' ? `${item.id}_${gymId}` : item.id;
-        
-        if (!window.confirm(`Are you sure you want to delete ${item.name || item.email}? This action cannot be undone.`)) return;
+        if (item.type === 'member' && item.role === 'gym-admin') {
+            toast({ variant: 'destructive', title: 'Action Forbidden', description: 'Cannot delete the primary gym admin.' });
+            return;
+        }
+
+        const isConfirmed = window.confirm(`Are you sure you want to delete ${item.name || item.email}? This action cannot be undone.`);
+        if (!isConfirmed) return;
         
         try {
-            await deleteDoc(doc(db, collectionName, docId));
-            if(item.type === 'member') {
-                // Also clear gymId from user profile
+            if (item.type === 'member') {
+                const membershipId = `${item.id}_${item.gymId}`;
+                await deleteDoc(doc(db, 'memberships', membershipId));
+                // We're not deleting the user document, just their link to this gym.
                 await updateDoc(doc(db, 'users', item.id), { gymId: null, role: null });
+            } else {
+                await deleteDoc(doc(db, 'memberships', item.id));
             }
             toast({ title: `Record Deleted`, description: `${item.name || item.email} has been removed.`});
         } catch (error) {
+            console.error("Error deleting item:", error);
             toast({ variant: 'destructive', title: 'Error', description: 'Could not delete the item.' });
         }
     }
@@ -126,8 +142,9 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
         return allUsers
             .filter(user => {
                 const searchLower = searchTerm.toLowerCase();
+                const name = (user.type === 'member') ? user.name : 'Pending Invitation';
                 const matchesSearch = searchLower === '' ||
-                    user.name?.toLowerCase().includes(searchLower) ||
+                    name?.toLowerCase().includes(searchLower) ||
                     user.email.toLowerCase().includes(searchLower);
 
                 const matchesFilter = roleFilter === 'all' ||
@@ -136,7 +153,11 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                 
                 return matchesSearch && matchesFilter;
             })
-            .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
+            .sort((a, b) => {
+                const nameA = a.type === 'member' ? a.name : 'Pending';
+                const nameB = b.type === 'member' ? b.name : 'Pending';
+                return (nameA || a.email).localeCompare(nameB || b.email);
+            });
     }, [allUsers, searchTerm, roleFilter]);
 
 
@@ -237,14 +258,14 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                                 <div key={user.id} className="flex items-center gap-4 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
                                     <Avatar>
                                         <AvatarFallback>
-                                            {user.name ? user.name.charAt(0).toUpperCase() : <User />}
+                                            {user.type === 'member' && user.name ? user.name.charAt(0).toUpperCase() : <User />}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-center">
                                         <div className="sm:col-span-1">
                                             <div className='flex items-center gap-2'>
                                                 {getRoleIcon(user)}
-                                                <p className="font-semibold truncate">{user.name || 'No Name'}</p>
+                                                <p className="font-semibold truncate">{user.type === 'member' ? user.name : 'Pending Invitation'}</p>
                                             </div>
                                             <p className="text-sm text-muted-foreground truncate">{user.email}</p>
                                         </div>
@@ -262,12 +283,12 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                                             {user.type === 'member' && user.role !== 'gym-admin' && (
                                                 <DropdownMenuItem asChild>
                                                     <Link href={`/coach?memberId=${user.id}`}>
-                                                        <ClipboardList className="mr-2" /> View Routines
+                                                        <ClipboardList className="mr-2 h-4 w-4" /> View Routines
                                                     </Link>
                                                 </DropdownMenuItem>
                                             )}
                                             <DropdownMenuItem onClick={() => deleteItem(user)} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
-                                                <Trash2 className="mr-2" /> Delete
+                                                <Trash2 className="mr-2 h-4 w-4" /> Delete
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
@@ -282,7 +303,7 @@ export function AdminUserManagement({ gymId }: { gymId: string }) {
                 <DialogContent>
                     <DialogHeader>
                          <DialogTitle>
-                            {dialogType === 'addMember' ? 'Add New Member' : `Edit Profile: ${selectedUser?.name}`}
+                            {dialogType === 'addMember' ? 'Add New Member' : `Edit Profile: ${selectedUser?.type === 'member' ? selectedUser.name : ''}`}
                         </DialogTitle>
                         <DialogDescription>
                             {dialogType === 'addMember' 
