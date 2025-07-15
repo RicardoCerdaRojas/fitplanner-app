@@ -16,10 +16,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useFieldArray, useFormContext } from 'react-hook-form';
 import type { FieldValues } from 'react-hook-form';
 import { defaultExerciseValues } from './coach-routine-creator';
-import type { BlockFormValues, ExerciseFormValues } from './coach-routine-creator';
+import type { RoutineFormValues, BlockFormValues, ExerciseFormValues } from './coach-routine-creator';
 
 // New, robust stepper component
 function Stepper({ value, onIncrement, onDecrement }: { value: string, onIncrement: () => void, onDecrement: () => void }) {
@@ -38,43 +38,65 @@ function Stepper({ value, onIncrement, onDecrement }: { value: string, onIncreme
 
 
 function EditableBlockHeader({
-  block,
-  onUpdate,
-  onAddExercise,
+  blockIndex,
   onDuplicateBlock,
   onRemoveBlock,
-  onIncrementSets,
-  onDecrementSets,
 }: {
-  block: BlockFormValues,
-  onUpdate: (field: keyof BlockFormValues, value: string) => void,
-  onAddExercise: () => void,
+  blockIndex: number,
   onDuplicateBlock: () => void,
   onRemoveBlock: () => void,
-  onIncrementSets: () => void;
-  onDecrementSets: () => void;
 }) {
+  const { control, watch, setValue } = useFormContext<RoutineFormValues>();
+  const block = watch(`blocks.${blockIndex}`);
+
+  const handleUpdate = (field: keyof BlockFormValues, value: any) => {
+    setValue(`blocks.${blockIndex}.${field}`, value);
+  };
+  
+  const handleAddExercise = () => {
+    const currentExercises = watch(`blocks.${blockIndex}.exercises`);
+    setValue(`blocks.${blockIndex}.exercises`, [...currentExercises, { ...defaultExerciseValues, name: `New Exercise ${currentExercises.length + 1}` }])
+  };
+
+  const handleIncrementSets = () => {
+    const currentSets = parseInt(block.sets, 10) || 0;
+    handleUpdate('sets', String(currentSets + 1));
+  };
+    
+  const handleDecrementSets = () => {
+    const currentSets = parseInt(block.sets, 10) || 0;
+    if (currentSets > 1) {
+        handleUpdate('sets', String(currentSets - 1));
+    }
+  };
+
 
   return (
     <div className="flex flex-row items-center justify-between bg-muted p-2 md:p-3 rounded-t-xl">
       <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab shrink-0" />
-      <Input 
-        value={block.name} 
-        onChange={(e) => onUpdate('name', e.target.value)} 
-        className="text-lg font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent flex-1 mx-2"
+      <Controller
+        name={`blocks.${blockIndex}.name`}
+        control={control}
+        render={({ field }) => (
+            <Input 
+                {...field}
+                className="text-lg font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent flex-1 mx-2"
+            />
+        )}
       />
+      
       <div className="flex items-center gap-1 md:gap-2">
          <Stepper 
             value={block.sets}
-            onIncrement={onIncrementSets}
-            onDecrement={onDecrementSets}
+            onIncrement={handleIncrementSets}
+            onDecrement={handleDecrementSets}
          />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon"><MoreVertical className="h-5 w-5" /></Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onAddExercise}><Plus className="mr-2 h-4 w-4" /> Add Exercise</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleAddExercise}><Plus className="mr-2 h-4 w-4" /> Add Exercise</DropdownMenuItem>
             <DropdownMenuItem onClick={onDuplicateBlock}><Copy className="mr-2 h-4 w-4" /> Duplicate Block</DropdownMenuItem>
             <DropdownMenuItem onClick={onRemoveBlock} className="text-destructive focus:bg-destructive/10"><Trash2 className="mr-2 h-4 w-4" /> Delete Block</DropdownMenuItem>
           </DropdownMenuContent>
@@ -281,56 +303,59 @@ function ExerciseSheet({
 
 // --- MAIN FORM COMPONENT ---
 type RoutineCreatorFormProps = {
-    blocks: BlockFormValues[];
-    onUpdateBlock: (blockId: string, updatedFields: Partial<BlockFormValues>) => void;
-    onAddBlock: () => void;
-    onRemoveBlock: (blockId: string) => void;
-    onDuplicateBlock: (blockId: string) => void;
-    onAddExercise: (blockId: string) => void;
-    onRemoveExercise: (blockId: string, exerciseIndex: number) => void;
-    onSaveExercise: (blockId: string, exerciseIndex: number, updatedExercise: ExerciseFormValues) => void;
-    onIncrementSets: (blockId: string) => void;
-    onDecrementSets: (blockId: string) => void;
+    control: any; // Simplified for this context
 }
-export function RoutineCreatorForm({ 
-    blocks,
-    onUpdateBlock,
-    onAddBlock,
-    onRemoveBlock,
-    onDuplicateBlock,
-    onAddExercise,
-    onRemoveExercise,
-    onSaveExercise,
-    onIncrementSets,
-    onDecrementSets,
-}: RoutineCreatorFormProps) {
-    const [editingExercise, setEditingExercise] = useState<{ blockId: string; exerciseIndex: number; exercise: ExerciseFormValues } | null>(null);
+export function RoutineCreatorForm({ control }: RoutineCreatorFormProps) {
+    const { fields, append, remove, insert } = useFieldArray({
+        control,
+        name: "blocks",
+    });
+    
+    const [editingExercise, setEditingExercise] = useState<{ blockIndex: number; exerciseIndex: number; exercise: ExerciseFormValues } | null>(null);
 
-    const handleSaveAndCloseSheet = (updatedExercise: ExerciseFormValues) => {
+    const { setValue, getValues } = useFormContext<RoutineFormValues>();
+
+    const onSaveExercise = (updatedExercise: ExerciseFormValues) => {
         if (!editingExercise) return;
-        onSaveExercise(editingExercise.blockId, editingExercise.exerciseIndex, updatedExercise);
+        setValue(`blocks.${editingExercise.blockIndex}.exercises.${editingExercise.exerciseIndex}`, updatedExercise);
         setEditingExercise(null);
     };
 
+    const onAddBlock = () => {
+        append({ id: crypto.randomUUID(), name: `Block ${fields.length + 1}`, sets: '4', exercises: [] });
+    };
+
+    const onRemoveBlock = (index: number) => {
+        remove(index);
+    };
+    
+    const onDuplicateBlock = (index: number) => {
+        const blockToDuplicate = getValues(`blocks.${index}`);
+        insert(index + 1, { ...blockToDuplicate, id: crypto.randomUUID() });
+    };
+
+    const onRemoveExercise = (blockIndex: number, exerciseIndex: number) => {
+        const currentExercises = getValues(`blocks.${blockIndex}.exercises`);
+        currentExercises.splice(exerciseIndex, 1);
+        setValue(`blocks.${blockIndex}.exercises`, currentExercises);
+    };
+
+
     return (
         <div className="space-y-4">
-            {blocks.map((block) => (
-                <div key={block.id} className="bg-card rounded-xl border">
+            {fields.map((field, index) => (
+                <div key={field.id} className="bg-card rounded-xl border">
                     <EditableBlockHeader
-                        block={block}
-                        onUpdate={(field, value) => onUpdateBlock(block.id, { [field]: value })}
-                        onAddExercise={() => onAddExercise(block.id)}
-                        onDuplicateBlock={() => onDuplicateBlock(block.id)}
-                        onRemoveBlock={() => onRemoveBlock(block.id)}
-                        onIncrementSets={() => onIncrementSets(block.id)}
-                        onDecrementSets={() => onDecrementSets(block.id)}
+                        blockIndex={index}
+                        onDuplicateBlock={() => onDuplicateBlock(index)}
+                        onRemoveBlock={() => onRemoveBlock(index)}
                     />
                     <div className="p-3 space-y-2">
-                       {block.exercises.map((exercise, exIndex) => (
+                       {getValues(`blocks.${index}.exercises`).map((exercise: ExerciseFormValues, exIndex: number) => (
                            <div 
                                 key={exIndex}
                                 className="flex items-center gap-2 p-2 rounded-md border bg-background group"
-                                onClick={() => setEditingExercise({ blockId: block.id, exerciseIndex: exIndex, exercise })}
+                                onClick={() => setEditingExercise({ blockIndex: index, exerciseIndex: exIndex, exercise })}
                            >
                                 <div className="flex-1 cursor-pointer">
                                     <p className="font-semibold">{exercise.name}</p>
@@ -342,12 +367,15 @@ export function RoutineCreatorForm({
                                 <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
                                     <Pencil className="h-4 w-4"/>
                                 </Button>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); onRemoveExercise(block.id, exIndex); }}>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); onRemoveExercise(index, exIndex); }}>
                                     <Trash2 className="h-4 w-4"/>
                                 </Button>
                            </div>
                        ))}
-                       <Button variant="outline" className="w-full" onClick={() => onAddExercise(block.id)}>
+                       <Button variant="outline" className="w-full" onClick={() => {
+                            const currentExercises = getValues(`blocks.${index}.exercises`);
+                            setValue(`blocks.${index}.exercises`, [...currentExercises, { ...defaultExerciseValues, name: `New Exercise ${currentExercises.length + 1}` }])
+                       }}>
                          <Plus className="mr-2 h-4 w-4" /> Add Exercise
                        </Button>
                     </div>
@@ -362,7 +390,7 @@ export function RoutineCreatorForm({
                 isOpen={!!editingExercise}
                 onOpenChange={(isOpen) => !isOpen && setEditingExercise(null)}
                 exercise={editingExercise?.exercise ?? null}
-                onSave={handleSaveAndCloseSheet}
+                onSave={onSaveExercise}
             />
         </div>
     );

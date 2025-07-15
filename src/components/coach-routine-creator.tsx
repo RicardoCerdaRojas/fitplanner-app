@@ -25,7 +25,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage, useFormContext } from '@/components/ui/form';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AppHeader } from './app-header';
@@ -59,10 +59,14 @@ const routineDetailsSchema = z.object({
   routineDate: z.date().optional(),
 });
 
-export type RoutineFormValues = {
-  details: z.infer<typeof routineDetailsSchema>;
-  blocks: z.infer<typeof blockSchema>[];
-}
+const routineSchema = z.object({
+  details: routineDetailsSchema,
+  blocks: z.array(blockSchema).min(1, 'Please add at least one block.'),
+});
+
+
+export type RoutineFormValues = z.infer<typeof routineSchema>;
+export type DetailsFormValues = z.infer<typeof routineDetailsSchema>;
 export type BlockFormValues = z.infer<typeof blockSchema>;
 export type ExerciseFormValues = z.infer<typeof exerciseSchema>;
 
@@ -76,12 +80,12 @@ export const defaultExerciseValues: ExerciseFormValues = {
 };
 
 function RoutineDetailsSection({ members, routineTypes }: { members: Member[], routineTypes: RoutineType[] }) {
-    const { control, setValue } = useForm<z.infer<typeof routineDetailsSchema>>();
+    const { control } = useFormContext<RoutineFormValues>();
     const [calendarOpen, setCalendarOpen] = useState(false);
 
     return (
         <div className="space-y-6">
-            <FormField control={control} name="memberId" render={({ field }) => (
+            <FormField control={control} name="details.memberId" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Member</FormLabel>
                     <MemberCombobox members={members} value={field.value ?? ''} onChange={field.onChange} />
@@ -89,7 +93,7 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
                 </FormItem>
             )} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <FormField control={control} name="routineTypeId" render={({ field }) => (
+                <FormField control={control} name="details.routineTypeId" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Routine Type</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value || ''}>
@@ -101,7 +105,7 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
                         <FormMessage />
                     </FormItem>
                 )} />
-                <FormField control={control} name="routineDate" render={({ field }) => (
+                <FormField control={control} name="details.routineDate" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Routine Date</FormLabel>
                         <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
@@ -137,51 +141,63 @@ export default function CoachRoutineCreator() {
   const [dataToEdit, setDataToEdit] = useState<ManagedRoutine | RoutineTemplate | null>(null);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [blocks, setBlocks] = useState<BlockFormValues[]>([]);
   
   const editRoutineId = searchParams.get('edit');
   const templateId = searchParams.get('template');
   const isEditing = !!editRoutineId || !!templateId;
 
-  const defaultDetails = useMemo(() => {
+  const defaultValues: RoutineFormValues = useMemo(() => {
+    let details: DetailsFormValues;
+    let blocks: BlockFormValues[];
+
     if (dataToEdit) {
       const isRoutine = 'memberId' in dataToEdit;
-      return {
+      details = {
         routineTypeId: dataToEdit.routineTypeId || '',
         memberId: isRoutine ? dataToEdit.memberId : '',
         routineDate: isRoutine ? dataToEdit.routineDate : new Date(),
-      }
+      };
+      blocks = dataToEdit.blocks.map(b => ({ ...b, id: crypto.randomUUID() }));
+    } else {
+      details = {
+        routineTypeId: '',
+        memberId: '',
+        routineDate: new Date(),
+      };
+      blocks = [{ name: 'Warm-up', sets: '4', exercises: [], id: crypto.randomUUID() }];
     }
-    return {
-      routineTypeId: '',
-      memberId: '',
-      routineDate: new Date(),
-    };
+    return { details, blocks };
   }, [dataToEdit]);
 
-  const form = useForm<z.infer<typeof routineDetailsSchema>>({
-    resolver: zodResolver(routineDetailsSchema),
-    defaultValues: defaultDetails,
+  const form = useForm<RoutineFormValues>({
+    resolver: zodResolver(routineSchema),
+    defaultValues: defaultValues,
     mode: 'onBlur'
   });
 
-  const { getValues, handleSubmit, reset } = form;
+  const { handleSubmit, reset, watch, control } = form;
+  const blocks = watch('blocks');
+
 
   const loadTemplate = useCallback((template: RoutineTemplate) => {
       reset({
-          routineTypeId: template.routineTypeId,
-          memberId: '',
-          routineDate: new Date(),
+          details: {
+            routineTypeId: template.routineTypeId,
+            memberId: '',
+            routineDate: new Date(),
+          },
+          blocks: template.blocks.map(b => ({...b, id: crypto.randomUUID()})),
       });
-      setBlocks(template.blocks.map(b => ({...b, id: crypto.randomUUID()})));
       toast({title: "Template Loaded", description: `"${template.templateName}" has been loaded into the editor.`});
   }, [reset, toast]);
   
-  const onFormSubmit = handleSubmit(async (details) => {
+  const onFormSubmit = handleSubmit(async (data) => {
     if (!user || !activeMembership?.gymId) {
       toast({ variant: 'destructive', title: 'Not Authenticated', description: 'You must be logged in to save a routine.' });
       return;
     }
+
+    const { details, blocks } = data;
 
     if (!details.memberId || !details.routineDate) {
         toast({ variant: 'destructive', title: 'Missing Information', description: 'Please select a member and a date to assign the routine.' });
@@ -250,7 +266,7 @@ export default function CoachRoutineCreator() {
       return;
     }
 
-    const details = getValues();
+    const { details, blocks } = form.getValues();
     const selectedRoutineType = routineTypes.find((rt) => rt.id === details.routineTypeId);
 
     if (!selectedRoutineType) {
@@ -288,83 +304,6 @@ export default function CoachRoutineCreator() {
       console.error('Error saving template:', error);
       toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
     }
-  };
-
-  const handleAddBlock = () => {
-    setBlocks(prev => [...prev, { id: crypto.randomUUID(), name: `Block ${prev.length + 1}`, sets: '4', exercises: [] }]);
-  };
-
-  const handleUpdateBlock = (blockId: string, updatedFields: Partial<BlockFormValues>) => {
-    setBlocks(prev => prev.map(b => (b.id === blockId ? { ...b, ...updatedFields } : b)));
-  };
-
-  const handleRemoveBlock = (blockId: string) => {
-    setBlocks(prev => prev.filter(b => b.id !== blockId));
-  };
-
-  const handleDuplicateBlock = (blockId: string) => {
-    setBlocks(prev => {
-      const blockToDuplicate = prev.find(b => b.id === blockId);
-      if (!blockToDuplicate) return prev;
-      const newBlock = { ...blockToDuplicate, id: crypto.randomUUID() };
-      const index = prev.findIndex(b => b.id === blockId);
-      const newBlocks = [...prev];
-      newBlocks.splice(index + 1, 0, newBlock);
-      return newBlocks;
-    });
-  };
-
-  const handleAddExercise = (blockId: string) => {
-    setBlocks(prev => prev.map(b => {
-      if (b.id === blockId) {
-        return { ...b, exercises: [...b.exercises, { ...defaultExerciseValues, name: `New Exercise ${b.exercises.length + 1}` }] };
-      }
-      return b;
-    }));
-  };
-
-  const handleRemoveExercise = (blockId: string, exerciseIndex: number) => {
-    setBlocks(prev => prev.map(b => {
-      if (b.id === blockId) {
-        const newExercises = [...b.exercises];
-        newExercises.splice(exerciseIndex, 1);
-        return { ...b, exercises: newExercises };
-      }
-      return b;
-    }));
-  };
-
-  const handleSaveExercise = (blockId: string, exerciseIndex: number, updatedExercise: ExerciseFormValues) => {
-    setBlocks(prev => prev.map(b => {
-      if (b.id === blockId) {
-        const newExercises = [...b.exercises];
-        newExercises[exerciseIndex] = updatedExercise;
-        return { ...b, exercises: newExercises };
-      }
-      return b;
-    }));
-  };
-
-  const handleIncrementSets = (blockId: string) => {
-    setBlocks(prev => prev.map(b => {
-        if (b.id === blockId) {
-            const currentSets = parseInt(b.sets, 10) || 0;
-            return { ...b, sets: String(currentSets + 1) };
-        }
-        return b;
-    }));
-  };
-    
-  const handleDecrementSets = (blockId: string) => {
-    setBlocks(prev => prev.map(b => {
-        if (b.id === blockId) {
-            const currentSets = parseInt(b.sets, 10) || 0;
-            if (currentSets > 1) {
-                return { ...b, sets: String(currentSets - 1) };
-            }
-        }
-        return b;
-    }));
   };
 
   useEffect(() => {
@@ -417,9 +356,6 @@ export default function CoachRoutineCreator() {
                 ...((data.routineDate instanceof Timestamp) && { routineDate: data.routineDate.toDate() }),
             } as ManagedRoutine | RoutineTemplate;
             setDataToEdit(loadedData);
-            if (data.blocks) {
-                setBlocks(data.blocks.map((b: any) => ({...b, id: crypto.randomUUID()})));
-            }
           } else {
             toast({ variant: 'destructive', title: 'Error', description: 'Item to edit not found.' });
             router.push('/coach');
@@ -435,10 +371,7 @@ export default function CoachRoutineCreator() {
     };
 
     fetchEditData();
-    if (!isEditing) {
-        setBlocks([{ name: 'Warm-up', sets: '4', exercises: [], id: crypto.randomUUID() }]);
-    }
-
+    
     return () => {
       unsubscribeMembers();
       unsubscribeTypes();
@@ -447,8 +380,8 @@ export default function CoachRoutineCreator() {
   }, [authLoading, activeMembership, editRoutineId, templateId, router, toast, isEditing]);
 
   useEffect(() => {
-      reset(defaultDetails);
-  }, [dataToEdit, reset, defaultDetails]);
+      reset(defaultValues);
+  }, [dataToEdit, reset, defaultValues]);
   
   if (isDataLoading || authLoading) {
       return (
@@ -491,35 +424,24 @@ export default function CoachRoutineCreator() {
               </DropdownMenu>
           </div>
           
-          <div className="flex-1 flex flex-col overflow-y-auto">
-            <Tabs defaultValue="details" className="flex-grow flex flex-col h-full">
-                <TabsList className="w-full rounded-none justify-start px-4 flex-shrink-0">
-                    <TabsTrigger value="details">Details</TabsTrigger>
-                    <TabsTrigger value="blocks">Blocks</TabsTrigger>
-                </TabsList>
-                
-                <FormProvider {...form}>
-                     <TabsContent value="details" className="flex-grow p-4 md:p-6 overflow-y-auto">
-                        <RoutineDetailsSection members={members} routineTypes={routineTypes} />
-                    </TabsContent>
-                </FormProvider>
+          <FormProvider {...form}>
+            <div className="flex-1 flex flex-col overflow-y-auto">
+              <Tabs defaultValue="details" className="flex-grow flex flex-col h-full">
+                  <TabsList className="w-full rounded-none justify-start px-4 flex-shrink-0">
+                      <TabsTrigger value="details">Details</TabsTrigger>
+                      <TabsTrigger value="blocks">Blocks</TabsTrigger>
+                  </TabsList>
+                  
+                      <TabsContent value="details" className="flex-grow p-4 md:p-6 overflow-y-auto pb-24">
+                          <RoutineDetailsSection members={members} routineTypes={routineTypes} />
+                      </TabsContent>
 
-                <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 md:p-6 overflow-y-auto pb-24">
-                    <RoutineCreatorForm 
-                        blocks={blocks}
-                        onUpdateBlock={handleUpdateBlock}
-                        onAddBlock={handleAddBlock}
-                        onRemoveBlock={handleRemoveBlock}
-                        onDuplicateBlock={handleDuplicateBlock}
-                        onAddExercise={handleAddExercise}
-                        onRemoveExercise={handleRemoveExercise}
-                        onSaveExercise={handleSaveExercise}
-                        onIncrementSets={handleIncrementSets}
-                        onDecrementSets={handleDecrementSets}
-                    />
-                </TabsContent>
-            </Tabs>
-          </div>
+                      <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 md:p-6 overflow-y-auto pb-24">
+                          <RoutineCreatorForm control={control} />
+                      </TabsContent>
+              </Tabs>
+            </div>
+          </FormProvider>
           
           <div className="flex-shrink-0 p-4 bg-background border-t">
               <Button onClick={onFormSubmit} size="lg" className="w-full" disabled={isSubmitting}>
