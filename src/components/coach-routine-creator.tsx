@@ -344,7 +344,7 @@ export function CoachRoutineCreator() {
   const handleIncrementSets = (blockId: string) => {
     setBlocks(prev => prev.map(b => {
         if (b.id === blockId) {
-            const currentSets = parseInt(b.sets, 10);
+            const currentSets = parseInt(b.sets, 10) || 0;
             return { ...b, sets: String(currentSets + 1) };
         }
         return b;
@@ -354,7 +354,7 @@ export function CoachRoutineCreator() {
   const handleDecrementSets = (blockId: string) => {
     setBlocks(prev => prev.map(b => {
         if (b.id === blockId) {
-            const currentSets = parseInt(b.sets, 10);
+            const currentSets = parseInt(b.sets, 10) || 0;
             if (currentSets > 1) {
                 return { ...b, sets: String(currentSets - 1) };
             }
@@ -458,9 +458,9 @@ export function CoachRoutineCreator() {
   }
 
   return (
-      <div className="h-screen w-full bg-background grid grid-rows-[auto_1fr_auto] overflow-hidden">
+      <div className="h-screen w-full bg-background flex flex-col overflow-hidden">
           <AppHeader />
-          <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex-shrink-0 flex items-center justify-between p-4 border-b">
               <Button variant="ghost" size="sm" onClick={() => router.back()}>
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
@@ -484,35 +484,37 @@ export function CoachRoutineCreator() {
               </DropdownMenu>
           </div>
           
-          <Tabs defaultValue="details" className="flex-grow flex flex-col overflow-hidden">
-            <TabsList className="w-full rounded-none justify-start px-4 flex-shrink-0">
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="blocks">Blocks</TabsTrigger>
-            </TabsList>
-            
-            <FormProvider {...form}>
-                 <TabsContent value="details" className="flex-grow p-4 md:p-6 overflow-y-auto">
-                    <RoutineDetailsSection members={members} routineTypes={routineTypes} />
-                </TabsContent>
-            </FormProvider>
+          <div className="flex-1 flex flex-col overflow-y-auto">
+            <Tabs defaultValue="details" className="flex-grow flex flex-col">
+                <TabsList className="w-full rounded-none justify-start px-4 flex-shrink-0">
+                    <TabsTrigger value="details">Details</TabsTrigger>
+                    <TabsTrigger value="blocks">Blocks</TabsTrigger>
+                </TabsList>
+                
+                <FormProvider {...form}>
+                     <TabsContent value="details" className="flex-grow p-4 md:p-6 overflow-y-auto">
+                        <RoutineDetailsSection members={members} routineTypes={routineTypes} />
+                    </TabsContent>
+                </FormProvider>
 
-            <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 md:p-6 overflow-y-auto">
-                <RoutineCreatorForm 
-                    blocks={blocks}
-                    onUpdateBlock={handleUpdateBlock}
-                    onAddBlock={handleAddBlock}
-                    onRemoveBlock={handleRemoveBlock}
-                    onDuplicateBlock={handleDuplicateBlock}
-                    onAddExercise={handleAddExercise}
-                    onRemoveExercise={handleRemoveExercise}
-                    onSaveExercise={handleSaveExercise}
-                    onIncrementSets={handleIncrementSets}
-                    onDecrementSets={handleDecrementSets}
-                />
-            </TabsContent>
-          </Tabs>
+                <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 md:p-6 overflow-y-auto">
+                    <RoutineCreatorForm 
+                        blocks={blocks}
+                        onUpdateBlock={handleUpdateBlock}
+                        onAddBlock={handleAddBlock}
+                        onRemoveBlock={handleRemoveBlock}
+                        onDuplicateBlock={handleDuplicateBlock}
+                        onAddExercise={handleAddExercise}
+                        onRemoveExercise={handleRemoveExercise}
+                        onSaveExercise={handleSaveExercise}
+                        onIncrementSets={handleIncrementSets}
+                        onDecrementSets={handleDecrementSets}
+                    />
+                </TabsContent>
+            </Tabs>
+          </div>
           
-          <div className="p-4 bg-background/80 border-t backdrop-blur-sm flex-shrink-0">
+          <div className="p-4 bg-background border-t flex-shrink-0">
               <Button onClick={onFormSubmit} size="lg" className="w-full" disabled={isSubmitting}>
                   <Send className="mr-2 h-5 w-5" />
                   <span className="text-lg">
