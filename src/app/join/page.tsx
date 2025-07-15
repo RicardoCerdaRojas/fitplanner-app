@@ -228,7 +228,7 @@ export default function JoinPage() {
                 </form>
               </Form>
             </CardContent>
-             <CardFooter className="text-center text-sm">
+            <CardFooter className="text-center text-sm">
                 <p className="w-full text-gray-400">
                     ¿Ya tienes una cuenta?{' '}
                     <Link href="/login" className="text-emerald-400 font-semibold hover:underline">

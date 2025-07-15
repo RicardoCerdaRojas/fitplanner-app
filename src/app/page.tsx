@@ -171,7 +171,7 @@ const HeroV2 = () => {
                 <div className="container mx-auto flex justify-between items-center">
                     <span className="text-2xl font-black text-white tracking-tight">Fit Planner</span>
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white" asChild><Link href="/login">Ingresar</Link></Button>
+                        
                         <Button className="bg-white text-black hover:bg-gray-200 font-semibold" asChild><Link href="/create-gym">Comenzar Prueba</Link></Button>
                     </div>
                 </div>
@@ -766,9 +766,10 @@ export default function V2LandingPage() {
             <footer className="bg-[#0a0a0a] border-t border-gray-800 py-12">
                 <div className="container mx-auto px-4 text-center text-gray-500">
                     <h3 className="text-2xl font-bold mb-4 text-white">Fit Planner</h3>
-                     <div className="flex justify-center gap-6 mb-8">
-                        <Link href="#" className="text-gray-400 hover:text-white">LinkedIn</Link>
-                        <Link href="#" className="text-gray-400 hover:text-white">Instagram</Link>
+                     <div className="flex justify-center gap-6 mb-8 text-sm">
+                        <Link href="/login" className="text-gray-400 hover:text-white">¿Ya tienes cuenta? Ingresar</Link>
+                        <span>|</span>
+                        <Link href="/join" className="text-gray-400 hover:text-white">¿Te invitaron a un centro? Únete aquí</Link>
                     </div>
                     <div className="flex justify-center gap-4 text-sm">
                         <Link href="#" className="hover:text-white">Términos de Servicio</Link>

@@ -113,11 +113,6 @@ export function AppHeader() {
 
                     ) : (
                         <div className='flex items-center gap-2'>
-                            <Button asChild variant="ghost" className={cn(isTransparentHeader && "text-white hover:bg-white/10 hover:text-white")}>
-                                <Link href="/login">
-                                    Ingresar
-                                </Link>
-                            </Button>
                              <Button asChild className={cn(isTransparentHeader ? "bg-white text-black hover:bg-gray-200" : "bg-primary text-primary-foreground")}>
                                 <Link href="/create-gym">
                                     Comenzar Prueba
