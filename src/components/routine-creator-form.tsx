@@ -4,7 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2, Library, Save, Plus, GripVertical, MoreVertical, Copy, Pencil, Minus, Check } from 'lucide-react';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/contexts/auth-context';
@@ -100,7 +100,7 @@ function EditableBlockHeader({
 
 
 // --- DIALOGS FOR TEMPLATES ---
-export function TemplateLoader({ onTemplateLoad }: { onTemplateLoad: (template: RoutineTemplate) => void }) {
+export function TemplateLoader({ onTemplateLoad, children }: { onTemplateLoad: (template: RoutineTemplate) => void; children: React.ReactNode }) {
     const { activeMembership } = useAuth();
     const [templates, setTemplates] = useState<RoutineTemplate[]>([]);
     const [loading, setLoading] = useState(true);
@@ -124,36 +124,28 @@ export function TemplateLoader({ onTemplateLoad }: { onTemplateLoad: (template: 
     }
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                 <div className="flex items-center gap-2 p-2 w-full text-left">
-                    <Library className="h-4 w-4" />
-                    <span>Load Template</span>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Load Routine Template</DialogTitle>
+                <DialogDescription>Select a pre-made template to load into the editor.</DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="h-72 border rounded-md">
+                <div className="p-2 space-y-1">
+                {loading ? (
+                    <div className="space-y-2 p-2"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
+                ) : templates.length === 0 ? (
+                    <p className="text-center text-sm text-muted-foreground py-4">No templates found.</p>
+                ) : (
+                    templates.map(template => (
+                        <div key={template.id} onClick={() => handleSelect(template)} className="p-2 rounded-md hover:bg-muted cursor-pointer">
+                            <p className="font-semibold">{template.templateName}</p>
+                            <p className="text-sm text-muted-foreground">{template.routineTypeName}</p>
+                        </div>
+                    ))
+                )}
                 </div>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Load Routine Template</DialogTitle>
-                    <DialogDescription>Select a pre-made template to load into the editor.</DialogDescription>
-                </DialogHeader>
-                <ScrollArea className="h-72 border rounded-md">
-                    <div className="p-2 space-y-1">
-                    {loading ? (
-                        <div className="space-y-2 p-2"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
-                    ) : templates.length === 0 ? (
-                        <p className="text-center text-sm text-muted-foreground py-4">No templates found.</p>
-                    ) : (
-                        templates.map(template => (
-                            <div key={template.id} onClick={() => handleSelect(template)} className="p-2 rounded-md hover:bg-muted cursor-pointer">
-                                <p className="font-semibold">{template.templateName}</p>
-                                <p className="text-sm text-muted-foreground">{template.routineTypeName}</p>
-                            </div>
-                        ))
-                    )}
-                    </div>
-                </ScrollArea>
-            </DialogContent>
-        </Dialog>
+            </ScrollArea>
+        </DialogContent>
     )
 }
 
@@ -250,7 +242,7 @@ function ExerciseSheet({
     );
 }
 
-const MemoizedSaveTemplateDialog = React.memo(({ onSave }: { onSave: (name: string) => Promise<void> }) => {
+const SaveTemplateDialog = memo(function SaveTemplateDialog({ onSave }: { onSave: (name: string) => Promise<void> }) {
     const [name, setName] = useState('');
 
     const handleSave = async () => {
@@ -281,7 +273,6 @@ const MemoizedSaveTemplateDialog = React.memo(({ onSave }: { onSave: (name: stri
         </DialogContent>
     );
 });
-MemoizedSaveTemplateDialog.displayName = 'SaveTemplateDialog';
 
 
 // --- MAIN FORM COMPONENT ---
@@ -375,4 +366,4 @@ export function RoutineCreatorForm() {
     );
 }
 
-export { MemoizedSaveTemplateDialog as SaveTemplateDialog };
+export { SaveTemplateDialog };
