@@ -37,8 +37,8 @@ function PageContent() {
                  <TrialEnded />
             ) : (
                 <>
-                    <main className="flex-grow flex flex-col items-center p-4 sm:p-6 pb-28 md:pb-8">
-                        <div className="w-full max-w-4xl">
+                    <main className="flex-grow flex flex-col items-center pb-28 md:pb-8">
+                        <div className="w-full max-w-2xl">
                             <CoachRoutineCreator />
                         </div>
                     </main>

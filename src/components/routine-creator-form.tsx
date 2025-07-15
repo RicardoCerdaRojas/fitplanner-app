@@ -2,7 +2,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Trash2, Library, Save, Plus, GripVertical, MoreVertical, Copy, Pencil, Minus, Check } from 'lucide-react';
 import { useState, useEffect, useCallback, ChangeEvent } from 'react';
@@ -21,7 +20,6 @@ import { useForm, Controller } from 'react-hook-form';
 import type { FieldValues } from 'react-hook-form';
 import { defaultExerciseValues } from './coach-routine-creator';
 import type { BlockFormValues, ExerciseFormValues } from './coach-routine-creator';
-import { cn } from '@/lib/utils';
 
 // New, robust stepper component
 function Stepper({ value, onIncrement, onDecrement }: { value: string, onIncrement: () => void, onDecrement: () => void }) {
@@ -58,7 +56,7 @@ function EditableBlockHeader({
 }) {
 
   return (
-    <div className="flex flex-row items-center justify-between bg-muted/50 p-2 md:p-3 rounded-t-xl">
+    <div className="flex flex-row items-center justify-between bg-muted p-2 md:p-3 rounded-t-xl">
       <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab shrink-0" />
       <Input 
         value={block.name} 

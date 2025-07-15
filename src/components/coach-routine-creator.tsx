@@ -18,7 +18,6 @@ import { RoutineCreatorForm, TemplateLoader, SaveTemplateDialog } from './routin
 import { Button } from './ui/button';
 import type { RoutineTemplate } from '@/app/coach/templates/page';
 import { ArrowLeft, Save, MoreVertical, Library, Send } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MemberCombobox } from '@/components/ui/member-combobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -28,7 +27,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const exerciseSchema = z.object({
   name: z.string().min(2, 'Exercise name is required.'),
@@ -80,10 +79,6 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
 
     return (
         <div className="space-y-6">
-             <div>
-                <h2 className="text-xl font-bold font-headline mb-1">Routine Details</h2>
-                <p className="text-muted-foreground">Select the member, type, and date for this routine.</p>
-            </div>
             <FormField control={control} name="memberId" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Member</FormLabel>
@@ -452,9 +447,9 @@ export function CoachRoutineCreator() {
   
   if (isDataLoading || authLoading) {
       return (
-        <div className="space-y-4">
+        <div className="space-y-4 p-4">
             <Skeleton className="h-10 w-48" />
-            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-10 w-full" />
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-64 w-full" />
         </div>
@@ -462,17 +457,17 @@ export function CoachRoutineCreator() {
   }
 
   return (
-      <div className="space-y-6">
-          <div className="flex items-center justify-between gap-4">
-              <Button variant="ghost" size="sm" onClick={() => router.push('/coach')} className="text-muted-foreground">
+      <div className="flex flex-col h-full">
+          <div className="flex items-center justify-between p-4 border-b bg-background">
+              <Button variant="ghost" size="sm" onClick={() => router.push('/coach')}>
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
-              <h1 className="text-xl sm:text-2xl font-bold font-headline text-center flex-1">
+              <h1 className="text-lg font-bold font-headline text-center">
                   {isEditing ? 'Edit Routine' : 'Create Routine'}
               </h1>
               <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" className="w-9 h-9">
                           <MoreVertical className="h-5 w-5" />
                       </Button>
                   </DropdownMenuTrigger>
@@ -487,28 +482,36 @@ export function CoachRoutineCreator() {
               </DropdownMenu>
           </div>
           
-          <FormProvider {...form}>
-            <div className="bg-background sm:p-6 sm:rounded-xl sm:border space-y-6">
-                <RoutineDetailsSection members={members} routineTypes={routineTypes} />
-            </div>
-          </FormProvider>
-          
-          <div className="mt-6">
-            <RoutineCreatorForm 
-                blocks={blocks}
-                onUpdateBlock={handleUpdateBlock}
-                onAddBlock={handleAddBlock}
-                onRemoveBlock={handleRemoveBlock}
-                onDuplicateBlock={handleDuplicateBlock}
-                onAddExercise={handleAddExercise}
-                onRemoveExercise={handleRemoveExercise}
-                onSaveExercise={handleSaveExercise}
-                onIncrementSets={handleIncrementSets}
-                onDecrementSets={handleDecrementSets}
-            />
-          </div>
+          <Tabs defaultValue="details" className="flex-grow flex flex-col">
+            <TabsList className="w-full rounded-none justify-start px-4">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="blocks">Blocks</TabsTrigger>
+            </TabsList>
+            
+            <FormProvider {...form}>
+                 <TabsContent value="details" className="flex-grow p-4">
+                    <RoutineDetailsSection members={members} routineTypes={routineTypes} />
+                </TabsContent>
+            </FormProvider>
 
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 border-t backdrop-blur-sm md:hidden">
+            <TabsContent value="blocks" className="flex-grow p-4 bg-muted/30">
+                <RoutineCreatorForm 
+                    blocks={blocks}
+                    onUpdateBlock={handleUpdateBlock}
+                    onAddBlock={handleAddBlock}
+                    onRemoveBlock={handleRemoveBlock}
+                    onDuplicateBlock={handleDuplicateBlock}
+                    onAddExercise={handleAddExercise}
+                    onRemoveExercise={handleRemoveExercise}
+                    onSaveExercise={handleSaveExercise}
+                    onIncrementSets={handleIncrementSets}
+                    onDecrementSets={handleDecrementSets}
+                />
+            </TabsContent>
+          </Tabs>
+          
+
+          <div className="p-4 bg-background/80 border-t backdrop-blur-sm">
               <Button onClick={onFormSubmit} size="lg" className="w-full" disabled={isSubmitting}>
                   <Send className="mr-2 h-5 w-5" />
                   <span className="text-lg">
@@ -516,13 +519,6 @@ export function CoachRoutineCreator() {
                   </span>
               </Button>
           </div>
-          <div className="hidden md:flex justify-end pt-4 mt-auto">
-              <Button onClick={onFormSubmit} size="lg" disabled={isSubmitting}>
-                   <Send className="mr-2" />
-                  {isSubmitting ? 'Assigning...' : (isEditing && editRoutineId ? 'Update Routine' : 'Assign to Member')}
-              </Button>
-          </div>
       </div>
   );
 }
-
