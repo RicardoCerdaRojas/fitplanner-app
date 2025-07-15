@@ -2,20 +2,22 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2, Library, Save, Plus, GripVertical, MoreVertical, Copy, Pencil, Minus, Check } from 'lucide-react';
+import { Trash2, Plus, GripVertical, MoreVertical, Copy } from 'lucide-react';
 import React, { useState, useEffect, useCallback, memo } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { useAuth } from '@/contexts/auth-context';
-import type { RoutineTemplate } from '@/app/coach/templates/page';
-import { ScrollArea } from './ui/scroll-area';
-import { Skeleton } from './ui/skeleton';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from './ui/dialog';
+import { useForm, Controller, useFieldArray, useFormContext } from 'react-hook-form';
+import type { FieldValues } from 'react-hook-form';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from './ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { useForm, Controller, useFieldArray, useFormContext } from 'react-hook-form';
-import type { FieldValues } from 'react-hook-form';
 import { defaultExerciseValues } from './coach-routine-creator';
 import type { RoutineFormValues, BlockFormValues, ExerciseFormValues } from './coach-routine-creator';
 
@@ -37,23 +39,14 @@ function Stepper({ value, onIncrement, onDecrement }: { value: string, onIncreme
 
 function EditableBlockHeader({
   blockIndex,
-  onDuplicateBlock,
-  onRemoveBlock,
 }: {
   blockIndex: number,
-  onDuplicateBlock: () => void,
-  onRemoveBlock: () => void,
 }) {
   const { control, watch, setValue } = useFormContext<RoutineFormValues>();
   const block = watch(`blocks.${blockIndex}`);
 
   const handleUpdate = (field: keyof BlockFormValues, value: any) => {
     setValue(`blocks.${blockIndex}.${field}`, value);
-  };
-  
-  const handleAddExercise = () => {
-    const currentExercises = watch(`blocks.${blockIndex}.exercises`);
-    setValue(`blocks.${blockIndex}.exercises`, [...currentExercises, { ...defaultExerciseValues, name: `New Exercise ${currentExercises.length + 1}` }])
   };
 
   const handleIncrementSets = () => {
@@ -97,56 +90,6 @@ function EditableBlockHeader({
   );
 }
 
-
-// --- DIALOGS FOR TEMPLATES ---
-export function TemplateLoader({ onTemplateLoad }: { onTemplateLoad: (template: RoutineTemplate) => void; }) {
-    const { activeMembership } = useAuth();
-    const [templates, setTemplates] = useState<RoutineTemplate[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        if (!activeMembership?.gymId) return;
-        setLoading(true);
-        const q = query(collection(db, 'routineTemplates'), where('gymId', '==', activeMembership.gymId));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const fetchedTemplates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RoutineTemplate));
-            setTemplates(fetchedTemplates);
-            setLoading(false);
-        });
-        return () => unsubscribe();
-    }, [activeMembership]);
-
-    const handleSelect = (template: RoutineTemplate) => {
-        onTemplateLoad(template);
-    }
-
-    return (
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Load Routine Template</DialogTitle>
-                <DialogDescription>Select a pre-made template to load into the editor.</DialogDescription>
-            </DialogHeader>
-            <ScrollArea className="h-72 border rounded-md">
-                <div className="p-2 space-y-1">
-                {loading ? (
-                    <div className="space-y-2 p-2"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
-                ) : templates.length === 0 ? (
-                    <p className="text-center text-sm text-muted-foreground py-4">No templates found.</p>
-                ) : (
-                    templates.map(template => (
-                        <DialogClose asChild key={template.id}>
-                            <div onClick={() => handleSelect(template)} className="p-2 rounded-md hover:bg-muted cursor-pointer">
-                                <p className="font-semibold">{template.templateName}</p>
-                                <p className="text-sm text-muted-foreground">{template.routineTypeName}</p>
-                            </div>
-                        </DialogClose>
-                    ))
-                )}
-                </div>
-            </ScrollArea>
-        </DialogContent>
-    )
-}
 
 function ExerciseSheet({
     exercise,
@@ -241,39 +184,6 @@ function ExerciseSheet({
     );
 }
 
-const SaveTemplateDialog = React.memo(function SaveTemplateDialog({ onSave }: { onSave: (name: string) => Promise<void> }) {
-    const [name, setName] = useState('');
-
-    const handleSave = async () => {
-        await onSave(name);
-        setName('');
-    };
-
-    return (
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Save New Template</DialogTitle>
-                <DialogDescription>
-                    Give your new template a descriptive name so you can easily find it later.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-                <Label>Template Name</Label>
-                <Input
-                    placeholder="e.g., 'Beginner Full Body Strength'"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                />
-            </div>
-            <DialogFooter>
-                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                <DialogClose asChild><Button type="button" onClick={handleSave}>Save Template</Button></DialogClose>
-            </DialogFooter>
-        </DialogContent>
-    );
-});
-SaveTemplateDialog.displayName = 'SaveTemplateDialog';
-
 // --- MAIN FORM COMPONENT ---
 export function RoutineCreatorForm() {
     const { control, getValues, setValue } = useFormContext<RoutineFormValues>();
@@ -313,12 +223,29 @@ export function RoutineCreatorForm() {
     return (
         <div className="space-y-4">
             {fields.map((field, index) => (
-                <div key={field.id} className="bg-card rounded-xl border">
-                    <EditableBlockHeader
-                        blockIndex={index}
-                        onDuplicateBlock={() => onDuplicateBlock(index)}
-                        onRemoveBlock={() => onRemoveBlock(index)}
-                    />
+              <Dialog key={field.id}>
+                <div className="bg-card rounded-xl border">
+                    <EditableBlockHeader blockIndex={index} />
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Block Actions</DialogTitle>
+                            <DialogDescription>
+                                Perform actions on the "{getValues(`blocks.${index}.name`)}" block.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex flex-col gap-2 py-4">
+                           <DialogClose asChild>
+                             <Button variant="outline" onClick={() => onDuplicateBlock(index)}>
+                                <Copy className="mr-2 h-4 w-4" /> Duplicate Block
+                              </Button>
+                           </DialogClose>
+                            <DialogClose asChild>
+                              <Button variant="destructive" onClick={() => onRemoveBlock(index)}>
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete Block
+                              </Button>
+                            </DialogClose>
+                        </div>
+                    </DialogContent>
                     <div className="p-3 space-y-2">
                        {getValues(`blocks.${index}.exercises`).map((exercise: ExerciseFormValues, exIndex: number) => (
                            <div 
@@ -349,6 +276,7 @@ export function RoutineCreatorForm() {
                        </Button>
                     </div>
                 </div>
+              </Dialog>
             ))}
 
             <Button variant="secondary" className="w-full" onClick={onAddBlock}>
@@ -364,5 +292,3 @@ export function RoutineCreatorForm() {
         </div>
     );
 }
-
-export { SaveTemplateDialog };
