@@ -3,7 +3,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Trash2, Library, Save, Plus, GripVertical, MoreVertical, Copy, Pencil } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -18,11 +18,82 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { StepperInput } from './ui/stepper-input';
 import { useForm, Controller } from 'react-hook-form';
 import type { FieldValues } from 'react-hook-form';
 import { defaultExerciseValues } from './coach-routine-creator';
 import type { BlockFormValues, ExerciseFormValues } from './coach-routine-creator';
+import { cn } from '@/lib/utils';
+
+
+function EditableBlockHeader({
+  block,
+  onUpdate,
+  onAddExercise,
+  onDuplicateBlock,
+  onRemoveBlock,
+}: {
+  block: BlockFormValues,
+  onUpdate: (field: keyof BlockFormValues, value: string) => void,
+  onAddExercise: () => void,
+  onDuplicateBlock: () => void,
+  onRemoveBlock: () => void,
+}) {
+  const [isEditingSets, setIsEditingSets] = useState(false);
+
+  const handleSetsBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value, 10);
+    onUpdate('sets', isNaN(value) || value < 1 ? '1' : String(value));
+    setIsEditingSets(false);
+  };
+
+  const handleSetsKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    }
+  };
+
+  return (
+    <div className="flex flex-row items-center justify-between bg-muted/50 p-3">
+      <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+      <Input 
+        value={block.name} 
+        onChange={(e) => onUpdate('name', e.target.value)} 
+        className="text-lg font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent flex-1 mx-2"
+      />
+      <div className="flex items-center gap-2">
+        {isEditingSets ? (
+          <Input
+            type="number"
+            defaultValue={block.sets}
+            onBlur={handleSetsBlur}
+            onKeyDown={handleSetsKeyDown}
+            className="w-20 text-center h-9"
+            autoFocus
+          />
+        ) : (
+          <Button
+            variant="ghost"
+            className="text-base font-semibold"
+            onClick={() => setIsEditingSets(true)}
+          >
+            {block.sets} sets
+          </Button>
+        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon"><MoreVertical className="h-5 w-5" /></Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onAddExercise}><Plus className="mr-2 h-4 w-4" /> Add Exercise</DropdownMenuItem>
+            <DropdownMenuItem onClick={onDuplicateBlock}><Copy className="mr-2 h-4 w-4" /> Duplicate Block</DropdownMenuItem>
+            <DropdownMenuItem onClick={onRemoveBlock} className="text-destructive focus:bg-destructive/10"><Trash2 className="mr-2 h-4 w-4" /> Delete Block</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
 
 // --- DIALOGS FOR TEMPLATES ---
 export function TemplateLoader({ onTemplateLoad }: { onTemplateLoad: (template: RoutineTemplate) => void }) {
@@ -215,33 +286,72 @@ function ExerciseSheet({
 // --- MAIN FORM COMPONENT ---
 type RoutineCreatorFormProps = {
     blocks: BlockFormValues[];
-    onUpdateBlock: (blockId: string, field: 'name' | 'sets', value: string) => void;
-    onIncrementSets: (blockId: string) => void;
-    onDecrementSets: (blockId: string) => void;
-    onAddBlock: () => void;
-    onRemoveBlock: (blockId: string) => void;
-    onAddExercise: (blockId: string) => void;
-    onSaveExercise: (blockId: string, exerciseIndex: number, updatedExercise: ExerciseFormValues) => void;
-    onRemoveExercise: (blockId: string, exerciseIndex: number) => void;
-    onDuplicateBlock: (blockId: string) => void;
+    setBlocks: React.Dispatch<React.SetStateAction<BlockFormValues[]>>;
 }
 export function RoutineCreatorForm({ 
     blocks,
-    onUpdateBlock,
-    onIncrementSets,
-    onDecrementSets,
-    onAddBlock,
-    onRemoveBlock,
-    onAddExercise,
-    onSaveExercise,
-    onRemoveExercise,
-    onDuplicateBlock,
+    setBlocks,
 }: RoutineCreatorFormProps) {
     const [editingExercise, setEditingExercise] = useState<{ blockId: string; exerciseIndex: number; exercise: ExerciseFormValues } | null>(null);
 
+    const handleUpdateBlock = (blockId: string, updatedFields: Partial<BlockFormValues>) => {
+      setBlocks(prev => prev.map(b => (b.id === blockId ? { ...b, ...updatedFields } : b)));
+    };
+
+    const handleAddBlock = () => {
+      setBlocks(prev => [...prev, { id: crypto.randomUUID(), name: `Block ${prev.length + 1}`, sets: '4', exercises: [] }]);
+    };
+
+    const handleRemoveBlock = (blockId: string) => {
+      setBlocks(prev => prev.filter(b => b.id !== blockId));
+    };
+
+    const handleDuplicateBlock = (blockId: string) => {
+      setBlocks(prev => {
+        const blockToDuplicate = prev.find(b => b.id === blockId);
+        if (!blockToDuplicate) return prev;
+        const newBlock = { ...blockToDuplicate, id: crypto.randomUUID() };
+        const index = prev.findIndex(b => b.id === blockId);
+        const newBlocks = [...prev];
+        newBlocks.splice(index + 1, 0, newBlock);
+        return newBlocks;
+      });
+    };
+
+    const handleAddExercise = (blockId: string) => {
+      setBlocks(prev => prev.map(b => {
+        if (b.id === blockId) {
+          return { ...b, exercises: [...b.exercises, { ...defaultExerciseValues, name: `New Exercise ${b.exercises.length + 1}` }] };
+        }
+        return b;
+      }));
+    };
+
+    const handleRemoveExercise = (blockId: string, exerciseIndex: number) => {
+      setBlocks(prev => prev.map(b => {
+        if (b.id === blockId) {
+          const newExercises = [...b.exercises];
+          newExercises.splice(exerciseIndex, 1);
+          return { ...b, exercises: newExercises };
+        }
+        return b;
+      }));
+    };
+
+    const handleSaveExercise = (blockId: string, exerciseIndex: number, updatedExercise: ExerciseFormValues) => {
+      setBlocks(prev => prev.map(b => {
+        if (b.id === blockId) {
+          const newExercises = [...b.exercises];
+          newExercises[exerciseIndex] = updatedExercise;
+          return { ...b, exercises: newExercises };
+        }
+        return b;
+      }));
+    };
+
     const handleSaveAndCloseSheet = (updatedExercise: ExerciseFormValues) => {
         if (!editingExercise) return;
-        onSaveExercise(editingExercise.blockId, editingExercise.exerciseIndex, updatedExercise);
+        handleSaveExercise(editingExercise.blockId, editingExercise.exerciseIndex, updatedExercise);
         setEditingExercise(null);
     };
 
@@ -249,33 +359,13 @@ export function RoutineCreatorForm({
         <div className="space-y-4">
             {blocks.map((block) => (
                 <Card key={block.id} className="border-2 border-primary/10">
-                    <CardHeader className="flex flex-row items-center justify-between bg-muted/50 p-3">
-                         <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-                         <Input 
-                            value={block.name} 
-                            onChange={(e) => onUpdateBlock(block.id, 'name', e.target.value)} 
-                            className="text-lg font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent flex-1 mx-2"
-                        />
-                         <div className="flex items-center gap-2">
-                             <div className="w-28">
-                                <StepperInput
-                                    value={block.sets}
-                                    onIncrement={() => onIncrementSets(block.id)}
-                                    onDecrement={() => onDecrementSets(block.id)}
-                                />
-                             </div>
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon"><MoreVertical className="h-5 w-5" /></Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => onAddExercise(block.id)}><Plus className="mr-2 h-4 w-4" /> Add Exercise</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => onDuplicateBlock(block.id)}><Copy className="mr-2 h-4 w-4" /> Duplicate Block</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => onRemoveBlock(block.id)} className="text-destructive focus:bg-destructive/10"><Trash2 className="mr-2 h-4 w-4" /> Delete Block</DropdownMenuItem>
-                                </DropdownMenuContent>
-                             </DropdownMenu>
-                         </div>
-                    </CardHeader>
+                    <EditableBlockHeader
+                        block={block}
+                        onUpdate={(field, value) => handleUpdateBlock(block.id, { [field]: value })}
+                        onAddExercise={() => handleAddExercise(block.id)}
+                        onDuplicateBlock={() => handleDuplicateBlock(block.id)}
+                        onRemoveBlock={() => handleRemoveBlock(block.id)}
+                    />
                     <CardContent className="p-3 space-y-2">
                        {block.exercises.map((exercise, exIndex) => (
                            <div 
@@ -293,19 +383,19 @@ export function RoutineCreatorForm({
                                 <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
                                     <Pencil className="h-4 w-4"/>
                                 </Button>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); onRemoveExercise(block.id, exIndex); }}>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); handleRemoveExercise(block.id, exIndex); }}>
                                     <Trash2 className="h-4 w-4"/>
                                 </Button>
                            </div>
                        ))}
-                       <Button variant="outline" className="w-full" onClick={() => onAddExercise(block.id)}>
+                       <Button variant="outline" className="w-full" onClick={() => handleAddExercise(block.id)}>
                          <Plus className="mr-2 h-4 w-4" /> Add Exercise
                        </Button>
                     </CardContent>
                 </Card>
             ))}
 
-            <Button variant="secondary" className="w-full" onClick={onAddBlock}>
+            <Button variant="secondary" className="w-full" onClick={handleAddBlock}>
                 <Plus className="mr-2 h-4 w-4" /> Add New Block
             </Button>
 
