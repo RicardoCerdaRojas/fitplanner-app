@@ -4,13 +4,6 @@ import { cn } from "@/lib/utils"
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, ...props }, ref) => {
-    const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => {
-      event.target.select();
-      if (props.onFocus) {
-        props.onFocus(event);
-      }
-    }
-
     return (
       <input
         type={type}
@@ -19,7 +12,6 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className
         )}
         ref={ref}
-        onFocus={handleFocus}
         {...props}
       />
     )
