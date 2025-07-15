@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Trash2, Library, Save, Plus, GripVertical, MoreVertical, Copy, Pencil, Minus, Check } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, ChangeEvent } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/contexts/auth-context';
@@ -30,12 +31,7 @@ function Stepper({ value, onIncrement, onDecrement }: { value: string, onIncreme
       <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={onDecrement}>
         <Minus className="h-4 w-4" />
       </Button>
-      <Input
-        type="text"
-        readOnly
-        value={value}
-        className="h-8 w-12 text-center font-bold border-0 bg-transparent"
-      />
+      <div className="h-8 w-12 text-center font-bold flex items-center justify-center">{value}</div>
       <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={onIncrement}>
         <Plus className="h-4 w-4" />
       </Button>
@@ -119,7 +115,12 @@ export function TemplateLoader({ onTemplateLoad }: { onTemplateLoad: (template: 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline"><Library className="mr-2 h-4 w-4" /> Load Template</Button>
+                 <Button variant="outline" className="w-full justify-start text-left p-0">
+                    <div className="flex items-center gap-2 p-2">
+                        <Library className="h-4 w-4" />
+                        <span className="hidden sm:inline">Load Template</span>
+                    </div>
+                </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
@@ -160,7 +161,12 @@ export function SaveTemplateDialog({ onSave }: { onSave: (name: string) => Promi
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline"><Save className="mr-2 h-4 w-4" /> Save as Template</Button>
+                <Button variant="outline" className="w-full justify-start text-left p-0">
+                    <div className="flex items-center gap-2 p-2">
+                      <Save className="h-4 w-4" />
+                      <span className="hidden sm:inline">Save as Template</span>
+                    </div>
+                </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
@@ -368,3 +374,4 @@ export function RoutineCreatorForm({
         </div>
     );
 }
+

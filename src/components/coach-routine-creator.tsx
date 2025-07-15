@@ -18,7 +18,7 @@ import { Skeleton } from './ui/skeleton';
 import { RoutineCreatorForm, TemplateLoader, SaveTemplateDialog } from './routine-creator-form';
 import { Button } from './ui/button';
 import type { RoutineTemplate } from '@/app/coach/templates/page';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, MoreVertical } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MemberCombobox } from '@/components/ui/member-combobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,6 +28,7 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 
 const exerciseSchema = z.object({
@@ -465,13 +466,32 @@ export function CoachRoutineCreator() {
 
   return (
       <div className="space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-wrap items-center justify-between gap-2">
               <Button variant="ghost" onClick={() => router.push('/coach')}>
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back to Routines
               </Button>
               <div className="flex items-center gap-2">
-                 <TemplateLoader onTemplateLoad={loadTemplate} />
-                  <SaveTemplateDialog onSave={handleSaveAsTemplate} />
+                 <div className="sm:hidden">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="icon">
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                                <TemplateLoader onTemplateLoad={loadTemplate} />
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                <SaveTemplateDialog onSave={handleSaveAsTemplate} />
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                 </div>
+                 <div className="hidden sm:flex sm:items-center sm:gap-2">
+                    <TemplateLoader onTemplateLoad={loadTemplate} />
+                    <SaveTemplateDialog onSave={handleSaveAsTemplate} />
+                 </div>
               </div>
           </div>
           
@@ -500,3 +520,4 @@ export function CoachRoutineCreator() {
       </div>
   );
 }
+
