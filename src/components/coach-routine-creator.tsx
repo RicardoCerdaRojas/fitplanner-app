@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { useForm, FormProvider, useFormContext } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -17,16 +17,7 @@ import { RoutineCreatorForm } from './routine-creator-form';
 import { Button } from './ui/button';
 import type { RoutineTemplate } from '@/app/coach/templates/page';
 import { ArrowLeft, Save, MoreVertical, Library, Send } from 'lucide-react';
-import { MemberCombobox } from '@/components/ui/member-combobox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AppHeader } from './app-header';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from './ui/dialog';
 import { Input } from './ui/input';
@@ -34,7 +25,6 @@ import { Label } from './ui/label';
 import { ScrollArea } from './ui/scroll-area';
 import type { LibraryExercise } from '@/app/admin/exercises/page';
 import type { RoutineType } from '@/app/admin/routine-types/page';
-
 
 const exerciseSchema = z.object({
   name: z.string().min(2, 'Exercise name is required.'),
@@ -71,7 +61,6 @@ const routineSchema = z.object({
   blocks: z.array(blockSchema).min(1, 'Please add at least one block.'),
 });
 
-
 export type RoutineFormValues = z.infer<typeof routineSchema>;
 export type DetailsFormValues = z.infer<typeof routineDetailsSchema>;
 export type BlockFormValues = z.infer<typeof blockSchema>;
@@ -86,63 +75,6 @@ export const defaultExerciseValues: ExerciseFormValues = {
   weight: '5', 
   videoUrl: '' 
 };
-
-function RoutineDetailsSection({ members, routineTypes }: { members: Member[], routineTypes: RoutineType[] }) {
-    const { control } = useFormContext<RoutineFormValues>();
-    const [calendarOpen, setCalendarOpen] = React.useState(false);
-
-    const handleDateSelect = (date: Date | undefined) => {
-        if(control && date) {
-          control.setValue('details.routineDate', date);
-        }
-        if (date) {
-            setCalendarOpen(false);
-        }
-    }
-    
-    return (
-        <div className="space-y-6">
-            <FormField control={control} name="details.memberId" render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Member</FormLabel>
-                    <MemberCombobox members={members} value={field.value ?? ''} onChange={field.onChange} />
-                    <FormMessage/>
-                </FormItem>
-            )} />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <FormField control={control} name="details.routineTypeId" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Routine Type</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ''}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
-                            <SelectContent>
-                                {routineTypes.map(rt => (<SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>))}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-                <FormField control={control} name="details.routineDate" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Routine Date</FormLabel>
-                        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                            <PopoverTrigger asChild>
-                                <FormControl>
-                                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                    </Button>
-                                </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={handleDateSelect} initialFocus /></PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-            </div>
-        </div>
-    );
-}
 
 const TemplateLoader = React.memo(({ onTemplateLoad }: { onTemplateLoad: (template: RoutineTemplate) => void }) => {
     const { toast } = useToast();
@@ -244,7 +176,6 @@ const SaveTemplateDialog = React.memo(({ onSave, initialName }: { onSave: (name:
 });
 SaveTemplateDialog.displayName = 'SaveTemplateDialog';
 
-
 export default function CoachRoutineCreator() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -254,7 +185,6 @@ export default function CoachRoutineCreator() {
   const [members, setMembers] = React.useState<Member[]>([]);
   const [routineTypes, setRoutineTypes] = React.useState<RoutineType[]>([]);
   const [libraryExercises, setLibraryExercises] = React.useState<LibraryExercise[]>([]);
-
   const [dataToEdit, setDataToEdit] = React.useState<ManagedRoutine | RoutineTemplate | null>(null);
   const [isDataLoading, setIsDataLoading] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -292,7 +222,7 @@ export default function CoachRoutineCreator() {
     mode: 'onBlur'
   });
 
-  const { handleSubmit, reset } = form;
+  const { handleSubmit, reset, getValues } = form;
 
   const loadTemplate = React.useCallback((template: RoutineTemplate) => {
       reset({
@@ -470,7 +400,6 @@ export default function CoachRoutineCreator() {
         checkLoadingState();
     });
 
-
     const fetchEditData = async () => {
         let docRef;
         if (editRoutineId) docRef = doc(db, 'routines', editRoutineId);
@@ -508,8 +437,7 @@ export default function CoachRoutineCreator() {
       unsubscribeTypes();
       unsubscribeExercises();
     };
-
-  }, [authLoading, activeMembership, editRoutineId, templateId, router, toast, isEditing]);
+  }, [authLoading, activeMembership, editRoutineId, templateId, router, toast]);
 
   React.useEffect(() => {
       reset(defaultValues);
@@ -533,7 +461,7 @@ export default function CoachRoutineCreator() {
       if (templateId && dataToEdit && 'templateName' in dataToEdit) {
         return dataToEdit.templateName;
       }
-      const routineTypeId = form.getValues('details.routineTypeId');
+      const routineTypeId = getValues('details.routineTypeId');
       if (routineTypeId) {
           const routineType = routineTypes.find(rt => rt.id === routineTypeId);
           return routineType?.name || '';
@@ -582,32 +510,15 @@ export default function CoachRoutineCreator() {
           </div>
           
           <FormProvider {...form}>
-            <div className="flex-1 flex flex-col overflow-y-auto">
-              <Tabs defaultValue={templateId ? "blocks" : "details"} className="flex-grow flex flex-col h-full">
-                  <TabsList className={cn("w-full rounded-none justify-start px-4 flex-shrink-0", templateId && "hidden")}>
-                      <TabsTrigger value="details">Details</TabsTrigger>
-                      <TabsTrigger value="blocks">Blocks</TabsTrigger>
-                  </TabsList>
-                  
-                      <TabsContent value="details" className="flex-grow p-4 md:p-6 overflow-y-auto pb-24">
-                          <RoutineDetailsSection members={members} routineTypes={routineTypes} />
-                      </TabsContent>
-
-                      <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 md:p-6 overflow-y-auto pb-24">
-                          <RoutineCreatorForm libraryExercises={libraryExercises} />
-                      </TabsContent>
-              </Tabs>
-            </div>
+              <RoutineCreatorForm 
+                  members={members} 
+                  routineTypes={routineTypes}
+                  libraryExercises={libraryExercises}
+                  isSubmitting={isSubmitting}
+                  onFormSubmit={onFormSubmit}
+                  isTemplateMode={!!templateId}
+              />
           </FormProvider>
-          
-          <div className="flex-shrink-0 p-4 bg-background border-t">
-              <Button onClick={onFormSubmit} size="lg" className={cn("w-full", templateId && "hidden")} disabled={isSubmitting}>
-                  <Send className="mr-2 h-5 w-5" />
-                  <span className="text-lg">
-                    {isSubmitting ? 'Assigning...' : (isEditing && editRoutineId ? 'Update Routine' : 'Assign to Member')}
-                  </span>
-              </Button>
-          </div>
       </div>
   );
 }

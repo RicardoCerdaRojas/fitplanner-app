@@ -1,8 +1,9 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2, Plus, GripVertical, MoreVertical, Copy, ChevronsUpDown, Pencil } from 'lucide-react';
+import { Trash2, Plus, GripVertical, MoreVertical, Copy, ChevronsUpDown, Pencil, Minus } from 'lucide-react';
 import React, { useState, useCallback, memo } from 'react';
 import { useFormContext, useFieldArray, Controller } from 'react-hook-form';
 import {
@@ -24,6 +25,15 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Textarea } from './ui/textarea';
 import { cn } from '@/lib/utils';
+import { MemberCombobox } from './ui/member-combobox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Calendar } from './ui/calendar';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Member } from '@/app/coach/page';
+import type { RoutineType } from '@/app/admin/routine-types/page';
 
 
 function ExerciseCombobox({
@@ -89,6 +99,24 @@ function ExerciseCombobox({
   );
 }
 
+function Stepper({ value, onChange }: { value: string, onChange: (value: string) => void }) {
+    const numericValue = parseInt(value, 10) || 0;
+
+    const onIncrement = () => onChange(String(numericValue + 1));
+    const onDecrement = () => onChange(String(Math.max(1, numericValue - 1)));
+    
+    return (
+        <div className="flex items-center gap-1">
+            <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={onDecrement}>
+                <Minus className="h-4 w-4" />
+            </Button>
+            <div className="h-9 w-12 text-center font-bold flex items-center justify-center text-lg">{value}</div>
+            <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={onIncrement}>
+                <Plus className="h-4 w-4" />
+            </Button>
+        </div>
+    );
+}
 
 function EditableBlockHeader({
   blockIndex,
@@ -96,6 +124,7 @@ function EditableBlockHeader({
   blockIndex: number,
 }) {
   const { control, watch } = useFormContext<RoutineFormValues>();
+  const setsValue = watch(`blocks.${blockIndex}.sets`);
 
   return (
     <div className="flex flex-row items-center justify-between bg-muted p-2 md:p-3 rounded-t-xl">
@@ -110,16 +139,11 @@ function EditableBlockHeader({
             />
         )}
       />
-      <Controller
+       <Controller
           name={`blocks.${blockIndex}.sets`}
           control={control}
           render={({ field }) => (
-              <Input
-                  {...field}
-                  type="number"
-                  className="w-20 font-bold text-center"
-                  placeholder="Sets"
-              />
+              <Stepper value={field.value} onChange={field.onChange} />
           )}
       />
       <DialogTrigger asChild>
@@ -129,32 +153,28 @@ function EditableBlockHeader({
   );
 }
 
-
 function ExerciseSheet({
     isOpen,
     onOpenChange,
-    onSave,
     blockIndex,
     exerciseIndex
 }: {
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
-    onSave: () => void;
     blockIndex: number;
     exerciseIndex: number;
 }) {
-    const { control, watch } = useFormContext<RoutineFormValues>();
+    const { control, watch, handleSubmit } = useFormContext<RoutineFormValues>();
     const repType = watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`);
     
     const onSubmit = () => {
-        onSave();
         onOpenChange(false);
     };
 
     return (
         <Sheet open={isOpen} onOpenChange={onOpenChange}>
             <SheetContent side="bottom" className="rounded-t-lg">
-                <form>
+                <form onSubmit={handleSubmit(onSubmit)}>
                     <SheetHeader className="text-left">
                         <SheetTitle>Edit Exercise Details</SheetTitle>
                         <SheetDescription>Make changes to your exercise here. Click save when you're done.</SheetDescription>
@@ -162,23 +182,28 @@ function ExerciseSheet({
                     <div className="space-y-4 py-4">
                         <p className="font-semibold text-lg">{watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.name`)}</p>
                         
-                        <div>
-                            <Label>Description / Help</Label>
-                            <Controller
-                                name={`blocks.${blockIndex}.exercises.${exerciseIndex}.description`}
-                                control={control}
-                                render={({ field }) => <Textarea {...field} placeholder="e.g., Keep your back straight, chest up." />}
-                            />
-                        </div>
+                        <FormField
+                            control={control}
+                            name={`blocks.${blockIndex}.exercises.${exerciseIndex}.description`}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Description / Help</FormLabel>
+                                    <FormControl>
+                                        <Textarea {...field} placeholder="e.g., Keep your back straight, chest up." />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         
                         <div className="p-4 rounded-lg bg-muted">
                             <div className="flex items-center justify-between">
                                 <Label className={repType === 'reps' ? 'font-bold' : ''}>Reps</Label>
-                                <Controller
-                                    name={`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`}
+                                <FormField
                                     control={control}
+                                    name={`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`}
                                     render={({ field }) => (
-                                        <Switch
+                                       <Switch
                                             checked={field.value === 'duration'}
                                             onCheckedChange={(checked) => field.onChange(checked ? 'duration' : 'reps')}
                                         />
@@ -189,43 +214,63 @@ function ExerciseSheet({
                         </div>
 
                         {repType === 'reps' ? (
-                            <div>
-                                <Label>Reps</Label>
-                                <Controller
-                                    name={`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`}
-                                    control={control}
-                                    render={({ field }) => <Input {...field} placeholder="e.g., 8-12" />}
-                                />
-                            </div>
+                            <FormField
+                                control={control}
+                                name={`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Reps</FormLabel>
+                                        <FormControl>
+                                            <Input {...field} placeholder="e.g., 8-12" />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         ) : (
-                             <div>
-                                <Label>Duration (e.g., 30s, 1m)</Label>
-                                <Controller
-                                    name={`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`}
-                                    control={control}
-                                    render={({ field }) => <Input {...field} placeholder="e.g., 30s" />}
-                                />
-                            </div>
+                             <FormField
+                                control={control}
+                                name={`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Duration (e.g., 30s, 1m)</FormLabel>
+                                        <FormControl>
+                                            <Input {...field} placeholder="e.g., 30s" />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         )}
-                        <div>
-                            <Label>Weight (kg or text)</Label>
-                             <Controller
-                                name={`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`}
-                                control={control}
-                                render={({ field }) => <Input {...field} placeholder="e.g., 50kg, Bodyweight" />}
-                            />
-                        </div>
-                        <div>
-                            <Label>Example Video URL</Label>
-                             <Controller
-                                name={`blocks.${blockIndex}.exercises.${exerciseIndex}.videoUrl`}
-                                control={control}
-                                render={({ field }) => <Input {...field} placeholder="https://youtube.com/..." />}
-                            />
-                        </div>
+                        <FormField
+                            control={control}
+                            name={`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Weight (kg or text)</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} placeholder="e.g., 50kg, Bodyweight" />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={control}
+                            name={`blocks.${blockIndex}.exercises.${exerciseIndex}.videoUrl`}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Example Video URL</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} placeholder="https://youtube.com/..." />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </div>
                     <SheetFooter>
-                        <Button type="button" onClick={onSubmit}>Save Changes</Button>
+                        <Button type="submit">Save Changes</Button>
                     </SheetFooter>
                 </form>
             </SheetContent>
@@ -233,8 +278,79 @@ function ExerciseSheet({
     );
 }
 
+function RoutineDetailsSection({ members, routineTypes }: { members: Member[], routineTypes: RoutineType[] }) {
+    const { control } = useFormContext<RoutineFormValues>();
+    const [calendarOpen, setCalendarOpen] = React.useState(false);
+
+    const handleDateSelect = (date: Date | undefined) => {
+        if(control && date) {
+          control.setValue('details.routineDate', date);
+        }
+        if (date) {
+            setCalendarOpen(false);
+        }
+    }
+    
+    return (
+        <div className="space-y-6">
+            <FormField control={control} name="details.memberId" render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Member</FormLabel>
+                    <MemberCombobox members={members} value={field.value ?? ''} onChange={field.onChange} />
+                    <FormMessage/>
+                </FormItem>
+            )} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <FormField control={control} name="details.routineTypeId" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Routine Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {routineTypes.map(rt => (<SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField control={control} name="details.routineDate" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Routine Date</FormLabel>
+                        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                            <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                    </Button>
+                                </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={handleDateSelect} initialFocus /></PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+            </div>
+        </div>
+    );
+}
+
 // --- MAIN FORM COMPONENT ---
-export function RoutineCreatorForm({ libraryExercises }: { libraryExercises: LibraryExercise[] }) {
+export function RoutineCreatorForm({ 
+    libraryExercises, 
+    members, 
+    routineTypes, 
+    isSubmitting,
+    onFormSubmit,
+    isTemplateMode
+}: { 
+    libraryExercises: LibraryExercise[],
+    members: Member[],
+    routineTypes: RoutineType[],
+    isSubmitting: boolean,
+    onFormSubmit: () => void,
+    isTemplateMode: boolean
+}) {
     const { control, getValues, setValue } = useFormContext<RoutineFormValues>();
     const { fields, append, remove, insert } = useFieldArray({
         control,
@@ -242,10 +358,6 @@ export function RoutineCreatorForm({ libraryExercises }: { libraryExercises: Lib
     });
     
     const [editingExercise, setEditingExercise] = useState<{ blockIndex: number; exerciseIndex: number } | null>(null);
-
-    const onSaveExercise = () => {
-        setEditingExercise(null);
-    };
 
     const onAddBlock = () => {
         append({ id: crypto.randomUUID(), name: `Block ${fields.length + 1}`, sets: '4', exercises: [] });
@@ -262,8 +374,9 @@ export function RoutineCreatorForm({ libraryExercises }: { libraryExercises: Lib
 
     const onRemoveExercise = (blockIndex: number, exerciseIndex: number) => {
         const currentExercises = getValues(`blocks.${blockIndex}.exercises`);
-        currentExercises.splice(exerciseIndex, 1);
-        setValue(`blocks.${blockIndex}.exercises`, currentExercises);
+        const updatedExercises = [...currentExercises];
+        updatedExercises.splice(exerciseIndex, 1);
+        setValue(`blocks.${blockIndex}.exercises`, updatedExercises);
     };
 
     const handleAddExercise = (blockIndex: number) => {
@@ -271,79 +384,100 @@ export function RoutineCreatorForm({ libraryExercises }: { libraryExercises: Lib
         setValue(`blocks.${blockIndex}.exercises`, [...currentExercises, { ...defaultExerciseValues }])
     };
 
-
     return (
-        <div className="space-y-4">
-            {fields.map((field, index) => (
-              <Dialog key={field.id}>
-                <div className="bg-card rounded-xl border">
-                    <EditableBlockHeader blockIndex={index} />
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Block Actions</DialogTitle>
-                            <DialogDescription>
-                                Perform actions on the "{getValues(`blocks.${index}.name`)}" block.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="flex flex-col gap-2 py-4">
-                           <DialogClose asChild>
-                             <Button variant="outline" onClick={() => onDuplicateBlock(index)}>
-                                <Copy className="mr-2 h-4 w-4" /> Duplicate Block
-                              </Button>
-                           </DialogClose>
-                            <DialogClose asChild>
-                              <Button variant="destructive" onClick={() => onRemoveBlock(index)}>
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete Block
-                              </Button>
-                            </DialogClose>
-                        </div>
-                    </DialogContent>
-                    <div className="p-3 space-y-2">
-                       {getValues(`blocks.${index}.exercises`)?.map((exercise: ExerciseFormValues, exIndex: number) => (
-                           <div 
-                                key={exIndex}
-                                className="flex items-center gap-2 p-2 rounded-md border bg-background group"
-                           >
-                                <div className="flex-1 cursor-pointer">
-                                    <ExerciseCombobox 
-                                      blockIndex={index} 
-                                      exerciseIndex={exIndex}
-                                      libraryExercises={libraryExercises}
-                                    />
-                                    <p className="text-xs text-muted-foreground mt-1 px-1">
-                                        {exercise.repType === 'reps' ? `${exercise.reps} reps` : `${exercise.duration}`}
-                                        {exercise.weight && ` / ${exercise.weight}`}
-                                    </p>
-                                </div>
-                                <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100" onClick={() => setEditingExercise({ blockIndex: index, exerciseIndex: exIndex })}>
-                                    <Pencil className="h-4 w-4"/>
-                                </Button>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); onRemoveExercise(index, exIndex); }}>
-                                    <Trash2 className="h-4 w-4"/>
-                                </Button>
-                           </div>
-                       ))}
-                       <Button variant="outline" className="w-full" onClick={() => handleAddExercise(index)}>
-                         <Plus className="mr-2 h-4 w-4" /> Add Exercise
-                       </Button>
-                    </div>
-                </div>
-              </Dialog>
-            ))}
+        <div className="flex-1 flex flex-col overflow-y-auto">
+            <Tabs defaultValue={isTemplateMode ? "blocks" : "details"} className="flex-grow flex flex-col h-full">
+                <TabsList className={cn("w-full rounded-none justify-start px-4 flex-shrink-0", isTemplateMode && "hidden")}>
+                    <TabsTrigger value="details">Details</TabsTrigger>
+                    <TabsTrigger value="blocks">Blocks</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="details" className="flex-grow p-4 md:p-6 overflow-y-auto pb-24">
+                    <RoutineDetailsSection members={members} routineTypes={routineTypes} />
+                </TabsContent>
 
-            <Button variant="secondary" className="w-full" onClick={onAddBlock}>
-                <Plus className="mr-2 h-4 w-4" /> Add New Block
-            </Button>
-            
-            {editingExercise && (
-                <ExerciseSheet 
-                    isOpen={!!editingExercise}
-                    onOpenChange={(isOpen) => !isOpen && setEditingExercise(null)}
-                    blockIndex={editingExercise.blockIndex}
-                    exerciseIndex={editingExercise.exerciseIndex}
-                    onSave={onSaveExercise}
-                />
-            )}
+                <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 md:p-6 overflow-y-auto pb-24">
+                    <div className="space-y-4">
+                        {fields.map((field, index) => (
+                          <Dialog key={field.id}>
+                            <div className="bg-card rounded-xl border">
+                                <EditableBlockHeader blockIndex={index} />
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Block Actions</DialogTitle>
+                                        <DialogDescription>
+                                            Perform actions on the "{getValues(`blocks.${index}.name`)}" block.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="flex flex-col gap-2 py-4">
+                                       <DialogClose asChild>
+                                         <Button variant="outline" onClick={() => onDuplicateBlock(index)}>
+                                            <Copy className="mr-2 h-4 w-4" /> Duplicate Block
+                                          </Button>
+                                       </DialogClose>
+                                        <DialogClose asChild>
+                                          <Button variant="destructive" onClick={() => onRemoveBlock(index)}>
+                                            <Trash2 className="mr-2 h-4 w-4" /> Delete Block
+                                          </Button>
+                                        </DialogClose>
+                                    </div>
+                                </DialogContent>
+                                <div className="p-3 space-y-2">
+                                   {getValues(`blocks.${index}.exercises`)?.map((exercise: ExerciseFormValues, exIndex: number) => (
+                                       <div 
+                                            key={exIndex}
+                                            className="flex items-center gap-2 p-2 rounded-md border bg-background group"
+                                       >
+                                            <div className="flex-1 cursor-pointer">
+                                                <ExerciseCombobox 
+                                                  blockIndex={index} 
+                                                  exerciseIndex={exIndex}
+                                                  libraryExercises={libraryExercises}
+                                                />
+                                                <p className="text-xs text-muted-foreground mt-1 px-1">
+                                                    {exercise.repType === 'reps' ? `${exercise.reps} reps` : `${exercise.duration}`}
+                                                    {exercise.weight && ` / ${exercise.weight}`}
+                                                </p>
+                                            </div>
+                                            <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100" onClick={() => setEditingExercise({ blockIndex: index, exerciseIndex: exIndex })}>
+                                                <Pencil className="h-4 w-4"/>
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); onRemoveExercise(index, exIndex); }}>
+                                                <Trash2 className="h-4 w-4"/>
+                                            </Button>
+                                       </div>
+                                   ))}
+                                   <Button variant="outline" className="w-full" onClick={() => handleAddExercise(index)}>
+                                     <Plus className="mr-2 h-4 w-4" /> Add Exercise
+                                   </Button>
+                                </div>
+                            </div>
+                          </Dialog>
+                        ))}
+
+                        <Button variant="secondary" className="w-full" onClick={onAddBlock}>
+                            <Plus className="mr-2 h-4 w-4" /> Add New Block
+                        </Button>
+                        
+                        {editingExercise && (
+                            <ExerciseSheet 
+                                isOpen={!!editingExercise}
+                                onOpenChange={(isOpen) => !isOpen && setEditingExercise(null)}
+                                blockIndex={editingExercise.blockIndex}
+                                exerciseIndex={editingExercise.exerciseIndex}
+                            />
+                        )}
+                    </div>
+                </TabsContent>
+            </Tabs>
+             <div className="flex-shrink-0 p-4 bg-background border-t">
+                <Button onClick={onFormSubmit} size="lg" className={cn("w-full", isTemplateMode && "hidden")} disabled={isSubmitting}>
+                    <Send className="mr-2 h-5 w-5" />
+                    <span className="text-lg">
+                        {isSubmitting ? 'Assigning...' : (isTemplateMode ? 'Update Routine' : 'Assign to Member')}
+                    </span>
+                </Button>
+            </div>
         </div>
     );
 }
