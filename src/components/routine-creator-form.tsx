@@ -3,9 +3,9 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2, Plus, GripVertical, MoreVertical, Copy, Pencil, Minus, Info } from 'lucide-react';
+import { Trash2, Plus, GripVertical, MoreVertical, Copy, Pencil, Minus } from 'lucide-react';
 import React, { useState, useEffect, useCallback, memo } from 'react';
-import { Controller, useFieldArray, useFormContext, type FieldValues, useForm } from 'react-hook-form';
+import { useForm, Controller, useFieldArray, useFormContext, type FieldValues } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Dialog,
