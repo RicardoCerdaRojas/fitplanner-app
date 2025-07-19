@@ -44,7 +44,7 @@ function ExerciseCombobox({
   exerciseIndex: number;
   libraryExercises: LibraryExercise[];
 }) {
-  const { control, setValue, watch } = useFormContext<RoutineFormValues>();
+  const { setValue, watch } = useFormContext<RoutineFormValues>();
   const [open, setOpen] = useState(false);
   const exerciseName = watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.name`);
   
@@ -55,25 +55,19 @@ function ExerciseCombobox({
     setOpen(false);
   };
   
-  const selectedExercise = libraryExercises.find(ex => ex.name === exerciseName);
+  const selectedExercise = libraryExercises.find(ex => ex.name.toLowerCase() === exerciseName?.toLowerCase());
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Controller
-          name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`}
-          control={control}
-          render={({ field }) => (
-            <Button
-              variant="outline"
-              role="combobox"
-              className="w-full justify-between font-semibold text-base"
-            >
-              {selectedExercise ? selectedExercise.name : "Select an exercise..."}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          )}
-        />
+        <Button
+          variant="outline"
+          role="combobox"
+          className="w-full justify-between font-semibold text-base"
+        >
+          {selectedExercise ? selectedExercise.name : "Select an exercise..."}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[300px] p-0">
         <Command>
@@ -283,7 +277,6 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
 
     const handleDateSelect = (date: Date | undefined) => {
         if(date) {
-            // This is a direct call, no need for control object check
             control.setValue('details.routineDate', date, { shouldValidate: true, shouldDirty: true });
         }
         if (date) {
@@ -359,9 +352,9 @@ function ExerciseItem({
                     exerciseIndex={exerciseIndex}
                     libraryExercises={libraryExercises}
                 />
-                {exercise && (
+                {exercise && exercise.name && (
                     <p className="text-xs text-muted-foreground mt-1 px-1">
-                        {exercise.repType === 'reps' ? `${exercise.reps} reps` : `${exercise.duration}`}
+                        {exercise.repType === 'reps' ? `${exercise.reps || '-'} reps` : `${exercise.duration || '-'}`}
                         {exercise.weight && ` / ${exercise.weight}`}
                     </p>
                 )}
