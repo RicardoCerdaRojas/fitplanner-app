@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2, Plus, GripVertical, MoreVertical, Copy, Pencil, Minus } from 'lucide-react';
+import { Trash2, Plus, GripVertical, MoreVertical, Copy, Pencil, Minus, ChevronsUpDown } from 'lucide-react';
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { useForm, Controller, useFieldArray, useFormContext, type FieldValues } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,6 +26,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Textarea } from './ui/textarea';
 import { z } from 'zod';
+import { cn } from '@/lib/utils';
 
 
 function ExerciseCombobox({
@@ -37,10 +38,10 @@ function ExerciseCombobox({
   exerciseIndex: number;
   libraryExercises: LibraryExercise[];
 }) {
-  const { control, setValue, watch } = useFormContext<RoutineFormValues>();
+  const { control, setValue, watch, getValues } = useFormContext<RoutineFormValues>();
   const [open, setOpen] = useState(false);
   const exerciseName = watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.name`);
-
+  
   const handleSelect = (exercise: LibraryExercise) => {
     setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.name`, exercise.name);
     setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.description`, exercise.description || '');
@@ -48,6 +49,8 @@ function ExerciseCombobox({
     setOpen(false);
   };
   
+  const selectedExercise = libraryExercises.find(ex => ex.name === exerciseName);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -55,11 +58,14 @@ function ExerciseCombobox({
           name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`}
           control={control}
           render={({ field }) => (
-             <Input 
-                {...field}
-                placeholder="Type or select an exercise..."
-                className="font-semibold text-base border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent w-full"
-            />
+            <Button
+              variant="outline"
+              role="combobox"
+              className="w-full justify-between font-semibold text-base"
+            >
+              {selectedExercise ? selectedExercise.name : "Select an exercise..."}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
           )}
         />
       </PopoverTrigger>
@@ -157,7 +163,7 @@ function EditableBlockHeader({
 }
 
 const exerciseSchema = z.object({
-  name: z.string().min(2, 'Exercise name is required.'),
+  name: z.string().min(1, 'Exercise name is required.'),
   description: z.string().optional(),
   repType: z.enum(['reps', 'duration']),
   reps: z.string().optional(),
