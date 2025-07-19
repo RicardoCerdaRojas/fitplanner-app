@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, useFormContext } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -24,7 +24,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, useFormContext } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AppHeader } from './app-header';
@@ -258,7 +258,6 @@ export default function CoachRoutineCreator() {
   const [dataToEdit, setDataToEdit] = React.useState<ManagedRoutine | RoutineTemplate | null>(null);
   const [isDataLoading, setIsDataLoading] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [saveTemplateOpen, setSaveTemplateOpen] = React.useState(false);
   
   const editRoutineId = searchParams.get('edit');
   const templateId = searchParams.get('template');
@@ -413,9 +412,14 @@ export default function CoachRoutineCreator() {
     };
 
     try {
-      await addDoc(collection(db, 'routineTemplates'), dataToSave);
-      toast({ title: 'Template Saved!', description: `"${templateName}" is now in your library.` });
-      setSaveTemplateOpen(false);
+      if (templateId) {
+        const templateRef = doc(db, 'routineTemplates', templateId);
+        await updateDoc(templateRef, dataToSave);
+        toast({ title: 'Template Updated!', description: `"${templateName}" has been updated in your library.` });
+      } else {
+        await addDoc(collection(db, 'routineTemplates'), dataToSave);
+        toast({ title: 'Template Saved!', description: `"${templateName}" is now in your library.` });
+      }
       router.push('/coach/templates');
     } catch (error: any) {
       console.error('Error saving template:', error);
@@ -526,6 +530,9 @@ export default function CoachRoutineCreator() {
   }
 
   const getInitialTemplateName = () => {
+      if (templateId && dataToEdit && 'templateName' in dataToEdit) {
+        return dataToEdit.templateName;
+      }
       const routineTypeId = form.getValues('details.routineTypeId');
       if (routineTypeId) {
           const routineType = routineTypes.find(rt => rt.id === routineTypeId);
@@ -542,7 +549,7 @@ export default function CoachRoutineCreator() {
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
               <h1 className="text-lg font-bold font-headline text-center">
-                  {isEditing ? 'Edit Routine' : 'Create Routine'}
+                  {isEditing ? (templateId ? 'Edit Template' : 'Edit Routine') : 'Create Routine'}
               </h1>
               <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -559,10 +566,10 @@ export default function CoachRoutineCreator() {
                            </DialogTrigger>
                            <TemplateLoader onTemplateLoad={loadTemplate} />
                        </Dialog>
-                       <Dialog open={saveTemplateOpen} onOpenChange={setSaveTemplateOpen}>
+                        <Dialog>
                            <DialogTrigger asChild>
                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                   <Save className="mr-2 h-4 w-4" /> Save as Template
+                                   <Save className="mr-2 h-4 w-4" /> {templateId ? 'Update Template' : 'Save as Template'}
                                </DropdownMenuItem>
                            </DialogTrigger>
                            <SaveTemplateDialog 
@@ -576,8 +583,8 @@ export default function CoachRoutineCreator() {
           
           <FormProvider {...form}>
             <div className="flex-1 flex flex-col overflow-y-auto">
-              <Tabs defaultValue="details" className="flex-grow flex flex-col h-full">
-                  <TabsList className="w-full rounded-none justify-start px-4 flex-shrink-0">
+              <Tabs defaultValue={templateId ? "blocks" : "details"} className="flex-grow flex flex-col h-full">
+                  <TabsList className={cn("w-full rounded-none justify-start px-4 flex-shrink-0", templateId && "hidden")}>
                       <TabsTrigger value="details">Details</TabsTrigger>
                       <TabsTrigger value="blocks">Blocks</TabsTrigger>
                   </TabsList>
@@ -594,7 +601,7 @@ export default function CoachRoutineCreator() {
           </FormProvider>
           
           <div className="flex-shrink-0 p-4 bg-background border-t">
-              <Button onClick={onFormSubmit} size="lg" className="w-full" disabled={isSubmitting}>
+              <Button onClick={onFormSubmit} size="lg" className={cn("w-full", templateId && "hidden")} disabled={isSubmitting}>
                   <Send className="mr-2 h-5 w-5" />
                   <span className="text-lg">
                     {isSubmitting ? 'Assigning...' : (isEditing && editRoutineId ? 'Update Routine' : 'Assign to Member')}
