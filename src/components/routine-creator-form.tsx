@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2, Plus, GripVertical, MoreVertical, Copy, ChevronsUpDown } from 'lucide-react';
+import { Trash2, Plus, GripVertical, MoreVertical, Copy, ChevronsUpDown, Pencil, Minus } from 'lucide-react';
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { useForm, Controller, useFieldArray, useFormContext, type FieldValues } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,7 +27,6 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Textarea } from './ui/textarea';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
-import { Pencil } from 'lucide-react';
 
 
 function ExerciseCombobox({
@@ -177,7 +176,7 @@ function ExerciseSheet({
     blockIndex: number;
     exerciseIndex: number;
 }) {
-    const { control, watch, setValue, getValues } = useFormContext<RoutineFormValues>();
+    const { control, watch } = useFormContext<RoutineFormValues>();
     const repType = watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`);
     
     const onSubmit = () => {
@@ -333,7 +332,7 @@ export function RoutineCreatorForm({ libraryExercises }: { libraryExercises: Lib
                         </div>
                     </DialogContent>
                     <div className="p-3 space-y-2">
-                       {getValues(`blocks.${index}.exercises`).map((exercise: ExerciseFormValues, exIndex: number) => (
+                       {getValues(`blocks.${index}.exercises`)?.map((exercise: ExerciseFormValues, exIndex: number) => (
                            <div 
                                 key={exIndex}
                                 className="flex items-center gap-2 p-2 rounded-md border bg-background group"
