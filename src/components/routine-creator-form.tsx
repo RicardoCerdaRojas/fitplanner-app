@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2, Plus, GripVertical, MoreVertical, Copy, ChevronsUpDown, Pencil, Minus } from 'lucide-react';
+import { Trash2, Plus, GripVertical, MoreVertical, Copy, ChevronsUpDown, Pencil } from 'lucide-react';
 import React, { useState, useCallback, memo } from 'react';
 import { useFormContext, useFieldArray, Controller } from 'react-hook-form';
 import {
@@ -90,45 +90,12 @@ function ExerciseCombobox({
 }
 
 
-function Stepper({ value, onIncrement, onDecrement }: { value: string, onIncrement: () => void, onDecrement: () => void }) {
-  return (
-    <div className="flex items-center gap-1">
-      <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={onDecrement}>
-        <Minus className="h-4 w-4" />
-      </Button>
-      <div className="h-9 w-12 text-center font-bold flex items-center justify-center text-lg">{value}</div>
-      <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={onIncrement}>
-        <Plus className="h-4 w-4" />
-      </Button>
-    </div>
-  );
-}
-
-
 function EditableBlockHeader({
   blockIndex,
 }: {
   blockIndex: number,
 }) {
-  const { control, watch, setValue } = useFormContext<RoutineFormValues>();
-  const block = watch(`blocks.${blockIndex}`);
-
-  const handleUpdate = (field: keyof BlockFormValues, value: any) => {
-    setValue(`blocks.${blockIndex}.${field}`, value);
-  };
-
-  const handleIncrementSets = () => {
-    const currentSets = parseInt(block.sets, 10) || 0;
-    handleUpdate('sets', String(currentSets + 1));
-  };
-    
-  const handleDecrementSets = () => {
-    const currentSets = parseInt(block.sets, 10) || 0;
-    if (currentSets > 1) {
-        handleUpdate('sets', String(currentSets - 1));
-    }
-  };
-
+  const { control, watch } = useFormContext<RoutineFormValues>();
 
   return (
     <div className="flex flex-row items-center justify-between bg-muted p-2 md:p-3 rounded-t-xl">
@@ -143,17 +110,21 @@ function EditableBlockHeader({
             />
         )}
       />
-      
-      <div className="flex items-center gap-1 md:gap-2">
-         <Stepper 
-            value={block.sets}
-            onIncrement={handleIncrementSets}
-            onDecrement={handleDecrementSets}
-         />
-         <DialogTrigger asChild>
-            <Button variant="ghost" size="icon"><MoreVertical className="h-5 w-5" /></Button>
-         </DialogTrigger>
-      </div>
+      <Controller
+          name={`blocks.${blockIndex}.sets`}
+          control={control}
+          render={({ field }) => (
+              <Input
+                  {...field}
+                  type="number"
+                  className="w-20 font-bold text-center"
+                  placeholder="Sets"
+              />
+          )}
+      />
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon"><MoreVertical className="h-5 w-5" /></Button>
+      </DialogTrigger>
     </div>
   );
 }

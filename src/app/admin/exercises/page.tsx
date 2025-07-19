@@ -277,7 +277,7 @@ export default function ExercisesPage() {
                                                     <AccordionContent className="px-4 pb-3">
                                                         <div className="space-y-2 pt-2 border-t text-sm text-muted-foreground">
                                                             <p><strong>Description:</strong> {exercise.description || 'N/A'}</p>
-                                                            <p><strong>Video URL:</strong> {exercise.videoUrl || 'N/A'}</p>
+                                                            <p><strong>Video URL:</strong> {exercise.videoUrl ? <a href={exercise.videoUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{exercise.videoUrl}</a> : 'N/A'}</p>
                                                         </div>
                                                     </AccordionContent>
                                                 </AccordionItem>
