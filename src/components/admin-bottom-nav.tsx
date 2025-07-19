@@ -1,8 +1,9 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Users, ClipboardList, Layers, Palette, LayoutDashboard, Activity, CreditCard } from 'lucide-react';
+import { Users, ClipboardList, Layers, Palette, LayoutDashboard, Activity, CreditCard, Dumbbell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -14,7 +15,7 @@ export function AdminBottomNav() {
     { href: '/admin/live', label: 'Live', icon: Activity },
     { href: '/coach', label: 'Routines', icon: ClipboardList },
     { href: '/admin/members', label: 'Members', icon: Users },
-    { href: '/admin/routine-types', label: 'Types', icon: Layers },
+    { href: '/admin/exercises', label: 'Exercises', icon: Dumbbell },
     { href: '/admin/settings', label: 'Branding', icon: Palette },
     { href: '/admin/subscription', label: 'Subscription', icon: CreditCard },
   ];

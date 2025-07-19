@@ -3,10 +3,9 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2, Plus, GripVertical, MoreVertical, Copy, Pencil, Minus } from 'lucide-react';
+import { Trash2, Plus, GripVertical, MoreVertical, Copy, Pencil, Minus, Info } from 'lucide-react';
 import React, { useState, useEffect, useCallback, memo } from 'react';
-import { Controller, useFieldArray, useForm, useFormContext } from 'react-hook-form';
-import type { FieldValues } from 'react-hook-form';
+import { Controller, useFieldArray, useForm, useFormContext, type FieldValues } from 'react-hook-form';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +20,70 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { defaultExerciseValues } from './coach-routine-creator';
 import type { RoutineFormValues, BlockFormValues, ExerciseFormValues } from './coach-routine-creator';
+import type { LibraryExercise } from '@/app/admin/exercises/page';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Textarea } from './ui/textarea';
+
+
+function ExerciseCombobox({
+  blockIndex,
+  exerciseIndex,
+  libraryExercises
+}: {
+  blockIndex: number;
+  exerciseIndex: number;
+  libraryExercises: LibraryExercise[];
+}) {
+  const { control, setValue, watch } = useFormContext<RoutineFormValues>();
+  const [open, setOpen] = useState(false);
+  const exerciseName = watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.name`);
+
+  const handleSelect = (exercise: LibraryExercise) => {
+    setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.name`, exercise.name);
+    setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.description`, exercise.description || '');
+    setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.videoUrl`, exercise.videoUrl || '');
+    setOpen(false);
+  };
+  
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Controller
+          name={`blocks.${blockIndex}.exercises.${exerciseIndex}.name`}
+          control={control}
+          render={({ field }) => (
+             <Input 
+                {...field}
+                placeholder="Type or select an exercise..."
+                className="font-semibold text-base border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent w-full"
+            />
+          )}
+        />
+      </PopoverTrigger>
+      <PopoverContent className="w-[300px] p-0">
+        <Command>
+          <CommandInput placeholder="Search exercises..." className="h-9" />
+          <CommandList>
+            <CommandEmpty>No exercise found.</CommandEmpty>
+            <CommandGroup>
+              {libraryExercises.map((exercise) => (
+                <CommandItem
+                  key={exercise.id}
+                  value={exercise.name}
+                  onSelect={() => handleSelect(exercise)}
+                >
+                  {exercise.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 
 // New, robust stepper component
 function Stepper({ value, onIncrement, onDecrement }: { value: string, onIncrement: () => void, onDecrement: () => void }) {
@@ -103,21 +166,17 @@ function ExerciseSheet({
     onOpenChange: (isOpen: boolean) => void;
     onSave: (updatedExercise: ExerciseFormValues) => void;
 }) {
-    const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm<ExerciseFormValues>({
+    const { register, handleSubmit, control, watch, setValue, formState: { errors }, reset } = useForm<ExerciseFormValues>({
+         resolver: zodResolver(exerciseSchema),
          defaultValues: exercise || defaultExerciseValues,
     });
     const repType = watch('repType');
 
     useEffect(() => {
         if (exercise) {
-            setValue('name', exercise.name);
-            setValue('repType', exercise.repType);
-            setValue('reps', exercise.reps);
-            setValue('duration', exercise.duration);
-            setValue('weight', exercise.weight);
-            setValue('videoUrl', exercise.videoUrl);
+            reset(exercise);
         }
-    }, [exercise, setValue]);
+    }, [exercise, reset]);
     
     if (!exercise) return null;
 
@@ -131,14 +190,17 @@ function ExerciseSheet({
             <SheetContent side="bottom" className="rounded-t-lg">
                 <form onSubmit={handleSubmit(onSubmit)}>
                     <SheetHeader className="text-left">
-                        <SheetTitle>Edit Exercise</SheetTitle>
+                        <SheetTitle>Edit Exercise Details</SheetTitle>
                         <SheetDescription>Make changes to your exercise here. Click save when you're done.</SheetDescription>
                     </SheetHeader>
                     <div className="space-y-4 py-4">
+                        <p className="font-semibold text-lg">{watch('name')}</p>
+                        
                         <div>
-                            <Label>Exercise Name</Label>
-                            <Input {...register('name')} placeholder="e.g., Bench Press" />
+                            <Label>Description / Help</Label>
+                            <Textarea {...register('description')} placeholder="e.g., Keep your back straight, chest up." />
                         </div>
+                        
                         <div className="p-4 rounded-lg bg-muted">
                             <div className="flex items-center justify-between">
                                 <Label className={repType === 'reps' ? 'font-bold' : ''}>Reps</Label>
@@ -163,7 +225,7 @@ function ExerciseSheet({
                             </div>
                         ) : (
                              <div>
-                                <Label>Duration (min)</Label>
+                                <Label>Duration (e.g., 30s, 1m)</Label>
                                 <Input {...register('duration')} placeholder="e.g., 30s" />
                             </div>
                         )}
@@ -186,7 +248,7 @@ function ExerciseSheet({
 }
 
 // --- MAIN FORM COMPONENT ---
-export function RoutineCreatorForm() {
+export function RoutineCreatorForm({ libraryExercises }: { libraryExercises: LibraryExercise[] }) {
     const { control, getValues, setValue } = useFormContext<RoutineFormValues>();
     const { fields, append, remove, insert } = useFieldArray({
         control,
@@ -218,6 +280,11 @@ export function RoutineCreatorForm() {
         const currentExercises = getValues(`blocks.${blockIndex}.exercises`);
         currentExercises.splice(exerciseIndex, 1);
         setValue(`blocks.${blockIndex}.exercises`, currentExercises);
+    };
+
+    const handleAddExercise = (blockIndex: number) => {
+        const currentExercises = getValues(`blocks.${blockIndex}.exercises`);
+        setValue(`blocks.${blockIndex}.exercises`, [...currentExercises, { ...defaultExerciseValues }])
     };
 
 
@@ -252,16 +319,19 @@ export function RoutineCreatorForm() {
                            <div 
                                 key={exIndex}
                                 className="flex items-center gap-2 p-2 rounded-md border bg-background group"
-                                onClick={() => setEditingExercise({ blockIndex: index, exerciseIndex: exIndex, exercise })}
                            >
                                 <div className="flex-1 cursor-pointer">
-                                    <p className="font-semibold">{exercise.name}</p>
-                                    <p className="text-xs text-muted-foreground">
+                                    <ExerciseCombobox 
+                                      blockIndex={index} 
+                                      exerciseIndex={exIndex}
+                                      libraryExercises={libraryExercises}
+                                    />
+                                    <p className="text-xs text-muted-foreground mt-1 px-1">
                                         {exercise.repType === 'reps' ? `${exercise.reps} reps` : `${exercise.duration}`}
                                         {exercise.weight && ` / ${exercise.weight}`}
                                     </p>
                                 </div>
-                                <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
+                                <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100" onClick={() => setEditingExercise({ blockIndex: index, exerciseIndex: exIndex, exercise })}>
                                     <Pencil className="h-4 w-4"/>
                                 </Button>
                                 <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); onRemoveExercise(index, exIndex); }}>
@@ -269,10 +339,7 @@ export function RoutineCreatorForm() {
                                 </Button>
                            </div>
                        ))}
-                       <Button variant="outline" className="w-full" onClick={() => {
-                            const currentExercises = getValues(`blocks.${index}.exercises`);
-                            setValue(`blocks.${index}.exercises`, [...currentExercises, { ...defaultExerciseValues, name: `New Exercise ${currentExercises.length + 1}` }])
-                       }}>
+                       <Button variant="outline" className="w-full" onClick={() => handleAddExercise(index)}>
                          <Plus className="mr-2 h-4 w-4" /> Add Exercise
                        </Button>
                     </div>

@@ -14,11 +14,12 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { Calendar, ClipboardList, PlaySquare, Dumbbell, Repeat, Clock, Rocket, CheckCircle2 } from 'lucide-react';
+import { Calendar, ClipboardList, PlaySquare, Dumbbell, Repeat, Clock, Rocket, CheckCircle2, Info } from 'lucide-react';
 import { WorkoutSession } from './workout-session';
 import ReactPlayer from 'react-player/lazy';
 import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 export type ExerciseProgress = {
   [key: string]: { // The key is now `${blockIndex}-${exerciseIndex}-${setIndex}`
@@ -29,6 +30,7 @@ export type ExerciseProgress = {
 
 export type Exercise = {
   name: string;
+  description?: string;
   repType: 'reps' | 'duration';
   reps?: string;
   duration?: string;
@@ -218,7 +220,21 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
                                 return (
                                     <div key={exIndex} className="flex items-center justify-between gap-4 p-3 rounded-lg bg-background transition-colors">
                                         <div className="flex-1 min-w-0">
-                                            <p className="font-semibold text-card-foreground truncate">{exercise.name}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-semibold text-card-foreground truncate">{exercise.name}</p>
+                                                {exercise.description && (
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent className="max-w-xs">
+                                                                <p>{exercise.description}</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                )}
+                                            </div>
                                             <div className="flex items-center gap-2 mt-1">
                                                 <Progress value={exerciseProgressPercentage} className="h-1 w-20" />
                                                 <span className="text-xs font-medium text-muted-foreground">{completedSetsForExercise}/{totalSetsInBlock} sets</span>

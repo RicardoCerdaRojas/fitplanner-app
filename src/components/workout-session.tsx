@@ -6,7 +6,7 @@ import type { Routine, Exercise, ExerciseProgress } from './athlete-routine-list
 import { DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video, CheckCircle2, Circle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video, CheckCircle2, Circle, Info } from 'lucide-react';
 import ReactPlayer from 'react-player/lazy';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
@@ -27,8 +27,16 @@ type SessionExercise = Exercise & {
 // Timer Component
 const Timer = ({ durationString, isCurrent }: { durationString: string; isCurrent: boolean }) => {
     const parseDuration = (str: string) => {
-        const match = str.match(/(\d+)/);
-        return match ? parseInt(match[0], 10) * 60 : 0;
+        let seconds = 0;
+        const minMatch = str.match(/(\d+)\s*m/);
+        const secMatch = str.match(/(\d+)\s*s/);
+        if (minMatch) seconds += parseInt(minMatch[1], 10) * 60;
+        if (secMatch) seconds += parseInt(secMatch[1], 10);
+        if (!minMatch && !secMatch) { // fallback for just numbers
+            const numMatch = str.match(/(\d+)/);
+            if (numMatch) seconds = parseInt(numMatch[0], 10);
+        }
+        return seconds;
     };
 
     const initialSeconds = useMemo(() => parseDuration(durationString), [durationString]);
@@ -158,7 +166,10 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
             if (block.exercises && block.exercises.length > 0) {
                 const totalSets = parseInt(block.sets.match(/\d+/)?.[0] || '1', 10);
                 for (let sIndex = 0; sIndex < totalSets; sIndex++) {
-                    block.exercises.forEach((exercise, eIndex) => {
+                    // This was creating one playlist entry per set, we want one per exercise.
+                    // The logic below is better.
+                    // Let's create one entry per set of an exercise.
+                     block.exercises.forEach((exercise, eIndex) => {
                         playlist.push({
                             ...exercise,
                             blockName: block.name,
@@ -245,8 +256,6 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
     const currentItem = sessionPlaylist[currentIndex];
     if (!currentItem) {
-        // This can happen if the playlist is empty.
-        // We can end the session or show a message.
         useEffect(() => {
             onSessionEnd();
         }, [onSessionEnd]);
@@ -339,6 +348,13 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                     <div className="w-full max-w-md flex flex-col items-center justify-center">
                         <p className="font-semibold text-accent">{currentItem.blockName} &bull; Set {currentItem.setIndex + 1} of {currentItem.totalSets}</p>
                         <h2 className="text-5xl font-bold font-headline my-4">{currentItem.name}</h2>
+                        
+                        {currentItem.description && (
+                            <div className="mb-6 p-4 bg-background/50 border rounded-lg text-sm text-muted-foreground max-w-md text-left flex items-start gap-3">
+                                <Info className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                                <p>{currentItem.description}</p>
+                            </div>
+                        )}
                         
                         {currentItem.repType === 'duration' && currentItem.duration ? (
                             <Timer durationString={currentItem.duration} isCurrent={!!currentItem}/>

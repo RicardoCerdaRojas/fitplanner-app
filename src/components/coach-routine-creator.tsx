@@ -12,7 +12,6 @@ import { addDoc, collection, Timestamp, doc, updateDoc, onSnapshot, getDoc, quer
 import { db } from '@/lib/firebase';
 import type { Member } from '@/app/coach/page';
 import type { ManagedRoutine } from './coach-routine-management';
-import type { RoutineType } from '@/app/admin/routine-types/page';
 import { Skeleton } from './ui/skeleton';
 import { RoutineCreatorForm } from './routine-creator-form';
 import { Button } from './ui/button';
@@ -33,9 +32,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { ScrollArea } from './ui/scroll-area';
+import type { LibraryExercise } from '@/app/admin/exercises/page';
+import type { RoutineType } from '@/app/admin/routine-types/page';
+
 
 const exerciseSchema = z.object({
   name: z.string().min(2, 'Exercise name is required.'),
+  description: z.string().optional(),
   repType: z.enum(['reps', 'duration']),
   reps: z.string().optional(),
   duration: z.string().optional(),
@@ -75,7 +78,8 @@ export type BlockFormValues = z.infer<typeof blockSchema>;
 export type ExerciseFormValues = z.infer<typeof exerciseSchema>;
 
 export const defaultExerciseValues: ExerciseFormValues = { 
-  name: 'New Exercise',
+  name: '',
+  description: '',
   repType: 'reps' as const, 
   reps: '10', 
   duration: '',
@@ -140,7 +144,7 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
     );
 }
 
-const TemplateLoader = React.memo(({ onTemplateLoad }: { onTemplateLoad: (template: RoutineTemplate) => void }) => {
+const TemplateLoader = React.memo(({ onTemplateLoad, open, onOpenChange }: { onTemplateLoad: (template: RoutineTemplate) => void; open: boolean; onOpenChange: (open: boolean) => void; }) => {
     const { toast } = useToast();
     const { activeMembership, loading: authLoading } = useAuth();
     const [templates, setTemplates] = React.useState<RoutineTemplate[]>([]);
@@ -173,29 +177,31 @@ const TemplateLoader = React.memo(({ onTemplateLoad }: { onTemplateLoad: (templa
     }, [authLoading, activeMembership, toast]);
     
     return (
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Load from Template</DialogTitle>
-                <DialogDescription>Select a previously saved template to start editing.</DialogDescription>
-            </DialogHeader>
-            <ScrollArea className="max-h-[60vh] -mx-6">
-                <div className="px-6 py-4 space-y-2">
-                {isLoading ? (
-                    <p>Loading templates...</p>
-                ) : templates.length > 0 ? (
-                    templates.map(template => (
-                        <DialogClose asChild key={template.id}>
-                            <Button variant="ghost" className="w-full justify-start" onClick={() => onTemplateLoad(template)}>
-                                {template.templateName}
-                            </Button>
-                        </DialogClose>
-                    ))
-                ) : (
-                    <p className="text-muted-foreground">No templates found.</p>
-                )}
-                </div>
-            </ScrollArea>
-        </DialogContent>
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Load from Template</DialogTitle>
+                    <DialogDescription>Select a previously saved template to start editing.</DialogDescription>
+                </DialogHeader>
+                <ScrollArea className="max-h-[60vh] -mx-6">
+                    <div className="px-6 py-4 space-y-2">
+                    {isLoading ? (
+                        <p>Loading templates...</p>
+                    ) : templates.length > 0 ? (
+                        templates.map(template => (
+                            <DialogClose asChild key={template.id}>
+                                <Button variant="ghost" className="w-full justify-start" onClick={() => onTemplateLoad(template)}>
+                                    {template.templateName}
+                                </Button>
+                            </DialogClose>
+                        ))
+                    ) : (
+                        <p className="text-muted-foreground">No templates found.</p>
+                    )}
+                    </div>
+                </ScrollArea>
+            </DialogContent>
+        </Dialog>
     );
 });
 TemplateLoader.displayName = 'TemplateLoader';
@@ -253,10 +259,13 @@ export default function CoachRoutineCreator() {
 
   const [members, setMembers] = React.useState<Member[]>([]);
   const [routineTypes, setRoutineTypes] = React.useState<RoutineType[]>([]);
+  const [libraryExercises, setLibraryExercises] = React.useState<LibraryExercise[]>([]);
+
   const [dataToEdit, setDataToEdit] = React.useState<ManagedRoutine | RoutineTemplate | null>(null);
   const [isDataLoading, setIsDataLoading] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isSaveTemplateOpen, setSaveTemplateOpen] = React.useState(false);
+  const [isLoadTemplateOpen, setIsLoadTemplateOpen] = React.useState(false);
   
   const editRoutineId = searchParams.get('edit');
   const templateId = searchParams.get('template');
@@ -427,10 +436,11 @@ export default function CoachRoutineCreator() {
     const gymId = activeMembership.gymId;
     let membersLoaded = false;
     let typesLoaded = false;
+    let exercisesLoaded = false;
     let editDataLoaded = !editRoutineId && !templateId;
 
     const checkLoadingState = () => {
-        if (membersLoaded && typesLoaded && editDataLoaded) {
+        if (membersLoaded && typesLoaded && editDataLoaded && exercisesLoaded) {
             setIsDataLoading(false);
         }
     };
@@ -454,6 +464,15 @@ export default function CoachRoutineCreator() {
       typesLoaded = true;
       checkLoadingState();
     });
+
+    const exercisesQuery = query(collection(db, 'exercises'), where('gymId', '==', gymId), orderBy('name'));
+    const unsubscribeExercises = onSnapshot(exercisesQuery, (snapshot) => {
+        const fetchedExercises = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LibraryExercise));
+        setLibraryExercises(fetchedExercises);
+        exercisesLoaded = true;
+        checkLoadingState();
+    });
+
 
     const fetchEditData = async () => {
         let docRef;
@@ -490,6 +509,7 @@ export default function CoachRoutineCreator() {
     return () => {
       unsubscribeMembers();
       unsubscribeTypes();
+      unsubscribeExercises();
     };
 
   }, [authLoading, activeMembership, editRoutineId, templateId, router, toast, isEditing]);
@@ -538,17 +558,12 @@ export default function CoachRoutineCreator() {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                         <Dialog>
-                              <DialogTrigger asChild>
-                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                      <Library className="mr-2 h-4 w-4" /> Load Template
-                                  </DropdownMenuItem>
-                              </DialogTrigger>
-                              <TemplateLoader onTemplateLoad={loadTemplate} />
-                         </Dialog>
-                         <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSaveTemplateOpen(true); }}>
+                        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setIsLoadTemplateOpen(true);}}>
+                           <Library className="mr-2 h-4 w-4" /> Load Template
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSaveTemplateOpen(true); }}>
                              <Save className="mr-2 h-4 w-4" /> Save as Template
-                         </DropdownMenuItem>
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
           </div>
@@ -566,7 +581,7 @@ export default function CoachRoutineCreator() {
                       </TabsContent>
 
                       <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 md:p-6 overflow-y-auto pb-24">
-                          <RoutineCreatorForm />
+                          <RoutineCreatorForm libraryExercises={libraryExercises} />
                       </TabsContent>
               </Tabs>
             </div>
@@ -580,6 +595,12 @@ export default function CoachRoutineCreator() {
                   </span>
               </Button>
           </div>
+          
+          <TemplateLoader
+            open={isLoadTemplateOpen}
+            onOpenChange={setIsLoadTemplateOpen}
+            onTemplateLoad={loadTemplate}
+          />
           
           <SaveTemplateDialog 
             onSave={handleSaveAsTemplate} 
