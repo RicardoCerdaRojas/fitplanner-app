@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2, Plus, GripVertical, MoreVertical, Copy, Pencil, Minus, Info } from 'lucide-react';
 import React, { useState, useEffect, useCallback, memo } from 'react';
-import { Controller, useFieldArray, useForm, useFormContext, type FieldValues } from 'react-hook-form';
+import { Controller, useFieldArray, useFormContext, type FieldValues, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ import type { LibraryExercise } from '@/app/admin/exercises/page';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Textarea } from './ui/textarea';
+import { z } from 'zod';
 
 
 function ExerciseCombobox({
@@ -153,6 +155,23 @@ function EditableBlockHeader({
     </div>
   );
 }
+
+const exerciseSchema = z.object({
+  name: z.string().min(2, 'Exercise name is required.'),
+  description: z.string().optional(),
+  repType: z.enum(['reps', 'duration']),
+  reps: z.string().optional(),
+  duration: z.string().optional(),
+  weight: z.string().optional(),
+  videoUrl: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
+}).superRefine((data, ctx) => {
+    if (data.repType === 'reps' && (!data.reps || data.reps.trim() === '')) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Reps are required.", path: ['reps'] });
+    }
+    if (data.repType === 'duration' && (!data.duration || data.duration.trim() === '')) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Duration is required.", path: ['duration'] });
+    }
+});
 
 
 function ExerciseSheet({
