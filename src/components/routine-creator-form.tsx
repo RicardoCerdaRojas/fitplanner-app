@@ -1,12 +1,10 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2, Plus, GripVertical, MoreVertical, Copy, ChevronsUpDown, Pencil, Minus } from 'lucide-react';
-import React, { useState, useEffect, useCallback, memo } from 'react';
-import { useForm, Controller, useFieldArray, useFormContext, type FieldValues } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import React, { useState, useCallback, memo } from 'react';
+import { useFormContext, useFieldArray, Controller } from 'react-hook-form';
 import {
   Dialog,
   DialogContent,
@@ -25,7 +23,6 @@ import type { LibraryExercise } from '@/app/admin/exercises/page';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Textarea } from './ui/textarea';
-import { z } from 'zod';
 import { cn } from '@/lib/utils';
 
 
@@ -93,7 +90,6 @@ function ExerciseCombobox({
 }
 
 
-// New, robust stepper component
 function Stepper({ value, onIncrement, onDecrement }: { value: string, onIncrement: () => void, onDecrement: () => void }) {
   return (
     <div className="flex items-center gap-1">
