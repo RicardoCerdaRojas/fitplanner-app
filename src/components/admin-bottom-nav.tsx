@@ -16,6 +16,7 @@ export function AdminBottomNav() {
     { href: '/coach', label: 'Routines', icon: ClipboardList },
     { href: '/admin/members', label: 'Members', icon: Users },
     { href: '/admin/exercises', label: 'Exercises', icon: Dumbbell },
+    { href: '/admin/routine-types', label: 'Types', icon: Layers },
     { href: '/admin/settings', label: 'Branding', icon: Palette },
     { href: '/admin/subscription', label: 'Subscription', icon: CreditCard },
   ];

@@ -45,7 +45,7 @@ import { Label } from './ui/label';
 import { MemberCombobox } from './ui/member-combobox';
 import type { Member } from '@/app/coach/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import type { LibraryExercise } from '@/app/admin/exercises/page';
+import type { RoutineType } from '@/app/admin/routine-types/page';
 import { Popover, PopoverTrigger, PopoverContent } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import type { DateRange } from 'react-day-picker';
@@ -74,7 +74,7 @@ export type ManagedRoutine = {
 type Props = {
     routines: ManagedRoutine[];
     members: Member[];
-    routineTypes: LibraryExercise[];
+    routineTypes: RoutineType[];
 };
 
 export function CoachRoutineManagement({ routines, members, routineTypes }: Props) {
