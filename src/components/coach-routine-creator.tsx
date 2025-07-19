@@ -33,7 +33,6 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { ScrollArea } from './ui/scroll-area';
 import type { LibraryExercise } from '@/app/admin/exercises/page';
-import type { RoutineType } from '@/app/admin/routine-types/page';
 
 
 const exerciseSchema = z.object({
@@ -87,7 +86,7 @@ export const defaultExerciseValues: ExerciseFormValues = {
   videoUrl: '' 
 };
 
-function RoutineDetailsSection({ members, routineTypes }: { members: Member[], routineTypes: RoutineType[] }) {
+function RoutineDetailsSection({ members, routineTypes }: { members: Member[], routineTypes: LibraryExercise[] }) {
     const { control } = useFormContext<RoutineFormValues>();
     const [calendarOpen, setCalendarOpen] = React.useState(false);
 
@@ -258,7 +257,7 @@ export default function CoachRoutineCreator() {
   const { user, activeMembership, loading: authLoading } = useAuth();
 
   const [members, setMembers] = React.useState<Member[]>([]);
-  const [routineTypes, setRoutineTypes] = React.useState<RoutineType[]>([]);
+  const [routineTypes, setRoutineTypes] = React.useState<LibraryExercise[]>([]);
   const [libraryExercises, setLibraryExercises] = React.useState<LibraryExercise[]>([]);
 
   const [dataToEdit, setDataToEdit] = React.useState<ManagedRoutine | RoutineTemplate | null>(null);
@@ -457,9 +456,9 @@ export default function CoachRoutineCreator() {
       checkLoadingState();
     });
 
-    const typesQuery = query(collection(db, 'routineTypes'), where('gymId', '==', gymId), orderBy('name'));
+    const typesQuery = query(collection(db, 'exercises'), where('gymId', '==', gymId), orderBy('name'));
     const unsubscribeTypes = onSnapshot(typesQuery, (snapshot) => {
-      const fetchedTypes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RoutineType));
+      const fetchedTypes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LibraryExercise));
       setRoutineTypes(fetchedTypes);
       typesLoaded = true;
       checkLoadingState();
@@ -558,12 +557,16 @@ export default function CoachRoutineCreator() {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setIsLoadTemplateOpen(true);}}>
-                           <Library className="mr-2 h-4 w-4" /> Load Template
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSaveTemplateOpen(true); }}>
-                             <Save className="mr-2 h-4 w-4" /> Save as Template
-                        </DropdownMenuItem>
+                         <DialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                               <Library className="mr-2 h-4 w-4" /> Load Template
+                            </DropdownMenuItem>
+                         </DialogTrigger>
+                         <DialogTrigger asChild>
+                             <DropdownMenuItem onSelect={(e) => { e.preventDefault(); }}>
+                                 <Save className="mr-2 h-4 w-4" /> Save as Template
+                             </DropdownMenuItem>
+                         </DialogTrigger>
                     </DropdownMenuContent>
                 </DropdownMenu>
           </div>
@@ -596,18 +599,18 @@ export default function CoachRoutineCreator() {
               </Button>
           </div>
           
-          <TemplateLoader
-            open={isLoadTemplateOpen}
-            onOpenChange={setIsLoadTemplateOpen}
-            onTemplateLoad={loadTemplate}
-          />
+          <Dialog>
+              <TemplateLoader onTemplateLoad={loadTemplate} open={isLoadTemplateOpen} onOpenChange={setIsLoadTemplateOpen} />
+          </Dialog>
           
-          <SaveTemplateDialog 
-            onSave={handleSaveAsTemplate} 
-            initialName={getInitialTemplateName()}
-            open={isSaveTemplateOpen}
-            onOpenChange={setSaveTemplateOpen}
-          />
+          <Dialog>
+              <SaveTemplateDialog 
+                onSave={handleSaveAsTemplate} 
+                initialName={getInitialTemplateName()}
+                open={isSaveTemplateOpen}
+                onOpenChange={setSaveTemplateOpen}
+              />
+          </Dialog>
 
       </div>
   );
