@@ -15,14 +15,12 @@ import {
   DialogTrigger,
   DialogClose,
 } from './ui/dialog';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetTrigger } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { defaultExerciseValues } from './coach-routine-creator';
 import type { RoutineFormValues, BlockFormValues, ExerciseFormValues } from './coach-routine-creator';
 import type { LibraryExercise } from '@/app/admin/exercises/page';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Textarea } from './ui/textarea';
 import { cn } from '@/lib/utils';
 import { MemberCombobox } from './ui/member-combobox';
@@ -34,6 +32,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Member } from '@/app/coach/page';
 import type { RoutineType } from '@/app/admin/routine-types/page';
 import { Calendar as CalendarIcon, Repeat, Clock, Dumbbell, Video } from 'lucide-react';
+import { ScrollArea } from './ui/scroll-area';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
 function ExerciseCombobox({
   blockIndex,
@@ -44,52 +44,74 @@ function ExerciseCombobox({
   exerciseIndex: number;
   libraryExercises: LibraryExercise[];
 }) {
-  const { setValue, watch } = useFormContext<RoutineFormValues>();
-  const [open, setOpen] = useState(false);
-  const exerciseName = watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.name`);
-  
-  const handleSelect = (exercise: LibraryExercise) => {
-    setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.name`, exercise.name);
-    setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.description`, exercise.description || '');
-    setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.videoUrl`, exercise.videoUrl || '');
-    setOpen(false);
-  };
-  
-  const selectedExercise = libraryExercises.find(ex => ex.name.toLowerCase() === exerciseName?.toLowerCase());
+    const { setValue, watch } = useFormContext<RoutineFormValues>();
+    const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState("");
+    const exerciseName = watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.name`);
 
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          className="w-full justify-between font-semibold text-base"
-        >
-          {selectedExercise ? selectedExercise.name : "Select an exercise..."}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0">
-        <Command>
-          <CommandInput placeholder="Search exercises..." className="h-9" />
-          <CommandList>
-            <CommandEmpty>No exercise found.</CommandEmpty>
-            <CommandGroup>
-              {libraryExercises.map((exercise) => (
-                <CommandItem
-                  key={exercise.id}
-                  value={exercise.name}
-                  onSelect={() => handleSelect(exercise)}
+    const handleSelect = (exercise: LibraryExercise) => {
+        setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.name`, exercise.name);
+        setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.description`, exercise.description || '');
+        setValue(`blocks.${blockIndex}.exercises.${exerciseIndex}.videoUrl`, exercise.videoUrl || '');
+        setOpen(false);
+    };
+
+    const selectedExercise = libraryExercises.find(ex => ex.name.toLowerCase() === exerciseName?.toLowerCase());
+
+    const filteredExercises = React.useMemo(() => {
+        if (!search) return libraryExercises;
+        return libraryExercises.filter(ex => 
+            ex.name.toLowerCase().includes(search.toLowerCase())
+        );
+    }, [search, libraryExercises]);
+
+    return (
+        <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+                <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className="w-full justify-between font-semibold text-base"
                 >
-                  {exercise.name}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  );
+                    {selectedExercise ? selectedExercise.name : "Select an exercise..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="p-0 flex flex-col h-[60vh]">
+                <SheetHeader className="p-4 pb-2 border-b">
+                    <SheetTitle>Select an Exercise</SheetTitle>
+                </SheetHeader>
+                <div className="p-4">
+                    <Input 
+                        placeholder="Search exercises..." 
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                </div>
+                <div className="border-t flex-1">
+                    <ScrollArea className="h-full">
+                        <div className="p-2 space-y-1">
+                            {filteredExercises.length > 0 ? filteredExercises.map((exercise) => (
+                                 <div
+                                    key={exercise.id}
+                                    className={cn(
+                                      "w-full text-left h-auto p-3 rounded-md transition-colors hover:bg-muted cursor-pointer",
+                                      exerciseName === exercise.name && "bg-muted font-semibold"
+                                    )}
+                                    onClick={() => handleSelect(exercise)}
+                                >
+                                    <p className="font-semibold">{exercise.name}</p>
+                                </div>
+                            )) : (
+                                <p className="text-center text-sm text-muted-foreground py-4">No exercises found.</p>
+                            )}
+                        </div>
+                    </ScrollArea>
+                </div>
+            </SheetContent>
+        </Sheet>
+    );
 }
 
 function Stepper({ value, onChange }: { value: string, onChange: (value: string) => void }) {
