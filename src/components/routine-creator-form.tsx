@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2, Plus, GripVertical, MoreVertical, Copy, ChevronsUpDown, Pencil, Minus, Calendar as CalendarIcon, Send } from 'lucide-react';
+import { Trash2, Plus, GripVertical, MoreVertical, Copy, ChevronsUpDown, Pencil, Minus, Send, Info } from 'lucide-react';
 import React, { useState, useCallback, memo } from 'react';
 import { useFormContext, useFieldArray, Controller } from 'react-hook-form';
 import {
@@ -33,7 +33,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Member } from '@/app/coach/page';
 import type { RoutineType } from '@/app/admin/routine-types/page';
-
+import { Calendar as CalendarIcon, Repeat, Clock, Dumbbell, Video } from 'lucide-react';
 
 function ExerciseCombobox({
   blockIndex,
@@ -282,8 +282,9 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
     const [calendarOpen, setCalendarOpen] = React.useState(false);
 
     const handleDateSelect = (date: Date | undefined) => {
-        if(control && date) {
-          control.setValue('details.routineDate', date);
+        if(date) {
+            // This is a direct call, no need for control object check
+            control.setValue('details.routineDate', date, { shouldValidate: true, shouldDirty: true });
         }
         if (date) {
             setCalendarOpen(false);
@@ -334,6 +335,121 @@ function RoutineDetailsSection({ members, routineTypes }: { members: Member[], r
     );
 }
 
+
+function ExerciseItem({
+    blockIndex,
+    exerciseIndex,
+    libraryExercises,
+    onRemove
+}: {
+    blockIndex: number;
+    exerciseIndex: number;
+    libraryExercises: LibraryExercise[];
+    onRemove: () => void;
+}) {
+    const [editingExercise, setEditingExercise] = useState<boolean>(false);
+    const { watch } = useFormContext<RoutineFormValues>();
+    const exercise = watch(`blocks.${blockIndex}.exercises.${exerciseIndex}`);
+
+    return (
+        <div className="flex items-center gap-2 p-2 rounded-md border bg-background group">
+            <div className="flex-1 cursor-pointer">
+                <ExerciseCombobox
+                    blockIndex={blockIndex}
+                    exerciseIndex={exerciseIndex}
+                    libraryExercises={libraryExercises}
+                />
+                {exercise && (
+                    <p className="text-xs text-muted-foreground mt-1 px-1">
+                        {exercise.repType === 'reps' ? `${exercise.reps} reps` : `${exercise.duration}`}
+                        {exercise.weight && ` / ${exercise.weight}`}
+                    </p>
+                )}
+            </div>
+            <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100" onClick={() => setEditingExercise(true)}>
+                <Pencil className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive opacity-0 group-hover:opacity-100" onClick={onRemove}>
+                <Trash2 className="h-4 w-4" />
+            </Button>
+             {editingExercise && (
+                <ExerciseSheet
+                    isOpen={editingExercise}
+                    onOpenChange={setEditingExercise}
+                    blockIndex={blockIndex}
+                    exerciseIndex={exerciseIndex}
+                />
+            )}
+        </div>
+    );
+}
+
+function BlockItem({ 
+    block, 
+    blockIndex, 
+    onDuplicateBlock, 
+    onRemoveBlock,
+    libraryExercises 
+}: { 
+    block: BlockFormValues, 
+    blockIndex: number, 
+    onDuplicateBlock: () => void, 
+    onRemoveBlock: () => void,
+    libraryExercises: LibraryExercise[] 
+}) {
+    const { control } = useFormContext<RoutineFormValues>();
+    const { fields, append, remove } = useFieldArray({
+        control,
+        name: `blocks.${blockIndex}.exercises`,
+    });
+
+    const handleAddExercise = () => {
+        append({ ...defaultExerciseValues });
+    };
+    
+    return (
+        <Dialog>
+            <div className="bg-card rounded-xl border">
+                <EditableBlockHeader blockIndex={blockIndex} />
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Block Actions</DialogTitle>
+                        <DialogDescription>
+                            Perform actions on the "{block.name}" block.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-2 py-4">
+                        <DialogClose asChild>
+                            <Button variant="outline" onClick={onDuplicateBlock}>
+                                <Copy className="mr-2 h-4 w-4" /> Duplicate Block
+                            </Button>
+                        </DialogClose>
+                        <DialogClose asChild>
+                            <Button variant="destructive" onClick={onRemoveBlock}>
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete Block
+                            </Button>
+                        </DialogClose>
+                    </div>
+                </DialogContent>
+                <div className="p-3 space-y-2">
+                    {fields.map((field, exIndex) => (
+                        <ExerciseItem 
+                            key={field.id}
+                            blockIndex={blockIndex}
+                            exerciseIndex={exIndex}
+                            libraryExercises={libraryExercises}
+                            onRemove={() => remove(exIndex)}
+                        />
+                    ))}
+                    <Button variant="outline" className="w-full" onClick={handleAddExercise}>
+                        <Plus className="mr-2 h-4 w-4" /> Add Exercise
+                    </Button>
+                </div>
+            </div>
+        </Dialog>
+    );
+}
+
 // --- MAIN FORM COMPONENT ---
 export function RoutineCreatorForm({ 
     libraryExercises, 
@@ -350,37 +466,19 @@ export function RoutineCreatorForm({
     onFormSubmit: () => void,
     isTemplateMode: boolean
 }) {
-    const { control, getValues, setValue } = useFormContext<RoutineFormValues>();
+    const { control, getValues } = useFormContext<RoutineFormValues>();
     const { fields, append, remove, insert } = useFieldArray({
         control,
         name: "blocks",
     });
     
-    const [editingExercise, setEditingExercise] = useState<{ blockIndex: number; exerciseIndex: number } | null>(null);
-
     const onAddBlock = () => {
         append({ id: crypto.randomUUID(), name: `Block ${fields.length + 1}`, sets: '4', exercises: [] });
     };
 
-    const onRemoveBlock = (index: number) => {
-        remove(index);
-    };
-    
     const onDuplicateBlock = (index: number) => {
         const blockToDuplicate = getValues(`blocks.${index}`);
-        insert(index + 1, { ...blockToDuplicate, id: crypto.randomUUID() });
-    };
-
-    const onRemoveExercise = (blockIndex: number, exerciseIndex: number) => {
-        const currentExercises = getValues(`blocks.${blockIndex}.exercises`);
-        const updatedExercises = [...currentExercises];
-        updatedExercises.splice(exerciseIndex, 1);
-        setValue(`blocks.${blockIndex}.exercises`, updatedExercises);
-    };
-
-    const handleAddExercise = (blockIndex: number) => {
-        const currentExercises = getValues(`blocks.${blockIndex}.exercises`);
-        setValue(`blocks.${blockIndex}.exercises`, [...currentExercises, { ...defaultExerciseValues }])
+        insert(index + 1, { ...blockToDuplicate, id: crypto.randomUUID(), exercises: blockToDuplicate.exercises.map(e => ({...e})) });
     };
 
     return (
@@ -398,74 +496,19 @@ export function RoutineCreatorForm({
                 <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 md:p-6 overflow-y-auto pb-24">
                     <div className="space-y-4">
                         {fields.map((field, index) => (
-                          <Dialog key={field.id}>
-                            <div className="bg-card rounded-xl border">
-                                <EditableBlockHeader blockIndex={index} />
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>Block Actions</DialogTitle>
-                                        <DialogDescription>
-                                            Perform actions on the "{getValues(`blocks.${index}.name`)}" block.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <div className="flex flex-col gap-2 py-4">
-                                       <DialogClose asChild>
-                                         <Button variant="outline" onClick={() => onDuplicateBlock(index)}>
-                                            <Copy className="mr-2 h-4 w-4" /> Duplicate Block
-                                          </Button>
-                                       </DialogClose>
-                                        <DialogClose asChild>
-                                          <Button variant="destructive" onClick={() => onRemoveBlock(index)}>
-                                            <Trash2 className="mr-2 h-4 w-4" /> Delete Block
-                                          </Button>
-                                        </DialogClose>
-                                    </div>
-                                </DialogContent>
-                                <div className="p-3 space-y-2">
-                                   {getValues(`blocks.${index}.exercises`)?.map((exercise: ExerciseFormValues, exIndex: number) => (
-                                       <div 
-                                            key={exIndex}
-                                            className="flex items-center gap-2 p-2 rounded-md border bg-background group"
-                                       >
-                                            <div className="flex-1 cursor-pointer">
-                                                <ExerciseCombobox 
-                                                  blockIndex={index} 
-                                                  exerciseIndex={exIndex}
-                                                  libraryExercises={libraryExercises}
-                                                />
-                                                <p className="text-xs text-muted-foreground mt-1 px-1">
-                                                    {exercise.repType === 'reps' ? `${exercise.reps} reps` : `${exercise.duration}`}
-                                                    {exercise.weight && ` / ${exercise.weight}`}
-                                                </p>
-                                            </div>
-                                            <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100" onClick={() => setEditingExercise({ blockIndex: index, exerciseIndex: exIndex })}>
-                                                <Pencil className="h-4 w-4"/>
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); onRemoveExercise(index, exIndex); }}>
-                                                <Trash2 className="h-4 w-4"/>
-                                            </Button>
-                                       </div>
-                                   ))}
-                                   <Button variant="outline" className="w-full" onClick={() => handleAddExercise(index)}>
-                                     <Plus className="mr-2 h-4 w-4" /> Add Exercise
-                                   </Button>
-                                </div>
-                            </div>
-                          </Dialog>
+                            <BlockItem 
+                                key={field.id}
+                                block={field}
+                                blockIndex={index}
+                                onDuplicateBlock={() => onDuplicateBlock(index)}
+                                onRemoveBlock={() => remove(index)}
+                                libraryExercises={libraryExercises}
+                            />
                         ))}
 
                         <Button variant="secondary" className="w-full" onClick={onAddBlock}>
                             <Plus className="mr-2 h-4 w-4" /> Add New Block
                         </Button>
-                        
-                        {editingExercise && (
-                            <ExerciseSheet 
-                                isOpen={!!editingExercise}
-                                onOpenChange={(isOpen) => !isOpen && setEditingExercise(null)}
-                                blockIndex={editingExercise.blockIndex}
-                                exerciseIndex={editingExercise.exerciseIndex}
-                            />
-                        )}
                     </div>
                 </TabsContent>
             </Tabs>
@@ -480,5 +523,3 @@ export function RoutineCreatorForm({
         </div>
     );
 }
-
-    
