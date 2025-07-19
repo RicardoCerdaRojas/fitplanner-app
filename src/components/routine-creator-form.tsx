@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2, Plus, GripVertical, MoreVertical, Copy, Pencil, Minus, ChevronsUpDown } from 'lucide-react';
+import { Trash2, Plus, GripVertical, MoreVertical, Copy, ChevronsUpDown } from 'lucide-react';
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { useForm, Controller, useFieldArray, useFormContext, type FieldValues } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,6 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Textarea } from './ui/textarea';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
+import { Pencil } from 'lucide-react';
 
 
 function ExerciseCombobox({
@@ -38,7 +39,7 @@ function ExerciseCombobox({
   exerciseIndex: number;
   libraryExercises: LibraryExercise[];
 }) {
-  const { control, setValue, watch, getValues } = useFormContext<RoutineFormValues>();
+  const { control, setValue, watch } = useFormContext<RoutineFormValues>();
   const [open, setOpen] = useState(false);
   const exerciseName = watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.name`);
   
@@ -162,75 +163,53 @@ function EditableBlockHeader({
   );
 }
 
-const exerciseSchema = z.object({
-  name: z.string().min(1, 'Exercise name is required.'),
-  description: z.string().optional(),
-  repType: z.enum(['reps', 'duration']),
-  reps: z.string().optional(),
-  duration: z.string().optional(),
-  weight: z.string().optional(),
-  videoUrl: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
-}).superRefine((data, ctx) => {
-    if (data.repType === 'reps' && (!data.reps || data.reps.trim() === '')) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Reps are required.", path: ['reps'] });
-    }
-    if (data.repType === 'duration' && (!data.duration || data.duration.trim() === '')) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Duration is required.", path: ['duration'] });
-    }
-});
-
 
 function ExerciseSheet({
-    exercise,
     isOpen,
     onOpenChange,
     onSave,
+    blockIndex,
+    exerciseIndex
 }: {
-    exercise: ExerciseFormValues | null;
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
-    onSave: (updatedExercise: ExerciseFormValues) => void;
+    onSave: () => void;
+    blockIndex: number;
+    exerciseIndex: number;
 }) {
-    const { register, handleSubmit, control, watch, setValue, formState: { errors }, reset } = useForm<ExerciseFormValues>({
-         resolver: zodResolver(exerciseSchema),
-         defaultValues: exercise || defaultExerciseValues,
-    });
-    const repType = watch('repType');
-
-    useEffect(() => {
-        if (exercise) {
-            reset(exercise);
-        }
-    }, [exercise, reset]);
+    const { control, watch, setValue, getValues } = useFormContext<RoutineFormValues>();
+    const repType = watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`);
     
-    if (!exercise) return null;
-
-    const onSubmit = (data: FieldValues) => {
-        onSave(data as ExerciseFormValues);
+    const onSubmit = () => {
+        onSave();
         onOpenChange(false);
     };
 
     return (
         <Sheet open={isOpen} onOpenChange={onOpenChange}>
             <SheetContent side="bottom" className="rounded-t-lg">
-                <form onSubmit={handleSubmit(onSubmit)}>
+                <form>
                     <SheetHeader className="text-left">
                         <SheetTitle>Edit Exercise Details</SheetTitle>
                         <SheetDescription>Make changes to your exercise here. Click save when you're done.</SheetDescription>
                     </SheetHeader>
                     <div className="space-y-4 py-4">
-                        <p className="font-semibold text-lg">{watch('name')}</p>
+                        <p className="font-semibold text-lg">{watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.name`)}</p>
                         
                         <div>
                             <Label>Description / Help</Label>
-                            <Textarea {...register('description')} placeholder="e.g., Keep your back straight, chest up." />
+                            <Controller
+                                name={`blocks.${blockIndex}.exercises.${exerciseIndex}.description`}
+                                control={control}
+                                render={({ field }) => <Textarea {...field} placeholder="e.g., Keep your back straight, chest up." />}
+                            />
                         </div>
                         
                         <div className="p-4 rounded-lg bg-muted">
                             <div className="flex items-center justify-between">
                                 <Label className={repType === 'reps' ? 'font-bold' : ''}>Reps</Label>
                                 <Controller
-                                    name="repType"
+                                    name={`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`}
                                     control={control}
                                     render={({ field }) => (
                                         <Switch
@@ -246,25 +225,41 @@ function ExerciseSheet({
                         {repType === 'reps' ? (
                             <div>
                                 <Label>Reps</Label>
-                                <Input {...register('reps')} placeholder="e.g., 8-12" />
+                                <Controller
+                                    name={`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`}
+                                    control={control}
+                                    render={({ field }) => <Input {...field} placeholder="e.g., 8-12" />}
+                                />
                             </div>
                         ) : (
                              <div>
                                 <Label>Duration (e.g., 30s, 1m)</Label>
-                                <Input {...register('duration')} placeholder="e.g., 30s" />
+                                <Controller
+                                    name={`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`}
+                                    control={control}
+                                    render={({ field }) => <Input {...field} placeholder="e.g., 30s" />}
+                                />
                             </div>
                         )}
                         <div>
                             <Label>Weight (kg or text)</Label>
-                            <Input {...register('weight')} placeholder="e.g., 50kg, Bodyweight" />
+                             <Controller
+                                name={`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`}
+                                control={control}
+                                render={({ field }) => <Input {...field} placeholder="e.g., 50kg, Bodyweight" />}
+                            />
                         </div>
                         <div>
                             <Label>Example Video URL</Label>
-                            <Input {...register('videoUrl')} placeholder="https://youtube.com/..." />
+                             <Controller
+                                name={`blocks.${blockIndex}.exercises.${exerciseIndex}.videoUrl`}
+                                control={control}
+                                render={({ field }) => <Input {...field} placeholder="https://youtube.com/..." />}
+                            />
                         </div>
                     </div>
                     <SheetFooter>
-                        <Button type="submit">Save Changes</Button>
+                        <Button type="button" onClick={onSubmit}>Save Changes</Button>
                     </SheetFooter>
                 </form>
             </SheetContent>
@@ -280,11 +275,9 @@ export function RoutineCreatorForm({ libraryExercises }: { libraryExercises: Lib
         name: "blocks",
     });
     
-    const [editingExercise, setEditingExercise] = useState<{ blockIndex: number; exerciseIndex: number; exercise: ExerciseFormValues } | null>(null);
+    const [editingExercise, setEditingExercise] = useState<{ blockIndex: number; exerciseIndex: number } | null>(null);
 
-    const onSaveExercise = (updatedExercise: ExerciseFormValues) => {
-        if (!editingExercise) return;
-        setValue(`blocks.${editingExercise.blockIndex}.exercises.${editingExercise.exerciseIndex}`, updatedExercise);
+    const onSaveExercise = () => {
         setEditingExercise(null);
     };
 
@@ -356,7 +349,7 @@ export function RoutineCreatorForm({ libraryExercises }: { libraryExercises: Lib
                                         {exercise.weight && ` / ${exercise.weight}`}
                                     </p>
                                 </div>
-                                <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100" onClick={() => setEditingExercise({ blockIndex: index, exerciseIndex: exIndex, exercise })}>
+                                <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100" onClick={() => setEditingExercise({ blockIndex: index, exerciseIndex: exIndex })}>
                                     <Pencil className="h-4 w-4"/>
                                 </Button>
                                 <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); onRemoveExercise(index, exIndex); }}>
@@ -375,13 +368,16 @@ export function RoutineCreatorForm({ libraryExercises }: { libraryExercises: Lib
             <Button variant="secondary" className="w-full" onClick={onAddBlock}>
                 <Plus className="mr-2 h-4 w-4" /> Add New Block
             </Button>
-
-            <ExerciseSheet 
-                isOpen={!!editingExercise}
-                onOpenChange={(isOpen) => !isOpen && setEditingExercise(null)}
-                exercise={editingExercise?.exercise ?? null}
-                onSave={onSaveExercise}
-            />
+            
+            {editingExercise && (
+                <ExerciseSheet 
+                    isOpen={!!editingExercise}
+                    onOpenChange={(isOpen) => !isOpen && setEditingExercise(null)}
+                    blockIndex={editingExercise.blockIndex}
+                    exerciseIndex={editingExercise.exerciseIndex}
+                    onSave={onSaveExercise}
+                />
+            )}
         </div>
     );
 }
