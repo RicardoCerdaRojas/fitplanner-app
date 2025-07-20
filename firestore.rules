@@ -1,81 +1,65 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
-    
-    function isUser(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-    
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+
+    function isGymAdmin(gymId) {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'gym-admin' && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId == gymId;
     }
 
-    function isMemberOfGym(gymId) {
-      return isSignedIn() && getUserData().gymId == gymId;
+    function isGymCoach(gymId) {
+       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'coach' && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId == gymId;
     }
 
-    function isCoachOrAdmin(gymId) {
-      let userRole = getUserData().role;
-      return isMemberOfGym(gymId) && (userRole == 'coach' || userRole == 'gym-admin');
+    function isMemberOf(gymId) {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId == gymId;
     }
     
-    function isAdmin(gymId) {
-       let userRole = getUserData().role;
-       return isMemberOfGym(gymId) && userRole == 'gym-admin';
-    }
-
-    // Unauthenticated users can create a user document for themselves,
-    // and create their initial gym and membership.
     match /users/{userId} {
-      allow create: if !isSignedIn();
-      allow read: if isUser(userId) || isCoachOrAdmin(resource.data.gymId);
-      allow update: if isUser(userId) || isAdmin(resource.data.gymId);
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if !isSignedIn(); // Allow user creation on signup
+      allow update: if isSignedIn() && request.auth.uid == userId; // Users can update their own profile
     }
-    
+
     match /gyms/{gymId} {
-      allow create: if !isSignedIn();
       allow read: if isSignedIn();
-      allow update: if isAdmin(gymId);
+      allow create: if isSignedIn(); // Allow gym creation by a new user
+      allow update: if isGymAdmin(gymId); // Only admin of that gym can update
     }
 
     match /memberships/{membershipId} {
-       // Allow unauthenticated checks for pending memberships by email on the /join page.
-       // This uses the wildcard syntax to check the membershipId string.
-      allow get: if membershipId.matches('PENDING_.*');
-      // Only admins can manage memberships
-      allow list, write, delete: if isAdmin(resource.data.gymId);
-    }
-
-    // Authenticated and authorized access for core app collections
-    match /routines/{routineId} {
-      allow read: if isMemberOfGym(resource.data.gymId);
-      allow create, update, delete: if isCoachOrAdmin(request.resource.data.gymId);
+      allow get: if !isSignedIn(); // Allow unauthenticated checks for pending memberships
+      allow create, delete: if isGymAdmin(request.resource.data.gymId);
     }
     
-    match /routineTemplates/{templateId} {
-       allow read, write: if isCoachOrAdmin(resource.data.gymId);
-    }
-
     match /exercises/{exerciseId} {
-       allow read: if isMemberOfGym(resource.data.gymId);
-       allow write: if isCoachOrAdmin(resource.data.gymId);
+       allow read: if isMemberOf(get(/databases/$(database)/documents/exercises/$(exerciseId)).data.gymId);
+       allow write: if isGymAdmin(request.resource.data.gymId) || isGymCoach(request.resource.data.gymId);
     }
     
     match /routineTypes/{typeId} {
-       allow read: if isMemberOfGym(resource.data.gymId);
-       allow write: if isAdmin(resource.data.gymId);
+        allow read: if isMemberOf(get(/databases/$(database)/documents/routineTypes/$(typeId)).data.gymId);
+        allow write: if isGymAdmin(request.resource.data.gymId);
     }
 
+    match /routineTemplates/{templateId} {
+        allow read: if isMemberOf(get(/databases/$(database)/documents/routineTemplates/$(templateId)).data.gymId);
+        allow write: if isGymAdmin(request.resource.data.gymId) || isGymCoach(request.resource.data.gymId);
+    }
+    
+    match /routines/{routineId} {
+       allow read: if isMemberOf(get(/databases/$(database)/documents/routines/$(routineId)).data.gymId);
+       allow create, update, delete: if isGymAdmin(request.resource.data.gymId) || isGymCoach(request.resource.data.gymId);
+       allow update: if isSignedIn() && request.auth.uid == resource.data.memberId; // Athlete can update their own progress
+    }
+    
     match /workoutSessions/{sessionId} {
-      // A user can only manage their own workout session
-      allow read, write, delete: if isUser(sessionId);
+       allow read, write: if isSignedIn() && request.auth.uid == sessionId; // Users can only manage their own live session
+       allow read: if isGymAdmin(get(/databases/$(database)/documents/workoutSessions/$(sessionId)).data.gymId); // Admins can read live sessions for their gym
     }
   }
 }

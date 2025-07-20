@@ -1,23 +1,17 @@
 
 'use client';
 
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import type { User } from 'firebase/auth';
-import { db } from '@/lib/firebase';
-import {
-  doc,
-  getDoc,
-  writeBatch,
-  Timestamp,
-} from 'firebase/firestore';
-import { AuthProviderClient } from '@/components/auth-provider-client';
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { doc, getDoc, Timestamp } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 
 export type UserProfile = {
   name: string;
   email: string;
   createdAt: Timestamp;
-  gymId?: string | null; // Allow null
-  role?: 'member' | 'coach' | 'gym-admin'; // Role can be on user profile
+  gymId?: string | null;
+  role?: 'member' | 'coach' | 'gym-admin';
   dob?: Timestamp;
   gender?: 'male' | 'female' | 'other';
   stripeCustomerId?: string;
@@ -46,15 +40,10 @@ export type GymProfile = {
 type AuthContextType = {
   user: User | null;
   userProfile: UserProfile | null;
-  activeMembership: Membership | null; // This will now be derived from userProfile
+  activeMembership: Membership | null;
   gymProfile: GymProfile | null;
   isTrialActive: boolean | null;
   loading: boolean;
-  setUser: (user: User | null) => void;
-  setUserProfile: (profile: UserProfile | null) => void;
-  setActiveMembership: (membership: Membership | null) => void;
-  setGymProfile: (gym: GymProfile | null) => void;
-  setLoading: (loading: boolean) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,32 +56,97 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isTrialActive, setIsTrialActive] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Effect to listen for auth state changes from Firebase
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (authUser) => {
+        setLoading(true);
+        if (authUser) {
+            setUser(authUser);
+        } else {
+            setUser(null);
+            setUserProfile(null);
+            setActiveMembership(null);
+            setGymProfile(null);
+            setLoading(false);
+        }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Effect to fetch user and gym data when user object is available
+  useEffect(() => {
+      const fetchData = async () => {
+          if (user) {
+              const userProfileRef = doc(db, 'users', user.uid);
+              try {
+                  const userDoc = await getDoc(userProfileRef);
+                  if (userDoc.exists()) {
+                      const profileData = userDoc.data() as UserProfile;
+                      setUserProfile(profileData);
+
+                      if (profileData.gymId && profileData.role) {
+                          const gymDocRef = doc(db, 'gyms', profileData.gymId);
+                          const gymDocSnap = await getDoc(gymDocRef);
+
+                          if (gymDocSnap.exists()) {
+                              const gymData = gymDocSnap.data() as Omit<GymProfile, 'id'>;
+                              setGymProfile({ id: gymDocSnap.id, ...gymData });
+                              setActiveMembership({
+                                  id: `${user.uid}_${profileData.gymId}`,
+                                  userId: user.uid,
+                                  gymId: profileData.gymId,
+                                  role: profileData.role,
+                                  userName: profileData.name,
+                                  gymName: gymData.name,
+                                  status: 'active',
+                              });
+                          } else {
+                              setGymProfile(null);
+                              setActiveMembership(null);
+                          }
+                      } else {
+                          setActiveMembership(null);
+                          setGymProfile(null);
+                      }
+                  } else {
+                      setUserProfile(null);
+                      setActiveMembership(null);
+                      setGymProfile(null);
+                  }
+              } catch (error) {
+                  console.error("Firebase read error:", error);
+                  setUserProfile(null);
+                  setActiveMembership(null);
+                  setGymProfile(null);
+              }
+          }
+          setLoading(false);
+      };
+      
+      fetchData();
+  }, [user]);
+
   // Effect to determine trial status
   useEffect(() => {
     if (loading) return;
     
-    // If user is a regular member, they always have access through their gym's subscription.
     if (activeMembership && activeMembership.role === 'member') {
         setIsTrialActive(true);
         return;
     }
     
-    // If the user has an active Stripe subscription, they have access.
     if (userProfile?.stripeSubscriptionStatus === 'active' || userProfile?.stripeSubscriptionStatus === 'trialing') {
         setIsTrialActive(true);
         return;
     }
     
-    // If they have a gym profile with a trial end date, calculate the status.
     if (gymProfile?.trialEndsAt) {
         const trialEndDate = gymProfile.trialEndsAt.toDate();
         setIsTrialActive(new Date() < trialEndDate);
     } else {
-        // No subscription and no trial info means no access for admins/coaches.
         setIsTrialActive(false);
     }
   }, [loading, userProfile, gymProfile, activeMembership]);
-
 
   const contextValue: AuthContextType = {
     user,
@@ -101,16 +155,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     gymProfile,
     isTrialActive,
     loading,
-    setUser,
-    setUserProfile,
-    setActiveMembership,
-    setGymProfile,
-    setLoading,
   };
 
   return (
     <AuthContext.Provider value={contextValue}>
-      <AuthProviderClient>{children}</AuthProviderClient>
+      {children}
     </AuthContext.Provider>
   );
 };
