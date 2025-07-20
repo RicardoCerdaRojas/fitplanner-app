@@ -12,7 +12,6 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
     const {
         setUser,
         setUserProfile,
-        setMemberships,
         setActiveMembership,
         setGymProfile,
         setLoading,
@@ -20,108 +19,96 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
     } = useAuth();
 
     const fetchAndSetData = useCallback(async (authUser: User) => {
-        // Step 1: Fetch user profile
         const userProfileRef = doc(db, 'users', authUser.uid);
-        const userProfileSnap = await getDoc(userProfileRef);
-        const profileData = userProfileSnap.exists() ? userProfileSnap.data() as UserProfile : null;
-        setUserProfile(profileData);
 
-        // Step 2: If user has no gym, check for and process a pending invitation
-        if (authUser.email && profileData && !profileData.gymId) {
-            const pendingMembershipRef = doc(db, 'memberships', authUser.email.toLowerCase());
-            const pendingSnap = await getDoc(pendingMembershipRef);
+        // This is our main listener for all user-related data.
+        const unsubscribe = onSnapshot(userProfileRef, async (userDoc) => {
+            if (userDoc.exists()) {
+                const profileData = userDoc.data() as UserProfile;
+                setUserProfile(profileData);
 
-            if (pendingSnap.exists() && pendingSnap.data().status === 'pending') {
-                const pendingData = pendingSnap.data();
-                const batch = writeBatch(db);
-                
-                const newMembershipRef = doc(db, 'memberships', `${authUser.uid}_${pendingData.gymId}`);
-                batch.set(newMembershipRef, {
-                    userId: authUser.uid,
-                    gymId: pendingData.gymId,
-                    role: pendingData.role,
-                    userName: profileData.name,
-                    gymName: pendingData.gymName,
-                    status: 'active',
-                });
+                if (profileData.gymId) {
+                    // User has a gym, let's fetch gym and membership details.
+                    const gymRef = doc(db, 'gyms', profileData.gymId);
+                    const membershipRef = doc(db, 'memberships', `${authUser.uid}_${profileData.gymId}`);
 
-                const userRef = doc(db, 'users', authUser.uid);
-                batch.update(userRef, { gymId: pendingData.gymId, role: pendingData.role });
-                
-                batch.delete(pendingMembershipRef);
-                await batch.commit();
-                // After commit, the listeners below will pick up the new data automatically.
-            }
-        }
+                    // Use Promise.all to fetch them in parallel for speed.
+                    try {
+                        const [gymSnap, membershipSnap] = await Promise.all([
+                            getDoc(gymRef),
+                            getDoc(membershipRef)
+                        ]);
+                        
+                        if (gymSnap.exists()) {
+                            setGymProfile({ id: gymSnap.id, ...gymSnap.data() } as GymProfile);
+                        } else {
+                            setGymProfile(null);
+                        }
 
-        // Step 3: Set up a listener for active memberships
-        const membershipsQuery = query(collection(db, 'memberships'), where('userId', '==', authUser.uid), where('status', '==', 'active'));
-        
-        const unsubscribeMemberships = onSnapshot(membershipsQuery, (snapshot) => {
-            const fetchedMemberships = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
-            setMemberships(fetchedMemberships);
+                        if (membershipSnap.exists()) {
+                             setActiveMembership({ id: membershipSnap.id, ...membershipSnap.data() } as Membership);
+                        } else {
+                            // This is an inconsistent state, user has gymId but no membership doc.
+                            // Clear active membership to prevent issues.
+                            setActiveMembership(null);
+                        }
 
-            if (fetchedMemberships.length > 0) {
-                const sorted = [...fetchedMemberships].sort((a, b) => {
-                    const roles = { 'gym-admin': 0, 'coach': 1, 'member': 2 };
-                    return roles[a.role] - roles[b.role];
-                });
-                const newActiveMembership = sorted[0];
-                setActiveMembership(newActiveMembership);
-
-                // Step 4: If there's an active membership, listen for the gym profile
-                const unsubscribeGym = onSnapshot(doc(db, 'gyms', newActiveMembership.gymId), (gymDoc) => {
-                    setGymProfile(gymDoc.exists() ? ({ id: gymDoc.id, ...gymDoc.data() } as GymProfile) : null);
-                    setLoading(false); // DEFINITIVE END: User has membership and gym data is loaded.
-                }, () => {
-                    setLoading(false); // End loading even if gym fetch fails.
-                });
-                return () => unsubscribeGym(); // Cleanup gym listener
+                    } catch (error) {
+                        console.error("Error fetching gym/membership details:", error);
+                        setActiveMembership(null);
+                        setGymProfile(null);
+                    }
+                } else {
+                    // User does not have a gymId, they are not part of any gym.
+                    setActiveMembership(null);
+                    setGymProfile(null);
+                }
             } else {
-                // DEFINITIVE END: User has no active memberships.
+                // User document doesn't exist.
+                setUserProfile(null);
                 setActiveMembership(null);
                 setGymProfile(null);
-                setLoading(false); 
             }
-        }, () => {
-             setLoading(false); // End loading if membership query fails.
+            // All data fetching paths conclude here.
+            setLoading(false);
+        }, (error) => {
+            console.error("Error listening to user profile:", error);
+            setLoading(false);
         });
 
-        return () => unsubscribeMemberships(); // Cleanup membership listener
+        return unsubscribe;
 
-    }, [setActiveMembership, setGymProfile, setLoading, setMemberships, setUserProfile]);
+    }, [setActiveMembership, setGymProfile, setLoading, setUserProfile]);
 
     // This is the primary effect that kicks off the entire data loading sequence.
     useEffect(() => {
-        const unsubscribeAuth = onAuthStateChanged(auth, async (authUser) => {
+        const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
             if (authUser) {
                 setLoading(true);
                 setUser(authUser);
-                // The actual data fetching is now handled by the effect below, which listens on `user`.
             } else {
-                // Clear all state and stop loading if user signs out.
                 setUser(null);
                 setUserProfile(null);
-                setMemberships([]);
                 setActiveMembership(null);
                 setGymProfile(null);
                 setLoading(false);
             }
         });
-
         return () => unsubscribeAuth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-
     // This effect responds to the user object being set by onAuthStateChanged.
     useEffect(() => {
+        let unsubscribe: () => void;
         if (user) {
-            const unsubscribeData = fetchAndSetData(user);
-            return () => {
-                unsubscribeData.then(unsub => unsub && unsub());
-            };
+            fetchAndSetData(user).then(unsub => {
+                if (unsub) unsubscribe = unsub;
+            });
         }
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
     }, [user, fetchAndSetData]);
     
     return <>{children}</>;
