@@ -3,101 +3,79 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
+    
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
-
-    // Function to get user's own profile data
-    function getUserProfile(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data;
-    }
-
-    // Default deny all
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // USERS collection
-    match /users/{userId} {
-      // ANYONE can create a user document (signup)
-      allow create: if true;
-      
-      // ONLY the user themselves can read or update their own profile
-      allow read, update: if isSignedIn() && request.auth.uid == userId;
-    }
-
-    // GYMS collection
-    match /gyms/{gymId} {
-        // ANYONE can create a gym (signup for new admins)
-        allow create: if true;
-
-        // ANY signed-in user can read gym data (for branding, themes, etc.)
-        allow read: if isSignedIn();
-
-        // ONLY the gym's admin can update it. We check the user's profile for their role and gymId.
-        allow update: if isSignedIn() 
-                      && getUserProfile(request.auth.uid).gymId == gymId
-                      && getUserProfile(request.auth.uid).role == 'gym-admin';
-    }
-
-    // MEMBERSHIPS collection
-    match /memberships/{membershipId} {
-      // ANYONE can check for a PENDING invitation (on the join page)
-      // We use `get` which is for single document reads.
-      allow get: if true;
-
-      // ONLY a gym admin can create new (pending) memberships or delete them.
-      // We check the incoming resource's gymId against the admin's gymId.
-      allow create, delete: if isSignedIn()
-                          && getUserProfile(request.auth.uid).gymId == request.resource.data.gymId
-                          && getUserProfile(request.auth.uid).role == 'gym-admin';
-
-      // Allow a user to update their own membership doc upon joining (from PENDING to active)
-      allow update: if isSignedIn() && request.auth.uid == request.resource.data.userId;
-    }
-
-    // Function to check if the requesting user belongs to the gym of the resource
-    function isMemberOfGym(gymId) {
-        return isSignedIn() && getUserProfile(request.auth.uid).gymId == gymId;
+    
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
     }
     
-    // Function to check if the user is a coach or admin of the gym
-    function isCoachOrAdmin(gymId) {
-        let userRole = getUserProfile(request.auth.uid).role;
-        return isMemberOfGym(gymId) && (userRole == 'coach' || userRole == 'gym-admin');
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Routines, Exercises, Routine Types, Sessions
+    function isMemberOfGym(gymId) {
+      return isSignedIn() && getUserData().gymId == gymId;
+    }
+
+    function isCoachOrAdmin(gymId) {
+      let userRole = getUserData().role;
+      return isMemberOfGym(gymId) && (userRole == 'coach' || userRole == 'gym-admin');
+    }
+    
+    function isAdmin(gymId) {
+       let userRole = getUserData().role;
+       return isMemberOfGym(gymId) && userRole == 'gym-admin';
+    }
+
+    // Unauthenticated users can create a user document for themselves,
+    // and create their initial gym and membership.
+    match /users/{userId} {
+      allow create: if !isSignedIn();
+      allow read: if isUser(userId) || isCoachOrAdmin(resource.data.gymId);
+      allow update: if isUser(userId) || isAdmin(resource.data.gymId);
+    }
+    
+    match /gyms/{gymId} {
+      allow create: if !isSignedIn();
+      allow read: if isSignedIn();
+      allow update: if isAdmin(gymId);
+    }
+
+    match /memberships/{membershipId} {
+       // Allow unauthenticated checks for pending memberships by email on the /join page.
+       // This uses the wildcard syntax to check the membershipId string.
+      allow get: if membershipId.matches('PENDING_.*');
+      // Only admins can manage memberships
+      allow list, write, delete: if isAdmin(resource.data.gymId);
+    }
+
+    // Authenticated and authorized access for core app collections
     match /routines/{routineId} {
       allow read: if isMemberOfGym(resource.data.gymId);
-      allow create, update, delete: if isCoachOrAdmin(resource.data.gymId);
-    }
-
-    match /exercises/{exerciseId} {
-      allow read: if isMemberOfGym(resource.data.gymId);
-      allow create, update, delete: if isCoachOrAdmin(resource.data.gymId);
+      allow create, update, delete: if isCoachOrAdmin(request.resource.data.gymId);
     }
     
-    match /routineTypes/{typeId} {
-        allow read: if isMemberOfGym(resource.data.gymId);
-        // Only admins can manage routine types
-        allow create, delete: if isSignedIn() 
-                           && getUserProfile(request.auth.uid).gymId == resource.data.gymId
-                           && getUserProfile(request.auth.uid).role == 'gym-admin';
-    }
-
     match /routineTemplates/{templateId} {
        allow read, write: if isCoachOrAdmin(resource.data.gymId);
     }
 
+    match /exercises/{exerciseId} {
+       allow read: if isMemberOfGym(resource.data.gymId);
+       allow write: if isCoachOrAdmin(resource.data.gymId);
+    }
+    
+    match /routineTypes/{typeId} {
+       allow read: if isMemberOfGym(resource.data.gymId);
+       allow write: if isAdmin(resource.data.gymId);
+    }
+
     match /workoutSessions/{sessionId} {
-      // The user who owns the session can write to it.
-      allow write: if isSignedIn() && request.auth.uid == sessionId;
-      // An admin of that gym can read the session data for the live view.
-      allow read: if isSignedIn() 
-                  && getUserProfile(request.auth.uid).gymId == resource.data.gymId
-                  && getUserProfile(request.auth.uid).role == 'gym-admin';
+      // A user can only manage their own workout session
+      allow read, write, delete: if isUser(sessionId);
     }
   }
 }

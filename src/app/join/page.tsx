@@ -123,23 +123,12 @@ export default function JoinPage() {
           role: pendingData.role,
         });
         
-        const newMembershipId = `${authUser.uid}_${pendingData.gymId}`;
-        const newMembershipRef = doc(db, 'memberships', newMembershipId);
-        batch.set(newMembershipRef, {
-          userId: authUser.uid,
-          gymId: pendingData.gymId,
-          role: pendingData.role,
-          userName: values.name,
-          gymName: pendingData.gymName,
-          status: 'active',
-        });
-        
         batch.delete(membershipRef);
         
         await batch.commit();
 
         toast({ title: '¡Bienvenido!', description: 'Tu cuenta ha sido creada y vinculada a tu centro.' });
-        router.push('/');
+        window.location.href = '/';
         
       } catch (error: any) {
         toast({

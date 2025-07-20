@@ -83,17 +83,6 @@ export default function CreateGymPage() {
             logoUrl: `https://placehold.co/100x50.png?text=${encodeURIComponent(values.gymName)}`,
             theme: selectedTheme.colors,
         });
-
-        const membershipId = `${authUser.uid}_${gymRef.id}`;
-        const membershipRef = doc(db, 'memberships', membershipId); 
-        batch.set(membershipRef, {
-            userId: authUser.uid,
-            gymId: gymRef.id,
-            role: 'gym-admin',
-            userName: values.name,
-            gymName: values.gymName,
-            status: 'active'
-        });
         
         const userRef = doc(db, 'users', authUser.uid);
         batch.set(userRef, {
@@ -108,6 +97,7 @@ export default function CreateGymPage() {
         
         toast({ title: '¡Éxito!', description: 'Tu centro ha sido creado. Redirigiendo...' });
         
+        // We must reload the page for auth state to be picked up correctly by the app
         window.location.href = '/';
 
     } catch (error: any) {

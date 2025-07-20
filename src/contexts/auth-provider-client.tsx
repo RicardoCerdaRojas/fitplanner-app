@@ -28,25 +28,33 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
 
                 if (profileData.gymId && profileData.role) {
                     const gymDocRef = doc(db, 'gyms', profileData.gymId);
-                    const gymDocSnap = await getDoc(gymDocRef);
+                    try {
+                        const gymDocSnap = await getDoc(gymDocRef);
 
-                    if (gymDocSnap.exists()) {
-                        const gymData = gymDocSnap.data() as Omit<GymProfile, 'id'>;
-                        setGymProfile({ id: gymDocSnap.id, ...gymData });
-                        
-                        // Derive activeMembership directly from user profile and gym data
-                        setActiveMembership({
-                            id: `${authUser.uid}_${profileData.gymId}`,
-                            userId: authUser.uid,
-                            gymId: profileData.gymId,
-                            role: profileData.role,
-                            userName: profileData.name,
-                            gymName: gymData.name,
-                            status: 'active',
-                        });
+                        if (gymDocSnap.exists()) {
+                            const gymData = gymDocSnap.data() as Omit<GymProfile, 'id'>;
+                            setGymProfile({ id: gymDocSnap.id, ...gymData });
+                            
+                            // Derive activeMembership directly from user profile and gym data
+                            setActiveMembership({
+                                id: `${authUser.uid}_${profileData.gymId}`,
+                                userId: authUser.uid,
+                                gymId: profileData.gymId,
+                                role: profileData.role,
+                                userName: profileData.name,
+                                gymName: gymData.name,
+                                status: 'active',
+                            });
 
-                    } else {
-                        // Gym doesn't exist, treat as no membership
+                        } else {
+                            // Gym doesn't exist, treat as no membership
+                            setGymProfile(null);
+                            setActiveMembership(null);
+                        }
+                    } catch (error) {
+                        console.error("Error fetching gym document:", error);
+                        // This might be a permissions error during initial load.
+                        // We still set loading to false to unblock the UI.
                         setGymProfile(null);
                         setActiveMembership(null);
                     }
