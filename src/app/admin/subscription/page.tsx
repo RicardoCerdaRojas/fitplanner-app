@@ -13,7 +13,7 @@ import { createCustomerPortalSession } from '@/app/stripe/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { SubscriptionButton } from '@/components/subscription-button';
-import { differenceInDays, format } from 'date-fns';
+import { differenceInCalendarDays, format } from 'date-fns';
 
 export default function SubscriptionPage() {
     const { toast } = useToast();
@@ -58,7 +58,7 @@ export default function SubscriptionPage() {
     }
     
     const trialEndsAt = gymProfile?.trialEndsAt?.toDate();
-    const daysLeft = trialEndsAt ? differenceInDays(trialEndsAt, new Date()) : 0;
+    const daysLeft = trialEndsAt ? differenceInCalendarDays(trialEndsAt, new Date()) : 0;
     const isSubscribed = !!userProfile?.stripeSubscriptionId;
 
     const renderSubscriptionStatus = () => {
