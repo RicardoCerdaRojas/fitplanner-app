@@ -141,6 +141,7 @@ export default function SubscriptionPage() {
                                         }
                                     </p>
                                     <div className="space-y-2">
+                                        <SubscriptionButton plan="TRAINER" />
                                         <SubscriptionButton plan="STUDIO" popular={true}/>
                                         <SubscriptionButton plan="GYM"/>
                                     </div>
