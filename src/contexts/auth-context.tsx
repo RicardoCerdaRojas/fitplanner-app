@@ -74,7 +74,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (loading) return;
     
-    // If the user is subscribed, they always have active access.
+    // If user is a regular member, they always have access through their gym's subscription.
+    if (activeMembership && activeMembership.role === 'member') {
+        setIsTrialActive(true);
+        return;
+    }
+    
+    // If the user has an active Stripe subscription, they have access.
     if (userProfile?.stripeSubscriptionStatus === 'active' || userProfile?.stripeSubscriptionStatus === 'trialing') {
         setIsTrialActive(true);
         return;
@@ -85,13 +91,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const trialEndDate = gymProfile.trialEndsAt.toDate();
         setIsTrialActive(new Date() < trialEndDate);
     } else {
-        // No subscription and no trial info means no access (unless they are a member of a gym)
-        // Let's assume non-admins/coaches always have access if they have a membership.
-        if (activeMembership && activeMembership.role === 'member') {
-            setIsTrialActive(true);
-        } else {
-            setIsTrialActive(false);
-        }
+        // No subscription and no trial info means no access for admins/coaches.
+        setIsTrialActive(false);
     }
   }, [loading, userProfile, gymProfile, activeMembership]);
 

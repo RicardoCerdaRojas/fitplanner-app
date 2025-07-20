@@ -10,7 +10,7 @@ import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { CoachRoutineManagement } from '@/components/coach-routine-management';
 import { AppHeader } from '@/components/app-header';
-import type { LibraryExercise } from '@/app/admin/exercises/page';
+import type { RoutineType } from '@/app/admin/routine-types/page';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
 import { TrialEnded } from '@/components/trial-ended';
 
@@ -30,7 +30,7 @@ export default function CoachPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [routines, setRoutines] = useState<any[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
-  const [exercises, setExercises] = useState<LibraryExercise[]>([]);
+  const [routineTypes, setRoutineTypes] = useState<RoutineType[]>([]);
   
   // Fetch all necessary data for the coach dashboard
   useEffect(() => {
@@ -38,9 +38,9 @@ export default function CoachPage() {
       return;
     }
     
-    let routinesLoaded = false, membersLoaded = false, exercisesLoaded = false;
+    let routinesLoaded = false, membersLoaded = false, typesLoaded = false;
     const checkLoadingState = () => {
-        if (routinesLoaded && membersLoaded && exercisesLoaded) {
+        if (routinesLoaded && membersLoaded && typesLoaded) {
             setIsLoading(false);
         }
     };
@@ -80,18 +80,18 @@ export default function CoachPage() {
       checkLoadingState();
     });
 
-    const exercisesQuery = query(collection(db, 'exercises'), where('gymId', '==', gymId), orderBy('name'));
-    const unsubscribeExercises = onSnapshot(exercisesQuery, (snapshot) => {
-      const fetchedExercises = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LibraryExercise));
-      setExercises(fetchedExercises);
-      exercisesLoaded = true;
+    const typesQuery = query(collection(db, 'routineTypes'), where('gymId', '==', gymId), orderBy('name'));
+    const unsubscribeTypes = onSnapshot(typesQuery, (snapshot) => {
+      const fetchedTypes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RoutineType));
+      setRoutineTypes(fetchedTypes);
+      typesLoaded = true;
       checkLoadingState();
     });
 
     return () => {
         unsubscribeRoutines();
         unsubscribeMembers();
-        unsubscribeExercises();
+        unsubscribeTypes();
     };
   }, [loading, activeMembership, toast]);
   
@@ -129,7 +129,7 @@ export default function CoachPage() {
                     <CoachRoutineManagement 
                       routines={routines}
                       members={members}
-                      routineTypes={exercises}
+                      routineTypes={routineTypes}
                     />
                 )}
             </div>
