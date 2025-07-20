@@ -138,8 +138,8 @@ export default function CreateGymPage() {
           <div className="absolute inset-0 -z-20 bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.15),transparent_70%)]"></div>
       </div>
       <AppHeader />
-      <main className="flex-grow flex items-center justify-center p-4">
-        <Card className="w-full max-w-lg mx-auto bg-gray-900/40 border-white/10 backdrop-blur-xl shadow-2xl shadow-emerald-900/20">
+      <main className="flex-grow flex items-center justify-center p-4 pt-24">
+        <Card className="w-full max-w-xl mx-auto bg-gray-900/40 border-white/10 backdrop-blur-xl shadow-2xl shadow-emerald-900/20">
             <CardHeader className="text-center">
                 <div className="flex justify-center items-center gap-2 mb-2">
                     <Building className="w-8 h-8 text-emerald-400" />
