@@ -2,35 +2,82 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    function isSignedIn() {
+  
+    // Helper function to check if the user is authenticated
+    function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Default minimalist rules for most collections
-    match /{document=**} {
-      allow read, write: if isSignedIn();
+    // Helper function to check if the user is a gym admin for a specific gym
+    function isGymAdmin(gymId) {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId == gymId
+             && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'gym-admin';
+    }
+
+    // Helper function to check if the user is a coach for a specific gym
+    function isGymCoach(gymId) {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId == gymId
+             && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'coach' || isGymAdmin(gymId));
     }
     
-    // Specific exceptions for unauthenticated flows
+    // Helper function to check if the user belongs to a specific gym
+    function isMemberOfGym(gymId) {
+        return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gymId == gymId;
+    }
 
+    // Users can only manage their own profile
     match /users/{userId} {
-       // Allow user creation on signup and updates from webhooks.
-      allow create, update: if true;
-      allow read, delete: if isSignedIn();
+      allow read: if isAuthenticated();
+      allow create: if request.auth.uid == userId;
+      allow update: if request.auth.uid == userId
+                    // Prevent users from escalating their own privileges
+                    && !(request.resource.data.role == 'gym-admin' && resource.data.role != 'gym-admin');
     }
-
+    
+    // Gyms can be read by any authenticated user, but only managed by its admin
     match /gyms/{gymId} {
-        // Allow gym creation.
-        allow create: if true;
-        allow read, update, delete: if isSignedIn();
+      allow read: if isAuthenticated();
+      allow create: if isGymAdmin(gymId);
+      allow update: if isGymAdmin(gymId);
     }
 
+    // Memberships can be created by anyone (for pending invites) but only managed securely
     match /memberships/{membershipId} {
-        // Allow unauthenticated checks for pending memberships by email on the /join page.
-        allow get: if true;
-        // Allow signed-in users to manage memberships.
-        allow list, write: if isSignedIn();
+        allow read: if isAuthenticated();
+        // A user can claim their own pending membership, or an admin can create one.
+        allow create: if request.resource.data.status == 'pending' || isGymAdmin(request.resource.data.gymId);
+        allow update, delete: if isGymAdmin(resource.data.gymId) || request.auth.uid == resource.data.userId;
+    }
+    
+    // Coaches and Admins of a gym can manage routines for that gym.
+    // Members can only read routines assigned to them.
+    match /routines/{routineId} {
+        allow read: if (isMemberOfGym(resource.data.gymId) && resource.data.memberId == request.auth.uid) || isGymCoach(resource.data.gymId);
+        allow create, update: if isGymCoach(request.resource.data.gymId);
+        allow delete: if isGymCoach(resource.data.gymId);
+    }
+    
+    // Coaches and Admins can manage templates for their gym
+    match /routineTemplates/{templateId} {
+        allow read, create, update, delete: if isGymCoach(request.resource.data.gymId);
+    }
+
+    // Admins can manage routine types for their gym
+    match /routineTypes/{typeId} {
+        allow read, create, update, delete: if isGymAdmin(request.resource.data.gymId);
+    }
+    
+    // Admins and Coaches can manage exercises for their gym
+    match /exercises/{exerciseId} {
+        allow read, create, update, delete: if isGymCoach(request.resource.data.gymId);
+    }
+    
+    // Workout sessions are highly sensitive and user-specific.
+    match /workoutSessions/{sessionId} {
+        // Only the user themselves or a gym admin can see a live session.
+        allow read: if request.auth.uid == resource.data.userId || isGymAdmin(resource.data.gymId);
+        // Only the user who owns the session can create/update it.
+        allow write: if request.auth.uid == request.resource.data.userId;
     }
   }
 }
