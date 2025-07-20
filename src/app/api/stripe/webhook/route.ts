@@ -11,18 +11,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
-async function findUserByCustomerId(customerId: string): Promise<{id: string, data: any} | null> {
-    const userRef = doc(db, 'users', customerId); // This is a guess, the metadata is better
-    const userSnap = await getDoc(userRef);
-    if (userSnap.exists()) {
-        return { id: userSnap.id, data: userSnap.data() };
-    }
-    // This is a fallback if the UID is not directly the customer ID
-    // A proper implementation would query based on stripeCustomerId
-    return null;
-}
-
-
 export async function POST(req: NextRequest) {
   const body = await req.text();
   const sig = headers().get('Stripe-Signature') as string;
@@ -62,11 +50,9 @@ export async function POST(req: NextRequest) {
     
     case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
-        const stripeCustomerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id;
-        
-        // Find user by stripeCustomerId. This requires storing it on the user doc.
-        // For this implementation, we rely on metadata. A more robust system might query.
+        // The most reliable way to get the user is from the metadata we set.
         const firebaseUID = subscription.metadata?.firebaseUID;
+        
         if (!firebaseUID) {
             console.error('Webhook Error: Missing firebaseUID from subscription metadata on update.');
             // This is a critical error, but we return 200 so Stripe doesn't retry.
