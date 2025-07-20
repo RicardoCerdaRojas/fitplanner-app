@@ -84,8 +84,6 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
                 setGymProfile(null);
                 setLoading(false);
             }
-        });
-        return () => unsubscribeAuth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
