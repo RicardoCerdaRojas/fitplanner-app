@@ -67,7 +67,7 @@ export default function JoinPage() {
     
     setEmailStatus('checking');
     
-    const membershipRef = doc(db, 'memberships', email.toLowerCase());
+    const membershipRef = doc(db, 'memberships', `PENDING_${email.toLowerCase()}`);
     const membershipSnap = await getDoc(membershipRef);
     
     if (membershipSnap.exists() && membershipSnap.data().status === 'pending') {
@@ -86,7 +86,6 @@ export default function JoinPage() {
             }
         } catch (error) {
             console.error("Error checking user email:", error);
-            // Fallback for safety, though rules should prevent this.
             setEmailStatus('invalid'); 
         }
     }
@@ -104,7 +103,7 @@ export default function JoinPage() {
         const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
         const authUser = userCredential.user;
         
-        const membershipRef = doc(db, 'memberships', values.email.toLowerCase());
+        const membershipRef = doc(db, 'memberships', `PENDING_${values.email.toLowerCase()}`);
         const membershipSnap = await getDoc(membershipRef);
         
         if (!membershipSnap.exists() || membershipSnap.data().status !== 'pending') {

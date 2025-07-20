@@ -3,7 +3,7 @@
 
 import { useEffect, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { doc, onSnapshot, collection, query, where, getDoc, writeBatch } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
 import type { UserProfile, Membership, GymProfile } from '@/contexts/auth-context';
@@ -27,39 +27,30 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
                 const profileData = userDoc.data() as UserProfile;
                 setUserProfile(profileData);
 
-                if (profileData.gymId) {
-                    // User has a gym, let's fetch gym and membership details.
+                // DERIVE activeMembership from userProfile
+                if (profileData.gymId && profileData.role) {
                     const gymRef = doc(db, 'gyms', profileData.gymId);
-                    const membershipRef = doc(db, 'memberships', `${authUser.uid}_${profileData.gymId}`);
+                    const gymSnap = await getDoc(gymRef);
+                    const gymName = gymSnap.exists() ? gymSnap.data().name : 'Unknown Gym';
 
-                    // Use Promise.all to fetch them in parallel for speed.
-                    try {
-                        const [gymSnap, membershipSnap] = await Promise.all([
-                            getDoc(gymRef),
-                            getDoc(membershipRef)
-                        ]);
-                        
-                        if (gymSnap.exists()) {
-                            setGymProfile({ id: gymSnap.id, ...gymSnap.data() } as GymProfile);
-                        } else {
-                            setGymProfile(null);
-                        }
+                    setActiveMembership({
+                        id: `${authUser.uid}_${profileData.gymId}`,
+                        userId: authUser.uid,
+                        gymId: profileData.gymId,
+                        role: profileData.role,
+                        userName: profileData.name,
+                        gymName: gymName,
+                        status: 'active',
+                    });
 
-                        if (membershipSnap.exists()) {
-                             setActiveMembership({ id: membershipSnap.id, ...membershipSnap.data() } as Membership);
-                        } else {
-                            // This is an inconsistent state, user has gymId but no membership doc.
-                            // Clear active membership to prevent issues.
-                            setActiveMembership(null);
-                        }
-
-                    } catch (error) {
-                        console.error("Error fetching gym/membership details:", error);
-                        setActiveMembership(null);
+                    if (gymSnap.exists()) {
+                        setGymProfile({ id: gymSnap.id, ...gymSnap.data() } as GymProfile);
+                    } else {
                         setGymProfile(null);
                     }
+
                 } else {
-                    // User does not have a gymId, they are not part of any gym.
+                    // User does not have a gymId/role, they are not part of any gym.
                     setActiveMembership(null);
                     setGymProfile(null);
                 }
@@ -100,7 +91,7 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
 
     // This effect responds to the user object being set by onAuthStateChanged.
     useEffect(() => {
-        let unsubscribe: () => void;
+        let unsubscribe: (() => void) | undefined;
         if (user) {
             fetchAndSetData(user).then(unsub => {
                 if (unsub) unsubscribe = unsub;

@@ -46,14 +46,12 @@ export type GymProfile = {
 type AuthContextType = {
   user: User | null;
   userProfile: UserProfile | null;
-  memberships: Membership[];
-  activeMembership: Membership | null;
+  activeMembership: Membership | null; // This will now be derived from userProfile
   gymProfile: GymProfile | null;
   isTrialActive: boolean | null;
   loading: boolean;
   setUser: (user: User | null) => void;
   setUserProfile: (profile: UserProfile | null) => void;
-  setMemberships: (memberships: Membership[]) => void;
   setActiveMembership: (membership: Membership | null) => void;
   setGymProfile: (gym: GymProfile | null) => void;
   setLoading: (loading: boolean) => void;
@@ -64,7 +62,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [memberships, setMemberships] = useState<Membership[]>([]);
   const [activeMembership, setActiveMembership] = useState<Membership | null>(null);
   const [gymProfile, setGymProfile] = useState<GymProfile | null>(null);
   const [isTrialActive, setIsTrialActive] = useState<boolean | null>(null);
@@ -100,14 +97,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const contextValue: AuthContextType = {
     user,
     userProfile,
-    memberships,
     activeMembership,
     gymProfile,
     isTrialActive,
     loading,
     setUser,
     setUserProfile,
-    setMemberships,
     setActiveMembership,
     setGymProfile,
     setLoading,

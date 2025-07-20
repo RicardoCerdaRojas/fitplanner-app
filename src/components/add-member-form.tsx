@@ -24,7 +24,7 @@ import {
 import { DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, Timestamp, getDoc } from 'firebase/firestore';
+import { doc, setDoc, Timestamp, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -49,8 +49,21 @@ export function AddMemberForm({ gymId, gymName, onFormSubmitted }: AddMemberForm
 
   async function onSubmit(values: FormValues) {
     const lowerCaseEmail = values.email.toLowerCase();
-    const docRef = doc(db, 'memberships', lowerCaseEmail);
+    
+    // 1. Check if user with this email already exists
+    const userQuery = query(collection(db, 'users'), where('email', '==', lowerCaseEmail));
+    const userSnapshot = await getDocs(userQuery);
+    if (!userSnapshot.empty) {
+        toast({
+            variant: 'destructive',
+            title: 'User Exists',
+            description: `A user with the email ${lowerCaseEmail} is already registered.`,
+        });
+        return;
+    }
 
+    // 2. Check for existing pending invitation
+    const docRef = doc(db, 'memberships', `PENDING_${lowerCaseEmail}`);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
         toast({
@@ -74,7 +87,7 @@ export function AddMemberForm({ gymId, gymName, onFormSubmitted }: AddMemberForm
       await setDoc(docRef, dataToSave);
       toast({
         title: 'Success!',
-        description: `Invitation for ${values.email} has been sent. They can now join from the login page.`,
+        description: `Invitation for ${values.email} has been sent. They can now join from the signup page.`,
       });
       onFormSubmitted();
     } catch (error: any) {
@@ -82,7 +95,7 @@ export function AddMemberForm({ gymId, gymName, onFormSubmitted }: AddMemberForm
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: `Could not create the membership.`,
+        description: `Could not create the invitation.`,
       });
     }
   }
