@@ -77,7 +77,9 @@ export async function createCheckoutSession({ plan, uid }: CreateCheckoutSession
       ],
       mode: 'subscription',
       subscription_data: {
-        trial_period_days: 14,
+        // This is the key change: Instead of creating a new trial,
+        // we tell Stripe to use the trial period configured on the plan itself.
+        trial_from_plan: true,
         metadata: {
             firebaseUID: uid,
             plan: plan
