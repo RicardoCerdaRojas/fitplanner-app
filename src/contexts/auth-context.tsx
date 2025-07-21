@@ -80,7 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsTrialActive(hasAccess);
     }
     
-    console.log(`[AuthContext] STEP 8: AuthContext recalculated. Subscribed: ${isSubscribed}, ManualTrial: ${isManualTrialActive}, Final Access: ${hasAccess}`);
+    console.log(`[AuthContext] STEP 8: AuthContext recalculated. isSubscribed: ${isSubscribed}, isManualTrialActive: ${isManualTrialActive}, Final Access: ${hasAccess}`);
 
 
   }, [loading, userProfile, gymProfile, activeMembership]);
