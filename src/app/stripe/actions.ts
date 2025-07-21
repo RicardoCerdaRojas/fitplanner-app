@@ -36,27 +36,7 @@ export async function createCheckoutSession({ plan, uid }: CreateCheckoutSession
   if (!userSnap.exists()) {
     return { error: 'User profile not found.' };
   }
-
   const userData = userSnap.data();
-  let stripeCustomerId = userData.stripeCustomerId;
-
-  // Create a Stripe customer if one doesn't exist
-  if (!stripeCustomerId) {
-    try {
-        const customer = await stripe.customers.create({
-          email: userData.email!,
-          name: userData.name,
-          metadata: {
-            firebaseUID: uid,
-          },
-        });
-        stripeCustomerId = customer.id;
-        await setDoc(userRef, { stripeCustomerId }, { merge: true });
-    } catch(e) {
-        console.error("Error creating stripe customer", e);
-        return { error: 'Could not create customer in Stripe.' };
-    }
-  }
 
   const priceId = priceIds[plan];
   if (!priceId) {
@@ -66,8 +46,11 @@ export async function createCheckoutSession({ plan, uid }: CreateCheckoutSession
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
 
   try {
+    // Simplified logic: Let Stripe create the customer if they don't exist.
+    // Pass metadata to the subscription for webhooks.
     const session = await stripe.checkout.sessions.create({
-      customer: stripeCustomerId,
+      customer: userData.stripeCustomerId, // This is optional. Stripe will create a new customer if it's null.
+      customer_email: userData.email, // Best practice to pass the email.
       payment_method_types: ['card'],
       line_items: [
         {
@@ -77,17 +60,15 @@ export async function createCheckoutSession({ plan, uid }: CreateCheckoutSession
       ],
       mode: 'subscription',
       subscription_data: {
-        // This is the key change: Instead of creating a new trial,
-        // we tell Stripe to use the trial period configured on the plan itself.
         trial_from_plan: true,
         metadata: {
             firebaseUID: uid,
             plan: plan
         }
       },
-      success_url: `${appUrl}/`,
-      cancel_url: `${appUrl}/`,
-      metadata: {
+      success_url: `${appUrl}/admin`,
+      cancel_url: `${appUrl}/admin/subscription`,
+      metadata: { // Metadata for the checkout session itself
           firebaseUID: uid,
           plan: plan
       }
