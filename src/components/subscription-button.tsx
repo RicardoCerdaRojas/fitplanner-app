@@ -45,7 +45,6 @@ export function SubscriptionButton({ plan, popular = false }: SubscriptionButton
     
     setLoading(true);
     
-    // Defer getting stripe until it's needed
     const stripe = await getStripe();
      if (!stripe) {
         toast({
@@ -57,7 +56,11 @@ export function SubscriptionButton({ plan, popular = false }: SubscriptionButton
         return;
     }
     
-    const { sessionId, error, url } = await createCheckoutSession({ plan, uid: user.uid });
+    const { sessionId, error, url } = await createCheckoutSession({ 
+      plan, 
+      uid: user.uid,
+      origin: window.location.origin // Pass the client's origin URL
+    });
 
     if (error) {
         toast({

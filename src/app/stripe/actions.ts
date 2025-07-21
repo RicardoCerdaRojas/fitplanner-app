@@ -23,9 +23,10 @@ const priceIds: { [key: string]: string } = {
 type CreateCheckoutSessionParams = {
     plan: 'TRAINER' | 'STUDIO' | 'GYM';
     uid: string;
+    origin: string; // The URL origin from the client
 }
 
-export async function createCheckoutSession({ plan, uid }: CreateCheckoutSessionParams) {
+export async function createCheckoutSession({ plan, uid, origin }: CreateCheckoutSessionParams) {
   if (!uid) {
     return { error: 'You must be logged in to subscribe.' };
   }
@@ -43,7 +44,8 @@ export async function createCheckoutSession({ plan, uid }: CreateCheckoutSession
       return { error: 'Invalid plan selected. Price ID is missing.' };
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+  // Use the origin from the client to construct URLs
+  const appUrl = origin;
 
   try {
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
@@ -132,6 +134,8 @@ export async function createCustomerPortalSession() {
         return { error: "Stripe customer ID not found." };
     }
 
+    // We can't know the origin on the server here easily, so we must hardcode a fallback
+    // Or better, we can get it from the headers if available, or just redirect to the main page
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:9002";
     
     try {
