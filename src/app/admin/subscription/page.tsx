@@ -79,12 +79,6 @@ export default function SubscriptionPage() {
     const isProcessing = searchParams.has('session_id');
     const isSubscribed = userProfile?.stripeSubscriptionStatus === 'active' || userProfile?.stripeSubscriptionStatus === 'trialing';
 
-    useEffect(() => {
-        if (isProcessing && !loading && isSubscribed) {
-            router.replace('/admin/subscription');
-        }
-    }, [isProcessing, loading, isSubscribed, router]);
-
     const handleManageSubscription = async () => {
         setIsRedirecting(true);
         const { url, error } = await createCustomerPortalSession();
@@ -120,7 +114,7 @@ export default function SubscriptionPage() {
         );
     }
     
-    if (isProcessing && !isSubscribed) {
+    if (isProcessing) {
         return <ProcessingPayment />;
     }
 
@@ -229,5 +223,3 @@ export default function SubscriptionPage() {
         </div>
     );
 }
-
-    
