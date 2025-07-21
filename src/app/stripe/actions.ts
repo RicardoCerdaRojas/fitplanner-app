@@ -81,10 +81,15 @@ export async function createCheckoutSession({ plan, uid, origin }: CreateCheckou
       mode: 'subscription',
       success_url: `${origin}/admin/subscription?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/admin/subscription`,
+      // CRITICAL FIX: Add metadata at the session level so the webhook can read it.
+      metadata: {
+        firebaseUID: uid,
+      },
       subscription_data: {
         trial_from_plan: true,
+        // Also keep it here for redundancy, as it's good practice for subscription objects.
         metadata: {
-            firebaseUID: uid, // Pass UID to subscription metadata
+            firebaseUID: uid, 
         }
       }
     });
