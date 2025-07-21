@@ -30,25 +30,26 @@ export async function POST(req: NextRequest) {
   // Handle the event
   switch (event.type) {
     case 'checkout.session.completed': {
-      // This event is fired when the user successfully pays.
-      // It's the most reliable place to start the subscription logic.
-      const firebaseUID = session.metadata?.firebaseUID;
-      const stripeCustomerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
-      const stripeSubscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
+      const checkoutSession = event.data.object as Stripe.Checkout.Session;
+      const firebaseUID = checkoutSession.metadata?.firebaseUID;
+      const stripeCustomerId = typeof checkoutSession.customer === 'string' ? checkoutSession.customer : checkoutSession.customer?.id;
+      const stripeSubscriptionId = typeof checkoutSession.subscription === 'string' ? checkoutSession.subscription : checkoutSession.subscription?.id;
 
       if (!firebaseUID || !stripeCustomerId || !stripeSubscriptionId) {
         console.error('Webhook Error: Missing metadata from session on checkout.session.completed.');
         return NextResponse.json({ error: 'Missing metadata' }, { status: 400 });
       }
 
+      const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+
       // We immediately update the user with all the new Stripe info.
       const userRef = doc(db, 'users', firebaseUID);
       await updateDoc(userRef, {
         stripeCustomerId,
         stripeSubscriptionId,
-        // The status of the subscription itself will be handled by the customer.subscription.updated event
+        stripeSubscriptionStatus: subscription.status, // e.g., 'trialing' or 'active'
       });
-      console.log(`✅ Checkout session completed for user ${firebaseUID}. Customer and Subscription IDs stored.`);
+      console.log(`✅ Checkout session completed for user ${firebaseUID}. Status: ${subscription.status}.`);
       break;
     }
     
