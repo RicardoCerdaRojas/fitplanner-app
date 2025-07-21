@@ -1,6 +1,7 @@
 
 'use client';
 
+import 'server-only';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppHeader } from '@/components/app-header';
@@ -14,7 +15,45 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { SubscriptionButton } from '@/components/subscription-button';
 import { differenceInCalendarDays, format } from 'date-fns';
-import { checkSubscriptionStatus } from '../actions';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+
+async function checkSubscriptionStatus(uid: string): Promise<boolean> {
+  'use server';
+  
+  if (!uid) {
+    console.error('[Action] checkSubscriptionStatus Error: No UID provided.');
+    return false;
+  }
+  
+  console.log(`[Action] STEP 7: Polling for subscription status for UID: ${uid}`);
+
+  try {
+    const userRef = doc(db, 'users', uid);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+      const status = userData.stripeSubscriptionStatus;
+      console.log(`[Action] Found user. Status in DB: ${status}`);
+      const isSubscribed = status === 'active' || status === 'trialing';
+
+      if(isSubscribed) {
+          console.log("[Action] ✅ User is subscribed, returning true.");
+      } else {
+          console.log("[Action] ⏳ User not subscribed yet, returning false.");
+      }
+
+      return isSubscribed;
+    } else {
+      console.warn(`[Action] No user document found for UID: ${uid}`);
+      return false;
+    }
+  } catch (error) {
+    console.error('[Action] Error fetching user document:', error);
+    return false;
+  }
+}
 
 function ProcessingPayment() {
     const router = useRouter();
@@ -22,8 +61,6 @@ function ProcessingPayment() {
     const searchParams = useSearchParams();
 
     useEffect(() => {
-        // CRITICAL: Do not run the effect until the user object is available and loading is false.
-        // This prevents the race condition where the check runs before auth is initialized.
         if (loading || !user) {
             console.log("ProcessingPayment: Waiting for user authentication...");
             return;
@@ -37,8 +74,6 @@ function ProcessingPayment() {
             if (isSubscribed) {
                 console.log("ProcessingPayment: ✅ Subscription is ACTIVE. Forcing full page reload to /admin/subscription.");
                 clearInterval(interval);
-                // CRITICAL CHANGE: Force a full page reload to the subscription page.
-                // This ensures the AuthContext is completely refetched with the new subscription data.
                 window.location.href = '/admin/subscription';
             }
         }, 2000);
@@ -53,7 +88,7 @@ function ProcessingPayment() {
             clearInterval(interval);
             clearTimeout(timeout);
         };
-    }, [router, user, loading, searchParams]); // user and loading are now dependencies
+    }, [router, user, loading, searchParams]);
 
     return (
         <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
