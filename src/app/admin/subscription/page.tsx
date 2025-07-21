@@ -18,36 +18,30 @@ import { checkSubscriptionStatus } from '../actions';
 
 function ProcessingPayment() {
     const router = useRouter();
-    const { user } = useAuth(); // Get the authenticated user
+    const { user } = useAuth();
 
     useEffect(() => {
         if (!user) {
-            // If there's no user, we can't check status. Redirect to login.
             router.push('/login');
             return;
         }
 
-        // Poll every 2 seconds to check if the webhook has updated the user's status.
         const interval = setInterval(async () => {
-            // Pass the user's UID to the server action
             const isSubscribed = await checkSubscriptionStatus(user.uid);
             if (isSubscribed) {
                 clearInterval(interval);
-                // We must reload the entire page to force the AuthContext to refetch all user data.
-                // Using router.push() is not enough as it might be a soft navigation.
+                // CRITICAL CHANGE: Force a full page reload to the subscription page.
+                // This ensures the AuthContext is completely refetched with the new subscription data.
                 window.location.href = '/admin/subscription';
             }
         }, 2000);
 
-        // Set a timeout to prevent infinite polling, e.g., after 2 minutes.
         const timeout = setTimeout(() => {
             clearInterval(interval);
-            // Optionally redirect to a page with an error message.
             console.error("Subscription check timed out.");
             router.push('/admin/subscription?error=timeout');
         }, 120000); 
 
-        // Cleanup function to clear intervals and timeouts.
         return () => {
             clearInterval(interval);
             clearTimeout(timeout);
@@ -77,7 +71,7 @@ function ProcessingPayment() {
 
 export default function SubscriptionPage() {
     const { toast } = useToast();
-    const { activeMembership, gymProfile, userProfile, loading } = useAuth();
+    const { activeMembership, gymProfile, userProfile, loading, isTrialActive } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [isRedirecting, setIsRedirecting] = useState(false);
@@ -85,8 +79,6 @@ export default function SubscriptionPage() {
     const isProcessing = searchParams.has('session_id');
     const isSubscribed = userProfile?.stripeSubscriptionStatus === 'active' || userProfile?.stripeSubscriptionStatus === 'trialing';
 
-    // This effect handles the case where the user lands on the page already subscribed
-    // but stuck on the processing URL. It cleans the URL.
     useEffect(() => {
         if (isProcessing && !loading && isSubscribed) {
             router.replace('/admin/subscription');
@@ -128,7 +120,6 @@ export default function SubscriptionPage() {
         );
     }
     
-    // If we are processing, show the processing screen immediately.
     if (isProcessing && !isSubscribed) {
         return <ProcessingPayment />;
     }
@@ -140,9 +131,7 @@ export default function SubscriptionPage() {
 
     const trialEndsAt = gymProfile?.trialEndsAt?.toDate();
     const trialDaysLeft = trialEndsAt ? differenceInCalendarDays(trialEndsAt, new Date()) : 0;
-    const isTrialActive = gymProfile?.trialEndsAt ? new Date() < trialEndsAt : false;
-
-
+    
     const renderSubscriptionStatus = () => {
         if (isSubscribed) {
              return (
@@ -193,7 +182,7 @@ export default function SubscriptionPage() {
                                     <span className="text-muted-foreground font-medium">Estado</span>
                                     {renderSubscriptionStatus()}
                                 </div>
-                                {isTrialActive && trialEndsAt && !isSubscribed && (
+                                {isTrialActive && !isSubscribed && trialEndsAt && (
                                      <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground font-medium">La prueba termina el</span>
                                         <span className="font-semibold flex items-center gap-2">
@@ -240,3 +229,5 @@ export default function SubscriptionPage() {
         </div>
     );
 }
+
+    
