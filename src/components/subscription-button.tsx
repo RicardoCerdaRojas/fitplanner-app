@@ -12,12 +12,12 @@ import { useToast } from '@/hooks/use-toast';
 
 let stripePromise: Promise<Stripe | null>;
 const getStripe = () => {
+  const publicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY;
+  if (!publicKey) {
+    console.error("Stripe public key is not set. Please check your .env file.");
+    return Promise.resolve(null);
+  }
   if (!stripePromise) {
-    const publicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY;
-    if (!publicKey) {
-      console.error("Stripe public key is not set. Please check your .env file.");
-      return Promise.resolve(null);
-    }
     stripePromise = loadStripe(publicKey);
   }
   return stripePromise;
@@ -91,9 +91,9 @@ export function SubscriptionButton({ plan, popular = false }: SubscriptionButton
             title: 'Redirection Failed',
             description: stripeError.message || 'Could not redirect to Stripe.',
         });
-        setLoading(false);
     }
-    // If redirection is successful, the user will navigate away, so no need to setLoading(false).
+    // If redirection is successful, the user will navigate away, so we only setLoading(false) on error.
+    setLoading(false);
   };
   
   return (

@@ -4,7 +4,7 @@
 import 'dotenv/config';
 import { auth } from '@/lib/firebase';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -69,9 +69,6 @@ export async function createCheckoutSession({ plan, uid, origin }: CreateCheckou
         return { error: 'Invalid plan selected. Price ID is missing.' };
     }
 
-    // Use the origin from the client to construct URLs
-    const appUrl = origin;
-
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       customer: customerId,
@@ -82,8 +79,8 @@ export async function createCheckoutSession({ plan, uid, origin }: CreateCheckou
         },
       ],
       mode: 'subscription',
-      success_url: `${appUrl}/admin/subscription?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl}/admin/subscription`,
+      success_url: `${origin}/admin/subscription?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/admin/subscription`,
       subscription_data: {
         trial_from_plan: true,
         metadata: {

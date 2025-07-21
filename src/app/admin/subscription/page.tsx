@@ -22,10 +22,8 @@ function ProcessingPayment() {
     useEffect(() => {
         // Poll every 2 seconds to check if the webhook has updated the user's status.
         const interval = setInterval(async () => {
-            console.log("Polling for subscription status...");
             const isSubscribed = await checkSubscriptionStatus();
             if (isSubscribed) {
-                console.log("Subscription active! Redirecting to subscription page...");
                 clearInterval(interval);
                 // We must reload the entire page to force the AuthContext to refetch all user data.
                 // Using router.push() is not enough as it might be a soft navigation.
@@ -33,8 +31,19 @@ function ProcessingPayment() {
             }
         }, 2000);
 
-        // Cleanup function to clear the interval if the component unmounts.
-        return () => clearInterval(interval);
+        // Set a timeout to prevent infinite polling, e.g., after 2 minutes.
+        const timeout = setTimeout(() => {
+            clearInterval(interval);
+            // Optionally redirect to a page with an error message.
+            console.error("Subscription check timed out.");
+            router.push('/admin/subscription?error=timeout');
+        }, 120000); 
+
+        // Cleanup function to clear intervals and timeouts.
+        return () => {
+            clearInterval(interval);
+            clearTimeout(timeout);
+        };
     }, [router]);
 
     return (
@@ -87,9 +96,13 @@ export default function SubscriptionPage() {
         }
 
         if (url) {
-            // Use window.location.href for robust redirection out of iframes.
             window.location.href = url;
         } else {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Could not retrieve the customer portal URL.',
+            });
             setIsRedirecting(false);
         }
     };
@@ -108,7 +121,7 @@ export default function SubscriptionPage() {
     }
     
     // If we are processing, show the processing screen immediately.
-    if (isProcessing) {
+    if (isProcessing && !isSubscribed) {
         return <ProcessingPayment />;
     }
 

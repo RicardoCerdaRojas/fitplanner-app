@@ -25,21 +25,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
   }
 
-  const session = event.data.object as any;
-
   // Handle the event
   switch (event.type) {
     case 'checkout.session.completed': {
       const checkoutSession = event.data.object as Stripe.Checkout.Session;
+      
+      // We need the firebaseUID from metadata to find the user document.
+      // This metadata is set during the checkout session creation.
       const firebaseUID = checkoutSession.metadata?.firebaseUID;
+
+      // Extract subscription and customer IDs.
       const stripeCustomerId = typeof checkoutSession.customer === 'string' ? checkoutSession.customer : checkoutSession.customer?.id;
       const stripeSubscriptionId = typeof checkoutSession.subscription === 'string' ? checkoutSession.subscription : checkoutSession.subscription?.id;
 
       if (!firebaseUID || !stripeCustomerId || !stripeSubscriptionId) {
-        console.error('Webhook Error: Missing metadata from session on checkout.session.completed.');
-        return NextResponse.json({ error: 'Missing metadata' }, { status: 400 });
+        console.error('Webhook Error: Missing required data from session on checkout.session.completed.');
+        return NextResponse.json({ error: 'Missing required metadata or IDs.' }, { status: 400 });
       }
 
+      // To get the subscription status, we must retrieve the subscription object from Stripe.
       const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
 
       // We immediately update the user with all the new Stripe info.
@@ -57,6 +61,8 @@ export async function POST(req: NextRequest) {
         // This event fires whenever a subscription's state changes.
         // e.g., 'trialing' -> 'active', 'active' -> 'past_due', 'active' -> 'canceled'
         const subscription = event.data.object as Stripe.Subscription;
+        
+        // The firebaseUID should be in the subscription's metadata.
         const firebaseUID = subscription.metadata?.firebaseUID;
         
         if (!firebaseUID) {
