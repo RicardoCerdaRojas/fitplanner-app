@@ -9,6 +9,8 @@ export async function checkSubscriptionStatus(uid: string): Promise<boolean> {
     console.error('[checkSubscriptionStatus] Error: No UID provided.');
     return false;
   }
+  
+  console.log(`[checkSubscriptionStatus] Checking status for UID: ${uid}`);
 
   try {
     const userRef = doc(db, 'users', uid);
@@ -17,8 +19,16 @@ export async function checkSubscriptionStatus(uid: string): Promise<boolean> {
     if (userSnap.exists()) {
       const userData = userSnap.data();
       const status = userData.stripeSubscriptionStatus;
+      console.log(`[checkSubscriptionStatus] Found user. Status in DB: ${status}`);
       // A user is considered subscribed if their status is active or they are in a trial period.
       const isSubscribed = status === 'active' || status === 'trialing';
+
+      if(isSubscribed) {
+          console.log("[checkSubscriptionStatus] User subscribed, returning true.");
+      } else {
+          console.log("[checkSubscriptionStatus] User not subscribed yet, returning false.");
+      }
+
       return isSubscribed;
     } else {
       console.warn(`[checkSubscriptionStatus] No user document found for UID: ${uid}`);

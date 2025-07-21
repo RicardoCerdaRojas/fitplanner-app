@@ -21,9 +21,11 @@ export async function POST(req: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
   } catch (err: any) {
-    console.error(`❌ Error message: ${err.message}`);
+    console.error(`❌ Webhook signature verification failed: ${err.message}`);
     return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
   }
+  
+  console.log(`✅ Webhook received: ${event.type}`);
 
   // Handle the event
   switch (event.type) {
@@ -31,25 +33,37 @@ export async function POST(req: NextRequest) {
       const checkoutSession = event.data.object as Stripe.Checkout.Session;
       
       const firebaseUID = checkoutSession.metadata?.firebaseUID;
-      const stripeCustomerId = typeof checkoutSession.customer === 'string' ? checkoutSession.customer : checkoutSession.customer?.id;
-      const stripeSubscriptionId = typeof checkoutSession.subscription === 'string' ? checkoutSession.subscription : checkoutSession.subscription?.id;
-
-      if (!firebaseUID || !stripeCustomerId || !stripeSubscriptionId) {
-        console.error('Webhook Error: Missing required data from session on checkout.session.completed.');
+      if (!firebaseUID) {
+        console.error('❌ Webhook Error: Missing firebaseUID from session on checkout.session.completed.');
         return NextResponse.json({ error: 'Missing required metadata or IDs.' }, { status: 400 });
       }
 
-      // To get the subscription status, we must retrieve the subscription object from Stripe.
-      const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+      const stripeSubscriptionId = typeof checkoutSession.subscription === 'string' ? checkoutSession.subscription : checkoutSession.subscription?.id;
+      if (!stripeSubscriptionId) {
+        console.error('❌ Webhook Error: Missing subscription ID from session on checkout.session.completed.');
+        return NextResponse.json({ error: 'Missing subscription ID.' }, { status: 400 });
+      }
 
-      // We immediately update the user with all the new Stripe info.
-      const userRef = doc(db, 'users', firebaseUID);
-      await updateDoc(userRef, {
-        stripeCustomerId,
-        stripeSubscriptionId,
-        stripeSubscriptionStatus: subscription.status, // e.g., 'trialing' or 'active'
-      });
-      console.log(`✅ Checkout session completed for user ${firebaseUID}. Status: ${subscription.status}.`);
+      try {
+        // To get the most up-to-date status, we retrieve the subscription object from Stripe.
+        const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+
+        const userRef = doc(db, 'users', firebaseUID);
+        const dataToUpdate = {
+          stripeCustomerId: subscription.customer as string,
+          stripeSubscriptionId: subscription.id,
+          stripeSubscriptionStatus: subscription.status, // e.g., 'trialing' or 'active'
+        };
+
+        console.log(`- Updating user: ${firebaseUID}`);
+        console.log("- Data to update:", dataToUpdate);
+        await updateDoc(userRef, dataToUpdate);
+        console.log(`- ✅ Checkout session completed for user ${firebaseUID}. Status: ${subscription.status}.`);
+
+      } catch (error) {
+          console.error(`❌ Error handling checkout.session.completed for UID ${firebaseUID}:`, error);
+          return NextResponse.json({ error: 'Failed to process checkout completion.' }, { status: 500 });
+      }
       break;
     }
     
@@ -57,18 +71,20 @@ export async function POST(req: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription;
         
         const firebaseUID = subscription.metadata?.firebaseUID;
-        
         if (!firebaseUID) {
-            console.error('Webhook Error: Missing firebaseUID from subscription metadata on update.');
+            console.error('❌ Webhook Error: Missing firebaseUID from subscription metadata on update.');
             return NextResponse.json({ error: 'Missing firebaseUID metadata on subscription' });
         }
         
         const userRef = doc(db, 'users', firebaseUID);
-        await updateDoc(userRef, {
+        const dataToUpdate = {
             stripeSubscriptionStatus: subscription.status,
             stripeSubscriptionId: subscription.id,
-        });
-        console.log(`✅ Subscription status updated to ${subscription.status} for user ${firebaseUID}`);
+        };
+        console.log(`- Updating user from subscription.updated event: ${firebaseUID}`);
+        console.log("- Data to update:", dataToUpdate);
+        await updateDoc(userRef, dataToUpdate);
+        console.log(`- ✅ Subscription status updated to ${subscription.status} for user ${firebaseUID}`);
         break;
     }
 
@@ -77,21 +93,24 @@ export async function POST(req: NextRequest) {
       const firebaseUID = subscription.metadata?.firebaseUID;
       
       if (!firebaseUID) {
-        console.error('Webhook Error: Missing firebaseUID from subscription metadata on delete.');
+        console.error('❌ Webhook Error: Missing firebaseUID from subscription metadata on delete.');
         return NextResponse.json({ error: 'Missing firebaseUID metadata' });
       }
 
       const userRef = doc(db, 'users', firebaseUID);
-      await updateDoc(userRef, {
+      const dataToUpdate = {
         stripeSubscriptionId: null,
         stripeSubscriptionStatus: 'canceled', // or subscription.status which would be 'canceled'
-      });
-      console.log(`✅ Subscription canceled for user ${firebaseUID}`);
+      };
+      console.log(`- Canceling subscription for user: ${firebaseUID}`);
+      console.log("- Data to update:", dataToUpdate);
+      await updateDoc(userRef, dataToUpdate);
+      console.log(`- ✅ Subscription canceled for user ${firebaseUID}`);
       break;
     }
     
     default:
-      console.log(`Unhandled event type ${event.type}`);
+      console.log(`- Unhandled event type ${event.type}`);
   }
 
   return NextResponse.json({ received: true });

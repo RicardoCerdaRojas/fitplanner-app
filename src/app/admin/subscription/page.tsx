@@ -19,16 +19,21 @@ import { checkSubscriptionStatus } from '../actions';
 function ProcessingPayment() {
     const router = useRouter();
     const { user } = useAuth();
+    const searchParams = useSearchParams();
 
     useEffect(() => {
+        console.log("ProcessingPayment: Component mounted for session_id:", searchParams.get('session_id'));
         if (!user) {
+            console.log("ProcessingPayment: No user found, redirecting to login.");
             router.push('/login');
             return;
         }
 
         const interval = setInterval(async () => {
+            console.log("ProcessingPayment: Polling... Checking subscription status.");
             const isSubscribed = await checkSubscriptionStatus(user.uid);
             if (isSubscribed) {
+                console.log("ProcessingPayment: Subscription is ACTIVE. Forcing full page reload to /admin/subscription.");
                 clearInterval(interval);
                 // CRITICAL CHANGE: Force a full page reload to the subscription page.
                 // This ensures the AuthContext is completely refetched with the new subscription data.
@@ -38,7 +43,7 @@ function ProcessingPayment() {
 
         const timeout = setTimeout(() => {
             clearInterval(interval);
-            console.error("Subscription check timed out.");
+            console.error("ProcessingPayment: Subscription check timed out after 2 minutes.");
             router.push('/admin/subscription?error=timeout');
         }, 120000); 
 
@@ -46,7 +51,7 @@ function ProcessingPayment() {
             clearInterval(interval);
             clearTimeout(timeout);
         };
-    }, [router, user]);
+    }, [router, user, searchParams]);
 
     return (
         <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
