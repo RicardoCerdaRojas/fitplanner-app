@@ -82,7 +82,7 @@ export async function createCheckoutSession({ plan, uid }: CreateCheckoutSession
     
   } catch (error: any) {
     // This is our new logic to handle the specific currency mismatch error
-    if (error.code === 'customer_currency_mismatch' || (error.message && error.message.includes('currency'))) {
+    if (error.code === 'customer_currency_mismatch' || (error.message && error.message.toLowerCase().includes('currency'))) {
         console.warn("[Stripe Action] Currency mismatch detected. Forcing new customer creation.");
         // Delete the outdated customer ID from Firestore to force recreation
         await updateDoc(userRef, { stripeCustomerId: null });
