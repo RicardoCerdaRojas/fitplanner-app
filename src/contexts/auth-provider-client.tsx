@@ -18,23 +18,24 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
         user
     } = useAuth();
 
-    const fetchAndSetData = useCallback(async (authUser: User) => {
-        const userProfileRef = doc(db, 'users', authUser.uid);
+    // This effect runs only when the user object changes (login/logout)
+    useEffect(() => {
+        let userUnsubscribe: (() => void) | undefined;
+        let gymUnsubscribe: (() => void) | undefined;
 
-        const unsubscribe = onSnapshot(userProfileRef, async (userDoc) => {
-            if (userDoc.exists()) {
-                const profileData = userDoc.data() as UserProfile;
-                setUserProfile(profileData);
+        const setupListeners = (authUser: User) => {
+            const userProfileRef = doc(db, 'users', authUser.uid);
+            userUnsubscribe = onSnapshot(userProfileRef, (userDoc) => {
+                if (userDoc.exists()) {
+                    const profileData = userDoc.data() as UserProfile;
+                    setUserProfile(profileData);
 
-                if (profileData.gymId && profileData.role) {
-                    const gymDocRef = doc(db, 'gyms', profileData.gymId);
-                    try {
-                        // Using a snapshot listener for the gym too for real-time theme changes.
-                        const gymUnsubscribe = onSnapshot(gymDocRef, (gymDocSnap) => {
+                    if (profileData.gymId && profileData.role) {
+                        const gymDocRef = doc(db, 'gyms', profileData.gymId);
+                        gymUnsubscribe = onSnapshot(gymDocRef, (gymDocSnap) => {
                             if (gymDocSnap.exists()) {
                                 const gymData = gymDocSnap.data() as Omit<GymProfile, 'id'>;
                                 setGymProfile({ id: gymDocSnap.id, ...gymData });
-                                
                                 setActiveMembership({
                                     id: `${authUser.uid}_${profileData.gymId}`,
                                     userId: authUser.uid,
@@ -50,79 +51,46 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
                             }
                             setLoading(false);
                         });
-                        // We need to return this unsubscribe function to be cleaned up
-                        return () => gymUnsubscribe();
-
-                    } catch (error) {
-                        console.error("Error fetching gym document:", error);
+                    } else {
                         setGymProfile(null);
                         setActiveMembership(null);
                         setLoading(false);
                     }
                 } else {
-                    setActiveMembership(null);
+                    setUserProfile(null);
                     setGymProfile(null);
+                    setActiveMembership(null);
                     setLoading(false);
                 }
-            } else {
-                setUserProfile(null);
-                setActiveMembership(null);
-                setGymProfile(null);
-                setLoading(false);
-            }
-        }, (error) => {
-            console.error("Error listening to user profile:", error);
+            });
+        };
+
+        if (user) {
+            setupListeners(user);
+        } else {
+            // No user, clear all data
             setUserProfile(null);
-            setActiveMembership(null);
             setGymProfile(null);
+            setActiveMembership(null);
             setLoading(false);
-        });
+        }
 
-        return unsubscribe;
+        // Cleanup function
+        return () => {
+            if (userUnsubscribe) userUnsubscribe();
+            if (gymUnsubscribe) gymUnsubscribe();
+        };
+    }, [user, setUserProfile, setGymProfile, setActiveMembership, setLoading]);
 
-    }, [setActiveMembership, setGymProfile, setLoading, setUserProfile]);
-
+    // This effect handles the initial auth state change from Firebase
     useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
             setLoading(true);
-            if (authUser) {
-                setUser(authUser);
-            } else {
-                setUser(null);
-                setUserProfile(null);
-                setActiveMembership(null);
-                setGymProfile(null);
-                setLoading(false);
-            }
+            setUser(authUser); // This will trigger the above effect
         });
-
         return () => unsubscribeAuth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, []); 
 
-    useEffect(() => {
-        let unsubscribeUser: (() => void) | undefined;
-        let unsubscribeGym: (() => void) | undefined;
-
-        if (user) {
-            fetchAndSetData(user).then(unsub => {
-                if (typeof unsub === 'function') {
-                    // This can return a single unsubscribe or a function that returns one
-                    const potentialGymUnsub = unsub();
-                    if(typeof potentialGymUnsub === 'function') {
-                         unsubscribeGym = potentialGymUnsub
-                    } else {
-                        unsubscribeUser = unsub;
-                    }
-                }
-            });
-        }
-
-        return () => {
-            if (unsubscribeUser) unsubscribeUser();
-            if (unsubscribeGym) unsubscribeGym();
-        };
-    }, [user, fetchAndSetData]);
-    
     return <>{children}</>;
 }

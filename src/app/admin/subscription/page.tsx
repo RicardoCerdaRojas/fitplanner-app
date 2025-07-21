@@ -1,6 +1,7 @@
 
 'use client';
 
+import 'server-only';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppHeader } from '@/components/app-header';
