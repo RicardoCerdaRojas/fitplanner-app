@@ -81,6 +81,36 @@ export async function createCheckoutSession({ plan, uid }: CreateCheckoutSession
     return { sessionId: session.id };
     
   } catch (error: any) {
+    // This is our new logic to handle the specific currency mismatch error
+    if (error.code === 'customer_currency_mismatch' || (error.message && error.message.includes('currency'))) {
+        console.warn("[Stripe Action] Currency mismatch detected. Forcing new customer creation.");
+        // Delete the outdated customer ID from Firestore to force recreation
+        await updateDoc(userRef, { stripeCustomerId: null });
+
+        // Retry the checkout session creation without the customer ID
+        const retryParams: Stripe.Checkout.SessionCreateParams = {
+            payment_method_types: ['card'],
+            line_items: [{ price: priceId, quantity: 1 }],
+            mode: 'subscription',
+            success_url: `${appUrl}/admin/subscription?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${appUrl}/admin/subscription`,
+            customer_email: userData.email, // Force creation with email
+            subscription_data: {
+                trial_from_plan: true,
+                metadata: { firebaseUID: uid, plan: plan }
+            },
+            metadata: { firebaseUID: uid, plan: plan }
+        };
+        
+        try {
+            const retrySession = await stripe.checkout.sessions.create(retryParams);
+            return { sessionId: retrySession.id };
+        } catch (retryError: any) {
+            console.error('Stripe API Error on retry:', retryError);
+            return { error: 'Could not create checkout session after retry.' };
+        }
+    }
+
     console.error('Stripe API Error:', error);
     return { error: 'Could not create checkout session.' };
   }
