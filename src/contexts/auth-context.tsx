@@ -1,7 +1,7 @@
 
 'use client';
 
-import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { type User } from 'firebase/auth';
 import { Timestamp } from 'firebase/firestore';
 
@@ -60,28 +60,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isTrialActive, setIsTrialActive] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Effect to determine trial status
   useEffect(() => {
     if (loading) return;
     
-    // Members are always considered to have an active "trial" for access purposes
-    if (activeMembership && activeMembership.role === 'member') {
+    if (activeMembership && (activeMembership.role === 'member' || activeMembership.role === 'coach')) {
         setIsTrialActive(true);
         return;
     }
     
-    // If the user has an active Stripe subscription, they are not in trial (they are paying)
     if (userProfile?.stripeSubscriptionStatus === 'active' || userProfile?.stripeSubscriptionStatus === 'trialing') {
         setIsTrialActive(true);
         return;
     }
     
-    // If no subscription, check the gym's trial end date.
     if (gymProfile?.trialEndsAt) {
         const trialEndDate = gymProfile.trialEndsAt.toDate();
         setIsTrialActive(new Date() < trialEndDate);
     } else {
-        // If no gym profile or no trial date, they are not in an active trial
         setIsTrialActive(false);
     }
   }, [loading, userProfile, gymProfile, activeMembership]);
