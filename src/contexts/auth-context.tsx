@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
     
-    // A subscription is active if its status is 'active' or 'trialing'.
+    // A subscription is active if its status is active or they are in a trial period.
     const isSubscribed = userProfile?.stripeSubscriptionStatus === 'active' || userProfile?.stripeSubscriptionStatus === 'trialing';
 
     // A manual trial is active if the trialEndsAt date is in the future.
