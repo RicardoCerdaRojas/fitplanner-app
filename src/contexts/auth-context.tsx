@@ -62,23 +62,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   useEffect(() => {
     if (loading) return;
-    
+
+    // For non-admin roles, access is always granted as it's controlled by the gym's subscription.
     if (activeMembership && (activeMembership.role === 'member' || activeMembership.role === 'coach')) {
         setIsTrialActive(true);
         return;
     }
     
-    if (userProfile?.stripeSubscriptionStatus === 'active' || userProfile?.stripeSubscriptionStatus === 'trialing') {
-        setIsTrialActive(true);
-        return;
-    }
+    // A subscription is active if its status is 'active' or 'trialing'.
+    const isSubscribed = userProfile?.stripeSubscriptionStatus === 'active' || userProfile?.stripeSubscriptionStatus === 'trialing';
+
+    // A manual trial is active if the trialEndsAt date is in the future.
+    const isManualTrialActive = gymProfile?.trialEndsAt ? new Date() < gymProfile.trialEndsAt.toDate() : false;
     
-    if (gymProfile?.trialEndsAt) {
-        const trialEndDate = gymProfile.trialEndsAt.toDate();
-        setIsTrialActive(new Date() < trialEndDate);
-    } else {
-        setIsTrialActive(false);
-    }
+    // The user has access if they are subscribed OR if they are in a manual trial.
+    setIsTrialActive(isSubscribed || isManualTrialActive);
+
   }, [loading, userProfile, gymProfile, activeMembership]);
 
   const contextValue: AuthContextType = {

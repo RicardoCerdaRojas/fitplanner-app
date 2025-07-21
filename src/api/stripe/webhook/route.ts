@@ -30,11 +30,7 @@ export async function POST(req: NextRequest) {
     case 'checkout.session.completed': {
       const checkoutSession = event.data.object as Stripe.Checkout.Session;
       
-      // We need the firebaseUID from metadata to find the user document.
-      // This metadata is set during the checkout session creation.
       const firebaseUID = checkoutSession.metadata?.firebaseUID;
-
-      // Extract subscription and customer IDs.
       const stripeCustomerId = typeof checkoutSession.customer === 'string' ? checkoutSession.customer : checkoutSession.customer?.id;
       const stripeSubscriptionId = typeof checkoutSession.subscription === 'string' ? checkoutSession.subscription : checkoutSession.subscription?.id;
 
@@ -58,16 +54,12 @@ export async function POST(req: NextRequest) {
     }
     
     case 'customer.subscription.updated': {
-        // This event fires whenever a subscription's state changes.
-        // e.g., 'trialing' -> 'active', 'active' -> 'past_due', 'active' -> 'canceled'
         const subscription = event.data.object as Stripe.Subscription;
         
-        // The firebaseUID should be in the subscription's metadata.
         const firebaseUID = subscription.metadata?.firebaseUID;
         
         if (!firebaseUID) {
             console.error('Webhook Error: Missing firebaseUID from subscription metadata on update.');
-            // Return 200 so Stripe doesn't retry an unfixable error.
             return NextResponse.json({ error: 'Missing firebaseUID metadata on subscription' });
         }
         
@@ -81,7 +73,6 @@ export async function POST(req: NextRequest) {
     }
 
     case 'customer.subscription.deleted': {
-      // This event fires when a subscription is canceled definitively.
       const subscription = event.data.object as Stripe.Subscription;
       const firebaseUID = subscription.metadata?.firebaseUID;
       
