@@ -14,8 +14,27 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { SubscriptionButton } from '@/components/subscription-button';
 import { differenceInCalendarDays, format } from 'date-fns';
+import { checkSubscriptionStatus } from '../actions';
 
 function ProcessingPayment() {
+    const router = useRouter();
+
+    useEffect(() => {
+        const interval = setInterval(async () => {
+            console.log("Checking subscription status...");
+            const isSubscribed = await checkSubscriptionStatus();
+            if (isSubscribed) {
+                console.log("Subscription active! Redirecting...");
+                clearInterval(interval);
+                // We must reload the page to force the AuthContext to refetch all data.
+                window.location.href = '/admin/subscription';
+            }
+        }, 2000); // Poll every 2 seconds
+
+        // Cleanup function to clear the interval if the component unmounts
+        return () => clearInterval(interval);
+    }, [router]);
+
     return (
         <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
             <div className="flex flex-col items-center gap-4 text-center">
@@ -46,10 +65,10 @@ export default function SubscriptionPage() {
 
     const isProcessing = searchParams.has('session_id');
     const isSubscribed = userProfile?.stripeSubscriptionStatus === 'active' || userProfile?.stripeSubscriptionStatus === 'trialing';
-
+    
+    // This effect handles the case where the user lands on the page already subscribed
+    // but stuck on the processing URL.
     useEffect(() => {
-        // This is the key change: we actively check if the condition to exit is met.
-        // If we are on the processing page but the user is now subscribed, redirect.
         if (isProcessing && !loading && isSubscribed) {
             router.replace('/admin/subscription');
         }
@@ -73,6 +92,10 @@ export default function SubscriptionPage() {
     };
     
     if (loading || !activeMembership) {
+        // If we are processing, show the processing screen immediately
+        if (isProcessing) {
+            return <ProcessingPayment />;
+        }
         return (
             <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
                 <AppHeader />
