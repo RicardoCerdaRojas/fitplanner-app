@@ -18,13 +18,13 @@ import { checkSubscriptionStatus } from '../actions';
 
 function ProcessingPayment() {
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, loading } = useAuth();
     const searchParams = useSearchParams();
 
     useEffect(() => {
-        // CRITICAL: Do not run the effect until the user object is available.
+        // CRITICAL: Do not run the effect until the user object is available and loading is false.
         // This prevents the race condition where the check runs before auth is initialized.
-        if (!user) {
+        if (loading || !user) {
             console.log("ProcessingPayment: Waiting for user authentication...");
             return;
         }
@@ -53,7 +53,7 @@ function ProcessingPayment() {
             clearInterval(interval);
             clearTimeout(timeout);
         };
-    }, [router, user, searchParams]); // user is now a dependency
+    }, [router, user, loading, searchParams]); // user and loading are now dependencies
 
     return (
         <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">

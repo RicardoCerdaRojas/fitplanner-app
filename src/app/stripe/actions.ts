@@ -81,20 +81,18 @@ export async function createCheckoutSession({ plan, uid, origin }: CreateCheckou
       mode: 'subscription',
       success_url: `${origin}/admin/subscription?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/admin/subscription`,
-      // CRITICAL FIX: Add metadata at the session level so the webhook can read it.
+      // CRITICAL FIX: Add metadata at both levels for robustness.
       metadata: {
         firebaseUID: uid,
       },
       subscription_data: {
         trial_from_plan: true,
-        // Also keep it here for redundancy, as it's good practice for subscription objects.
         metadata: {
             firebaseUID: uid, 
         }
       }
     });
 
-    // Return only the session ID, as per the successful architecture.
     return { sessionId: session.id };
     
   } catch (error: any) {
@@ -121,7 +119,6 @@ export async function createCustomerPortalSession() {
         return { error: "Stripe customer ID not found." };
     }
 
-    // We can't know the origin on the server here easily, so we must hardcode a fallback
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:9002";
     
     try {

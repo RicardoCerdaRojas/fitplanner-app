@@ -47,7 +47,7 @@ export function SubscriptionButton({ plan, popular = false }: SubscriptionButton
     const { sessionId, error } = await createCheckoutSession({ 
       plan, 
       uid: user.uid,
-      origin: window.location.origin // Pass the dynamic origin
+      origin: window.location.origin
     });
 
     if (error) {
@@ -92,7 +92,6 @@ export function SubscriptionButton({ plan, popular = false }: SubscriptionButton
             description: stripeError.message || 'Could not redirect to Stripe.',
         });
     }
-    // If redirection is successful, the user will navigate away, so we only setLoading(false) on error.
     setLoading(false);
   };
   
