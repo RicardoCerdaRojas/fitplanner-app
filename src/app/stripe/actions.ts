@@ -46,11 +46,7 @@ export async function createCheckoutSession({ plan, uid }: CreateCheckoutSession
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
 
   try {
-    // Simplified logic: Let Stripe create the customer if they don't exist.
-    // Pass metadata to the subscription for webhooks.
-    const session = await stripe.checkout.sessions.create({
-      customer: userData.stripeCustomerId, // This is optional. Stripe will create a new customer if it's null.
-      customer_email: userData.email, // Best practice to pass the email.
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ['card'],
       line_items: [
         {
@@ -72,7 +68,17 @@ export async function createCheckoutSession({ plan, uid }: CreateCheckoutSession
           firebaseUID: uid,
           plan: plan
       }
-    });
+    };
+    
+    // If the user already has a Stripe Customer ID, pass it to the session.
+    // Otherwise, Stripe will create a new customer based on the email.
+    if (userData.stripeCustomerId) {
+        sessionParams.customer = userData.stripeCustomerId;
+    } else {
+        sessionParams.customer_email = userData.email;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     return { sessionId: session.id };
   } catch (error: any) {
