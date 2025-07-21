@@ -35,7 +35,7 @@ function ProcessingPayment() {
             console.log("ProcessingPayment: Polling... Checking subscription status.");
             const isSubscribed = await checkSubscriptionStatus(user.uid);
             if (isSubscribed) {
-                console.log("ProcessingPayment: Subscription is ACTIVE. Forcing full page reload to /admin/subscription.");
+                console.log("ProcessingPayment: ✅ Subscription is ACTIVE. Forcing full page reload to /admin/subscription.");
                 clearInterval(interval);
                 // CRITICAL CHANGE: Force a full page reload to the subscription page.
                 // This ensures the AuthContext is completely refetched with the new subscription data.
