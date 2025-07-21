@@ -55,9 +55,9 @@ export async function createCheckoutSession({ plan, uid }: CreateCheckoutSession
         },
       ],
       mode: 'subscription',
-      success_url: `${appUrl}/admin`,
+      success_url: `${appUrl}/admin/subscription?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/admin/subscription`,
-      // Centralize metadata on the subscription for webhooks
+      // This is the key change: ensure metadata persists on the subscription object
       subscription_data: {
         trial_from_plan: true,
         metadata: {
