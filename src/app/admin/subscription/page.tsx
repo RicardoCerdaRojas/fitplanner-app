@@ -18,11 +18,19 @@ import { checkSubscriptionStatus } from '../actions';
 
 function ProcessingPayment() {
     const router = useRouter();
+    const { user } = useAuth(); // Get the authenticated user
 
     useEffect(() => {
+        if (!user) {
+            // If there's no user, we can't check status. Redirect to login.
+            router.push('/login');
+            return;
+        }
+
         // Poll every 2 seconds to check if the webhook has updated the user's status.
         const interval = setInterval(async () => {
-            const isSubscribed = await checkSubscriptionStatus();
+            // Pass the user's UID to the server action
+            const isSubscribed = await checkSubscriptionStatus(user.uid);
             if (isSubscribed) {
                 clearInterval(interval);
                 // We must reload the entire page to force the AuthContext to refetch all user data.
@@ -44,7 +52,7 @@ function ProcessingPayment() {
             clearInterval(interval);
             clearTimeout(timeout);
         };
-    }, [router]);
+    }, [router, user]);
 
     return (
         <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
