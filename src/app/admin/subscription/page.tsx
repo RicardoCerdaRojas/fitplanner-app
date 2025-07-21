@@ -20,18 +20,20 @@ function ProcessingPayment() {
     const router = useRouter();
 
     useEffect(() => {
+        // Poll every 2 seconds to check if the webhook has updated the user's status.
         const interval = setInterval(async () => {
-            console.log("Checking subscription status...");
+            console.log("Polling for subscription status...");
             const isSubscribed = await checkSubscriptionStatus();
             if (isSubscribed) {
-                console.log("Subscription active! Redirecting...");
+                console.log("Subscription active! Redirecting to subscription page...");
                 clearInterval(interval);
-                // We must reload the page to force the AuthContext to refetch all data.
+                // We must reload the entire page to force the AuthContext to refetch all user data.
+                // Using router.push() is not enough as it might be a soft navigation.
                 window.location.href = '/admin/subscription';
             }
-        }, 2000); // Poll every 2 seconds
+        }, 2000);
 
-        // Cleanup function to clear the interval if the component unmounts
+        // Cleanup function to clear the interval if the component unmounts.
         return () => clearInterval(interval);
     }, [router]);
 
@@ -48,7 +50,7 @@ function ProcessingPayment() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span>Sincronizando con Stripe...</span>
+                    <span>Sincronizando con Stripe... No cierres esta ventana.</span>
                 </div>
             </div>
         </div>
@@ -65,9 +67,9 @@ export default function SubscriptionPage() {
 
     const isProcessing = searchParams.has('session_id');
     const isSubscribed = userProfile?.stripeSubscriptionStatus === 'active' || userProfile?.stripeSubscriptionStatus === 'trialing';
-    
+
     // This effect handles the case where the user lands on the page already subscribed
-    // but stuck on the processing URL.
+    // but stuck on the processing URL. It cleans the URL.
     useEffect(() => {
         if (isProcessing && !loading && isSubscribed) {
             router.replace('/admin/subscription');
@@ -85,17 +87,14 @@ export default function SubscriptionPage() {
         }
 
         if (url) {
-            router.push(url);
+            // Use window.location.href for robust redirection out of iframes.
+            window.location.href = url;
         } else {
             setIsRedirecting(false);
         }
     };
     
-    if (loading || !activeMembership) {
-        // If we are processing, show the processing screen immediately
-        if (isProcessing) {
-            return <ProcessingPayment />;
-        }
+    if (loading) {
         return (
             <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
                 <AppHeader />
@@ -107,14 +106,15 @@ export default function SubscriptionPage() {
             </div>
         );
     }
+    
+    // If we are processing, show the processing screen immediately.
+    if (isProcessing) {
+        return <ProcessingPayment />;
+    }
 
-    if (activeMembership.role !== 'gym-admin') {
+    if (!activeMembership || activeMembership.role !== 'gym-admin') {
         router.push('/');
         return null;
-    }
-    
-    if (isProcessing && !isSubscribed) {
-        return <ProcessingPayment />;
     }
 
     const trialEndsAt = gymProfile?.trialEndsAt?.toDate();

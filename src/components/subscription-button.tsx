@@ -9,7 +9,6 @@ import { loadStripe, type Stripe } from '@stripe/stripe-js';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowRight } from 'lucide-react';
 
 let stripePromise: Promise<Stripe | null>;
 const getStripe = () => {
@@ -44,10 +43,11 @@ export function SubscriptionButton({ plan, popular = false }: SubscriptionButton
     
     setLoading(true);
     
-    const { sessionId, error, url } = await createCheckoutSession({ 
+    // 1. Call server action to create checkout session
+    const { sessionId, error } = await createCheckoutSession({ 
       plan, 
       uid: user.uid,
-      origin: window.location.origin
+      origin: window.location.origin // Pass the dynamic origin
     });
 
     if (error) {
@@ -59,33 +59,41 @@ export function SubscriptionButton({ plan, popular = false }: SubscriptionButton
         setLoading(false);
         return;
     }
-
-    if (url) {
-        // This is the most reliable way to redirect, especially in sandboxed environments.
-        window.location.href = url;
-    } else {
-        // Fallback for older logic, though the URL method is preferred.
-        const stripe = await getStripe();
-        if (!stripe || !sessionId) {
-            toast({
-                variant: 'destructive',
-                title: 'Stripe Error',
-                description: 'Stripe could not be initialized or session ID is missing.',
-            });
-            setLoading(false);
-            return;
-        }
-        const { error: stripeError } = await stripe.redirectToCheckout({ sessionId });
-        if (stripeError) {
-            console.error("Stripe redirection error:", stripeError);
-            toast({
-                variant: 'destructive',
-                title: 'Redirection Failed',
-                description: stripeError.message || 'Could not redirect to Stripe.',
-            });
-        }
+    
+    if (!sessionId) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Could not retrieve a checkout session ID.',
+        });
+        setLoading(false);
+        return;
     }
-    // Don't set loading to false here, as the page will redirect.
+
+    // 2. Redirect to Stripe using Stripe.js
+    const stripe = await getStripe();
+    if (!stripe) {
+        toast({
+            variant: 'destructive',
+            title: 'Stripe Error',
+            description: 'Stripe.js could not be loaded.',
+        });
+        setLoading(false);
+        return;
+    }
+
+    const { error: stripeError } = await stripe.redirectToCheckout({ sessionId });
+    
+    if (stripeError) {
+        console.error("Stripe redirection error:", stripeError);
+        toast({
+            variant: 'destructive',
+            title: 'Redirection Failed',
+            description: stripeError.message || 'Could not redirect to Stripe.',
+        });
+        setLoading(false);
+    }
+    // If redirection is successful, the user will navigate away, so no need to setLoading(false).
   };
   
   return (

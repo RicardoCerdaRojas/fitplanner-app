@@ -5,8 +5,6 @@ import 'dotenv/config';
 import { auth } from '@/lib/firebase';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -26,6 +24,27 @@ type CreateCheckoutSessionParams = {
     origin: string; // The URL origin from the client
 }
 
+
+// Gets or creates a Stripe customer ID and saves it to Firestore.
+async function getOrCreateStripeCustomer(uid: string, email: string) {
+    const userRef = doc(db, 'users', uid);
+    const userSnap = await getDoc(userRef);
+    const userData = userSnap.data();
+
+    if (userData?.stripeCustomerId) {
+        return userData.stripeCustomerId;
+    }
+
+    const customer = await stripe.customers.create({
+        email: email,
+        metadata: { firebaseUID: uid },
+    });
+
+    await updateDoc(userRef, { stripeCustomerId: customer.id });
+    return customer.id;
+}
+
+
 export async function createCheckoutSession({ plan, uid, origin }: CreateCheckoutSessionParams) {
   if (!uid) {
     return { error: 'You must be logged in to subscribe.' };
@@ -38,18 +57,24 @@ export async function createCheckoutSession({ plan, uid, origin }: CreateCheckou
     return { error: 'User profile not found.' };
   }
   const userData = userSnap.data();
-
-  const priceId = priceIds[plan];
-  if (!priceId) {
-      return { error: 'Invalid plan selected. Price ID is missing.' };
+  if (!userData.email) {
+      return { error: 'User email is missing.' };
   }
 
-  // Use the origin from the client to construct URLs
-  const appUrl = origin;
-
   try {
-    const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    const customerId = await getOrCreateStripeCustomer(uid, userData.email);
+    const priceId = priceIds[plan];
+
+    if (!priceId) {
+        return { error: 'Invalid plan selected. Price ID is missing.' };
+    }
+
+    // Use the origin from the client to construct URLs
+    const appUrl = origin;
+
+    const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
+      customer: customerId,
       line_items: [
         {
           price: priceId,
@@ -62,57 +87,17 @@ export async function createCheckoutSession({ plan, uid, origin }: CreateCheckou
       subscription_data: {
         trial_from_plan: true,
         metadata: {
-            firebaseUID: uid,
-            plan: plan
+            firebaseUID: uid, // Pass UID to subscription metadata
         }
-      },
-      metadata: {
-          firebaseUID: uid,
-          plan: plan
       }
-    };
-    
-    if (userData.stripeCustomerId) {
-        sessionParams.customer = userData.stripeCustomerId;
-    } else {
-        sessionParams.customer_email = userData.email;
-    }
+    });
 
-    const session = await stripe.checkout.sessions.create(sessionParams);
-
-    return { sessionId: session.id, url: session.url };
+    // Return only the session ID, as per the successful architecture.
+    return { sessionId: session.id };
     
   } catch (error: any) {
-    if (error.code === 'customer_currency_mismatch' || (error.message && (error.message.toLowerCase().includes('currency') || error.message.toLowerCase().includes('customer has a subscription on a different currency')))) {
-        console.warn("[Stripe Action] Currency mismatch detected. Forcing new customer creation.");
-        const userRef = doc(db, 'users', uid);
-        await updateDoc(userRef, { stripeCustomerId: null });
-
-        const retryParams: Stripe.Checkout.SessionCreateParams = {
-            payment_method_types: ['card'],
-            line_items: [{ price: priceId, quantity: 1 }],
-            mode: 'subscription',
-            success_url: `${appUrl}/admin/subscription?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${appUrl}/admin/subscription`,
-            customer_email: userData.email, // Force creation with email
-            subscription_data: {
-                trial_from_plan: true,
-                metadata: { firebaseUID: uid, plan: plan }
-            },
-            metadata: { firebaseUID: uid, plan: plan }
-        };
-        
-        try {
-            const retrySession = await stripe.checkout.sessions.create(retryParams);
-            return { sessionId: retrySession.id, url: retrySession.url };
-        } catch (retryError: any) {
-            console.error('[Stripe Action] Stripe API Error on retry:', retryError);
-            return { error: 'Could not create checkout session after retry.' };
-        }
-    }
-
     console.error('[Stripe Action] Stripe API Error:', error);
-    return { error: 'Could not create checkout session.' };
+    return { error: error.message || 'Could not create checkout session.' };
   }
 }
 
@@ -135,7 +120,6 @@ export async function createCustomerPortalSession() {
     }
 
     // We can't know the origin on the server here easily, so we must hardcode a fallback
-    // Or better, we can get it from the headers if available, or just redirect to the main page
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:9002";
     
     try {
