@@ -32,7 +32,6 @@ type SubscriptionButtonProps = {
 
 export function SubscriptionButton({ plan, popular = false }: SubscriptionButtonProps) {
   const [loading, setLoading] = useState(false);
-  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -45,21 +44,10 @@ export function SubscriptionButton({ plan, popular = false }: SubscriptionButton
     
     setLoading(true);
     
-    const stripe = await getStripe();
-     if (!stripe) {
-        toast({
-            variant: 'destructive',
-            title: 'Stripe Error',
-            description: 'Stripe could not be initialized. Please check your configuration.',
-        });
-        setLoading(false);
-        return;
-    }
-    
     const { sessionId, error, url } = await createCheckoutSession({ 
       plan, 
       uid: user.uid,
-      origin: window.location.origin // Pass the client's origin URL
+      origin: window.location.origin
     });
 
     if (error) {
@@ -73,46 +61,33 @@ export function SubscriptionButton({ plan, popular = false }: SubscriptionButton
     }
 
     if (url) {
-        // This is our new path for sandboxed environments
-        setRedirectUrl(url);
-    } else if (sessionId) {
-        // This is the standard path, which fails in the sandbox
+        // This is the most reliable way to redirect, especially in sandboxed environments.
+        window.location.href = url;
+    } else {
+        // Fallback for older logic, though the URL method is preferred.
+        const stripe = await getStripe();
+        if (!stripe || !sessionId) {
+            toast({
+                variant: 'destructive',
+                title: 'Stripe Error',
+                description: 'Stripe could not be initialized or session ID is missing.',
+            });
+            setLoading(false);
+            return;
+        }
         const { error: stripeError } = await stripe.redirectToCheckout({ sessionId });
         if (stripeError) {
             console.error("Stripe redirection error:", stripeError);
             toast({
                 variant: 'destructive',
                 title: 'Redirection Failed',
-                description: 'Could not automatically redirect to Stripe. Please use the provided link.',
+                description: stripeError.message || 'Could not redirect to Stripe.',
             });
-            // As a fallback, construct the URL manually for the user to click.
-            const checkoutUrl = new URL(stripe.jsUrl).origin;
-            setRedirectUrl(`${checkoutUrl}/pay/${sessionId}`);
         }
     }
-    
-    setLoading(false);
+    // Don't set loading to false here, as the page will redirect.
   };
   
-  if (redirectUrl) {
-    return (
-      <Button
-        size="lg"
-        asChild
-        className={cn(
-            'w-full text-lg',
-            popular
-                ? 'bg-emerald-400 text-black hover:bg-emerald-500 animate-pulse'
-                : 'bg-green-500 hover:bg-green-600 text-white animate-pulse'
-        )}
-      >
-        <a href={redirectUrl} target="_blank" rel="noopener noreferrer">
-          Proceed to Checkout <ArrowRight className="ml-2" />
-        </a>
-      </Button>
-    )
-  }
-
   return (
     <Button
       size="lg"

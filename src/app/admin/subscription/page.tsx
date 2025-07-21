@@ -2,7 +2,7 @@
 'use client';
 
 import { useAuth } from '@/contexts/auth-context';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AppHeader } from '@/components/app-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
@@ -15,17 +15,51 @@ import { useState, useEffect } from 'react';
 import { SubscriptionButton } from '@/components/subscription-button';
 import { differenceInCalendarDays, format } from 'date-fns';
 
+function ProcessingPayment() {
+    return (
+        <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
+            <div className="flex flex-col items-center gap-4 text-center">
+                <div className="bg-green-500/10 p-4 rounded-full border border-green-500/20">
+                    <CheckCircle className="h-12 w-12 text-green-500 animate-pulse" />
+                </div>
+                <h2 className="text-2xl font-bold">¡Pago Exitoso!</h2>
+                <p className="text-lg text-muted-foreground">Estamos actualizando tu suscripción. Esto puede tardar unos segundos...</p>
+                 <div className="flex items-center gap-2 mt-4">
+                    <svg className="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Sincronizando con Stripe...</span>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+
 export default function SubscriptionPage() {
     const { toast } = useToast();
     const { activeMembership, gymProfile, userProfile, loading, isTrialActive } = useAuth();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [isRedirecting, setIsRedirecting] = useState(false);
+
+    const isProcessing = searchParams.has('session_id');
     
     useEffect(() => {
         if (!loading && (!activeMembership || activeMembership.role !== 'gym-admin')) {
             router.push('/');
         }
     }, [loading, activeMembership, router]);
+
+    // This effect will run when the page loads. If we are processing, it will wait.
+    // If the subscription status changes in the auth context, it will redirect.
+    useEffect(() => {
+        if (isProcessing && !loading && userProfile?.stripeSubscriptionId) {
+             // The webhook has finished, the auth context is updated, so we can clear the URL.
+            router.replace('/admin/subscription');
+        }
+    }, [isProcessing, loading, userProfile, router]);
 
     const handleManageSubscription = async () => {
         setIsRedirecting(true);
@@ -57,9 +91,13 @@ export default function SubscriptionPage() {
         );
     }
     
+    if (isProcessing) {
+        return <ProcessingPayment />;
+    }
+
     const trialEndsAt = gymProfile?.trialEndsAt?.toDate();
     const daysLeft = trialEndsAt ? differenceInCalendarDays(trialEndsAt, new Date()) : 0;
-    const isSubscribed = !!userProfile?.stripeSubscriptionId;
+    const isSubscribed = !!userProfile?.stripeSubscriptionId && userProfile.stripeSubscriptionStatus === 'active';
 
     const renderSubscriptionStatus = () => {
         if (isSubscribed) {
@@ -111,7 +149,7 @@ export default function SubscriptionPage() {
                                     <span className="text-muted-foreground font-medium">Status</span>
                                     {renderSubscriptionStatus()}
                                 </div>
-                                {isTrialActive && trialEndsAt && (
+                                {isTrialActive && trialEndsAt && !isSubscribed && (
                                      <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground font-medium">Trial Ends On</span>
                                         <span className="font-semibold flex items-center gap-2">
