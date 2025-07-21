@@ -1,7 +1,6 @@
 
 'use client';
 
-import 'server-only';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppHeader } from '@/components/app-header';
@@ -15,45 +14,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { SubscriptionButton } from '@/components/subscription-button';
 import { differenceInCalendarDays, format } from 'date-fns';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { checkSubscriptionStatus } from '@/app/admin/actions';
 
-async function checkSubscriptionStatus(uid: string): Promise<boolean> {
-  'use server';
-  
-  if (!uid) {
-    console.error('[Action] checkSubscriptionStatus Error: No UID provided.');
-    return false;
-  }
-  
-  console.log(`[Action] STEP 7: Polling for subscription status for UID: ${uid}`);
-
-  try {
-    const userRef = doc(db, 'users', uid);
-    const userSnap = await getDoc(userRef);
-
-    if (userSnap.exists()) {
-      const userData = userSnap.data();
-      const status = userData.stripeSubscriptionStatus;
-      console.log(`[Action] Found user. Status in DB: ${status}`);
-      const isSubscribed = status === 'active' || status === 'trialing';
-
-      if(isSubscribed) {
-          console.log("[Action] ✅ User is subscribed, returning true.");
-      } else {
-          console.log("[Action] ⏳ User not subscribed yet, returning false.");
-      }
-
-      return isSubscribed;
-    } else {
-      console.warn(`[Action] No user document found for UID: ${uid}`);
-      return false;
-    }
-  } catch (error) {
-    console.error('[Action] Error fetching user document:', error);
-    return false;
-  }
-}
 
 function ProcessingPayment() {
     const router = useRouter();
@@ -61,8 +23,12 @@ function ProcessingPayment() {
     const searchParams = useSearchParams();
 
     useEffect(() => {
-        if (loading || !user) {
+        if (loading) {
             console.log("ProcessingPayment: Waiting for user authentication...");
+            return;
+        }
+        if (!user) {
+             console.log("ProcessingPayment: No user found, should not happen if loading is false. Waiting...");
             return;
         }
 
