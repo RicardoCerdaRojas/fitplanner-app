@@ -26,10 +26,7 @@ type CreateCheckoutSessionParams = {
 }
 
 export async function createCheckoutSession({ plan, uid }: CreateCheckoutSessionParams) {
-  console.log(`[Stripe Action] Initiating checkout for plan: ${plan}, UID: ${uid}`);
-
   if (!uid) {
-    console.error('[Stripe Action] Error: UID is missing.');
     return { error: 'You must be logged in to subscribe.' };
   }
 
@@ -37,16 +34,12 @@ export async function createCheckoutSession({ plan, uid }: CreateCheckoutSession
   const userSnap = await getDoc(userRef);
 
   if (!userSnap.exists()) {
-    console.error(`[Stripe Action] Error: User profile not found for UID: ${uid}.`);
     return { error: 'User profile not found.' };
   }
   const userData = userSnap.data();
-  console.log('[Stripe Action] User data fetched from Firestore:', { email: userData.email, stripeCustomerId: userData.stripeCustomerId });
-
 
   const priceId = priceIds[plan];
   if (!priceId) {
-      console.error(`[Stripe Action] Error: Price ID for plan "${plan}" is missing in environment variables.`);
       return { error: 'Invalid plan selected. Price ID is missing.' };
   }
 
@@ -83,15 +76,12 @@ export async function createCheckoutSession({ plan, uid }: CreateCheckoutSession
         sessionParams.customer_email = userData.email;
     }
 
-    console.log('[Stripe Action] Creating Stripe session with params:', JSON.stringify(sessionParams, null, 2));
-
     const session = await stripe.checkout.sessions.create(sessionParams);
 
-    console.log(`[Stripe Action] Successfully created Stripe session with ID: ${session.id}`);
     return { sessionId: session.id };
     
   } catch (error: any) {
-    console.error('[Stripe Action] Stripe API Error:', error);
+    console.error('Stripe API Error:', error);
     return { error: 'Could not create checkout session.' };
   }
 }
