@@ -4,12 +4,24 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { createCheckoutSession } from '@/app/stripe/actions';
-import { loadStripe } from '@stripe/stripe-js';
+import { loadStripe, type Stripe } from '@stripe/stripe-js';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY!);
+let stripePromise: Promise<Stripe | null>;
+const getStripe = () => {
+  if (!stripePromise) {
+    const publicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY;
+    if (!publicKey) {
+      console.error("Stripe public key is not set. Please check your .env file.");
+      return null;
+    }
+    stripePromise = loadStripe(publicKey);
+  }
+  return stripePromise;
+};
+
 
 type SubscriptionButtonProps = {
   plan: 'TRAINER' | 'STUDIO' | 'GYM';
@@ -43,9 +55,15 @@ export function SubscriptionButton({ plan, popular = false }: SubscriptionButton
     }
 
     if (sessionId) {
-        const stripe = await stripePromise;
+        const stripe = await getStripe();
         if (stripe) {
             await stripe.redirectToCheckout({ sessionId });
+        } else {
+             toast({
+                variant: 'destructive',
+                title: 'Stripe Error',
+                description: 'Stripe could not be initialized. Please check your configuration.',
+            });
         }
     }
     
