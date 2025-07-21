@@ -29,47 +29,47 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
                 if (profileData.gymId && profileData.role) {
                     const gymDocRef = doc(db, 'gyms', profileData.gymId);
                     try {
-                        const gymDocSnap = await getDoc(gymDocRef);
+                        // Using a snapshot listener for the gym too for real-time theme changes.
+                        const gymUnsubscribe = onSnapshot(gymDocRef, (gymDocSnap) => {
+                            if (gymDocSnap.exists()) {
+                                const gymData = gymDocSnap.data() as Omit<GymProfile, 'id'>;
+                                setGymProfile({ id: gymDocSnap.id, ...gymData });
+                                
+                                setActiveMembership({
+                                    id: `${authUser.uid}_${profileData.gymId}`,
+                                    userId: authUser.uid,
+                                    gymId: profileData.gymId,
+                                    role: profileData.role,
+                                    userName: profileData.name,
+                                    gymName: gymData.name,
+                                    status: 'active',
+                                });
+                            } else {
+                                setGymProfile(null);
+                                setActiveMembership(null);
+                            }
+                            setLoading(false);
+                        });
+                        // We need to return this unsubscribe function to be cleaned up
+                        return () => gymUnsubscribe();
 
-                        if (gymDocSnap.exists()) {
-                            const gymData = gymDocSnap.data() as Omit<GymProfile, 'id'>;
-                            setGymProfile({ id: gymDocSnap.id, ...gymData });
-                            
-                            // Derive activeMembership directly from user profile and gym data
-                            setActiveMembership({
-                                id: `${authUser.uid}_${profileData.gymId}`,
-                                userId: authUser.uid,
-                                gymId: profileData.gymId,
-                                role: profileData.role,
-                                userName: profileData.name,
-                                gymName: gymData.name,
-                                status: 'active',
-                            });
-
-                        } else {
-                            // Gym doesn't exist, treat as no membership
-                            setGymProfile(null);
-                            setActiveMembership(null);
-                        }
                     } catch (error) {
                         console.error("Error fetching gym document:", error);
-                        // This might be a permissions error during initial load.
-                        // We still set loading to false to unblock the UI.
                         setGymProfile(null);
                         setActiveMembership(null);
+                        setLoading(false);
                     }
                 } else {
-                    // User has no gymId or role
                     setActiveMembership(null);
                     setGymProfile(null);
+                    setLoading(false);
                 }
             } else {
-                // User document does not exist
                 setUserProfile(null);
                 setActiveMembership(null);
                 setGymProfile(null);
+                setLoading(false);
             }
-            setLoading(false); // End loading after all data is processed
         }, (error) => {
             console.error("Error listening to user profile:", error);
             setUserProfile(null);
@@ -102,19 +102,25 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         let unsubscribeUser: (() => void) | undefined;
-        
+        let unsubscribeGym: (() => void) | undefined;
+
         if (user) {
             fetchAndSetData(user).then(unsub => {
-                if (unsub) {
-                    unsubscribeUser = unsub;
+                if (typeof unsub === 'function') {
+                    // This can return a single unsubscribe or a function that returns one
+                    const potentialGymUnsub = unsub();
+                    if(typeof potentialGymUnsub === 'function') {
+                         unsubscribeGym = potentialGymUnsub
+                    } else {
+                        unsubscribeUser = unsub;
+                    }
                 }
             });
         }
 
         return () => {
-            if (unsubscribeUser) {
-                unsubscribeUser();
-            }
+            if (unsubscribeUser) unsubscribeUser();
+            if (unsubscribeGym) unsubscribeGym();
         };
     }, [user, fetchAndSetData]);
     
