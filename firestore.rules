@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -7,27 +8,33 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Default rule for development: Allow read/write access to any signed-in user.
-    // This is NOT secure for production but will unblock development.
+    // Default minimalist rules for most collections
     match /{document=**} {
       allow read, write: if isSignedIn();
     }
     
-    // --- Specific exceptions for unauthenticated flows ---
+    // Specific exceptions for unauthenticated flows
 
-    // Allow user and gym creation for the signup flow.
     match /users/{userId} {
-      allow create: if true;
+       // Allow user creation on signup and updates from webhooks/server actions.
+      allow create, update: if true;
+      // Allow reading of user profiles for server actions and client data fetching.
+      allow read: if true; 
+      // Deletes should still be protected.
+      allow delete: if isSignedIn();
     }
 
     match /gyms/{gymId} {
+        // Allow gym creation.
         allow create: if true;
+        allow read, update, delete: if isSignedIn();
     }
 
-    // Allow unauthenticated checks for pending memberships by email on the /join page,
-    // and allow creation of pending memberships.
     match /memberships/{membershipId} {
-        allow get, create: if true;
+        // Allow unauthenticated checks for pending memberships by email on the /join page.
+        allow get: if true;
+        // Allow signed-in users to manage memberships.
+        allow list, write: if isSignedIn();
     }
   }
 }
