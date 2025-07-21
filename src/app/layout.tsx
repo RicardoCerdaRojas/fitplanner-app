@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/auth-context';
 import { ThemeProvider } from '@/contexts/theme-provider';
+import { AuthProviderClient } from '@/components/auth-provider-client';
 
 export const metadata: Metadata = {
   title: 'Fit Planner',
@@ -24,10 +25,12 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          <ThemeProvider>
-            {children}
-          </ThemeProvider>
-          <Toaster />
+          <AuthProviderClient>
+            <ThemeProvider>
+              {children}
+            </ThemeProvider>
+            <Toaster />
+          </AuthProviderClient>
         </AuthProvider>
       </body>
     </html>

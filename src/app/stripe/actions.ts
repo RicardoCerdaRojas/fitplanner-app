@@ -55,6 +55,9 @@ export async function createCheckoutSession({ plan, uid }: CreateCheckoutSession
         },
       ],
       mode: 'subscription',
+      success_url: `${appUrl}/admin`,
+      cancel_url: `${appUrl}/admin/subscription`,
+      // Centralize metadata on the subscription for webhooks
       subscription_data: {
         trial_from_plan: true,
         metadata: {
@@ -62,9 +65,8 @@ export async function createCheckoutSession({ plan, uid }: CreateCheckoutSession
             plan: plan
         }
       },
-      success_url: `${appUrl}/admin`,
-      cancel_url: `${appUrl}/admin/subscription`,
-      metadata: { // Metadata for the checkout session itself
+       // Also add metadata to the session for easier debugging
+      metadata: {
           firebaseUID: uid,
           plan: plan
       }

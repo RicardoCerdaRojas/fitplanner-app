@@ -2,9 +2,8 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { onAuthStateChanged, type User } from 'firebase/auth';
-import { doc, getDoc, Timestamp } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { type User } from 'firebase/auth';
+import { Timestamp } from 'firebase/firestore';
 
 export type UserProfile = {
   name: string;
@@ -39,11 +38,16 @@ export type GymProfile = {
 
 type AuthContextType = {
   user: User | null;
+  setUser: (user: User | null) => void;
   userProfile: UserProfile | null;
+  setUserProfile: (profile: UserProfile | null) => void;
   activeMembership: Membership | null;
+  setActiveMembership: (membership: Membership | null) => void;
   gymProfile: GymProfile | null;
+  setGymProfile: (gymProfile: GymProfile | null) => void;
   isTrialActive: boolean | null;
   loading: boolean;
+  setLoading: (loading: boolean) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,106 +59,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [gymProfile, setGymProfile] = useState<GymProfile | null>(null);
   const [isTrialActive, setIsTrialActive] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Effect to listen for auth state changes from Firebase
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (authUser) => {
-        setLoading(true);
-        if (authUser) {
-            setUser(authUser);
-        } else {
-            setUser(null);
-            setUserProfile(null);
-            setActiveMembership(null);
-            setGymProfile(null);
-            setLoading(false);
-        }
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // Effect to fetch user and gym data when user object is available
-  useEffect(() => {
-      const fetchData = async () => {
-          if (user) {
-              const userProfileRef = doc(db, 'users', user.uid);
-              try {
-                  const userDoc = await getDoc(userProfileRef);
-                  if (userDoc.exists()) {
-                      const profileData = userDoc.data() as UserProfile;
-                      setUserProfile(profileData);
-
-                      if (profileData.gymId && profileData.role) {
-                          const gymDocRef = doc(db, 'gyms', profileData.gymId);
-                          const gymDocSnap = await getDoc(gymDocRef);
-
-                          if (gymDocSnap.exists()) {
-                              const gymData = gymDocSnap.data() as Omit<GymProfile, 'id'>;
-                              setGymProfile({ id: gymDocSnap.id, ...gymData });
-                              setActiveMembership({
-                                  id: `${user.uid}_${profileData.gymId}`,
-                                  userId: user.uid,
-                                  gymId: profileData.gymId,
-                                  role: profileData.role,
-                                  userName: profileData.name,
-                                  gymName: gymData.name,
-                                  status: 'active',
-                              });
-                          } else {
-                              setGymProfile(null);
-                              setActiveMembership(null);
-                          }
-                      } else {
-                          setActiveMembership(null);
-                          setGymProfile(null);
-                      }
-                  } else {
-                      setUserProfile(null);
-                      setActiveMembership(null);
-                      setGymProfile(null);
-                  }
-              } catch (error) {
-                  console.error("Firebase read error:", error);
-                  setUserProfile(null);
-                  setActiveMembership(null);
-                  setGymProfile(null);
-              }
-          }
-          setLoading(false);
-      };
-      
-      fetchData();
-  }, [user]);
-
+  
   // Effect to determine trial status
   useEffect(() => {
     if (loading) return;
     
+    // Members are always considered to have an active "trial" for access purposes
     if (activeMembership && activeMembership.role === 'member') {
         setIsTrialActive(true);
         return;
     }
     
+    // If the user has an active Stripe subscription, they are not in trial (they are paying)
     if (userProfile?.stripeSubscriptionStatus === 'active' || userProfile?.stripeSubscriptionStatus === 'trialing') {
         setIsTrialActive(true);
         return;
     }
     
+    // If no subscription, check the gym's trial end date.
     if (gymProfile?.trialEndsAt) {
         const trialEndDate = gymProfile.trialEndsAt.toDate();
         setIsTrialActive(new Date() < trialEndDate);
     } else {
+        // If no gym profile or no trial date, they are not in an active trial
         setIsTrialActive(false);
     }
   }, [loading, userProfile, gymProfile, activeMembership]);
 
   const contextValue: AuthContextType = {
     user,
+    setUser,
     userProfile,
+    setUserProfile,
     activeMembership,
+    setActiveMembership,
     gymProfile,
+    setGymProfile,
     isTrialActive,
     loading,
+    setLoading
   };
 
   return (
@@ -171,3 +114,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

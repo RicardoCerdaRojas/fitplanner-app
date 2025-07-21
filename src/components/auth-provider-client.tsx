@@ -1,106 +1,115 @@
 
 'use client';
 
-import { useEffect, ReactNode } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
+import { useEffect, ReactNode, useCallback } from 'react';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
-import type { UserProfile, Membership, GymProfile } from '@/contexts/auth-context';
+import type { UserProfile, GymProfile } from '@/contexts/auth-context';
 
 export function AuthProviderClient({ children }: { children: ReactNode }) {
     const {
         setUser,
         setUserProfile,
-        setMemberships,
         setActiveMembership,
         setGymProfile,
         setLoading,
-        user,
-        activeMembership
+        user
     } = useAuth();
 
-    // Effect for handling Firebase Auth state changes
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (authUser) => {
-            setUser(authUser);
-            if (!authUser) {
-                // If no user, clear all related state and finish loading
+    const fetchAndSetData = useCallback(async (authUser: User) => {
+        // This function now uses onSnapshot for real-time updates.
+        const userProfileRef = doc(db, 'users', authUser.uid);
+
+        const unsubscribe = onSnapshot(userProfileRef, async (userDoc) => {
+            if (userDoc.exists()) {
+                const profileData = userDoc.data() as UserProfile;
+                setUserProfile(profileData);
+
+                if (profileData.gymId && profileData.role) {
+                    const gymDocRef = doc(db, 'gyms', profileData.gymId);
+                    
+                    // We can use a snapshot listener for the gym too, or a one-time get
+                    const gymDocSnap = await getDoc(gymDocRef);
+
+                    if (gymDocSnap.exists()) {
+                        const gymData = gymDocSnap.data() as Omit<GymProfile, 'id'>;
+                        setGymProfile({ id: gymDocSnap.id, ...gymData });
+                        
+                        setActiveMembership({
+                            id: `${authUser.uid}_${profileData.gymId}`,
+                            userId: authUser.uid,
+                            gymId: profileData.gymId,
+                            role: profileData.role,
+                            userName: profileData.name,
+                            gymName: gymData.name,
+                            status: 'active',
+                        });
+
+                    } else {
+                        setGymProfile(null);
+                        setActiveMembership(null);
+                    }
+                } else {
+                    setActiveMembership(null);
+                    setGymProfile(null);
+                }
+            } else {
                 setUserProfile(null);
-                setMemberships([]);
+                setActiveMembership(null);
+                setGymProfile(null);
+            }
+            setLoading(false); 
+        }, (error) => {
+            console.error("Error listening to user profile:", error);
+            setUserProfile(null);
+            setActiveMembership(null);
+            setGymProfile(null);
+            setLoading(false);
+        });
+
+        return unsubscribe;
+
+    }, [setActiveMembership, setGymProfile, setLoading, setUserProfile]);
+
+    useEffect(() => {
+        const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
+            setLoading(true); // Always start loading on auth state change
+            if (authUser) {
+                setUser(authUser);
+                // Data fetching is now handled by the next effect that depends on `user`
+            } else {
+                // Clear all state and stop loading
+                setUser(null);
+                setUserProfile(null);
                 setActiveMembership(null);
                 setGymProfile(null);
                 setLoading(false);
             }
         });
-        return () => unsubscribe();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
 
-    // Effect for fetching user data (profile, memberships) when user object is available
+        return () => unsubscribeAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only runs once on mount
+
     useEffect(() => {
-        if (!user) return;
-
-        let profileUnsub: (() => void) | undefined;
-        let membershipsUnsub: (() => void) | undefined;
-
-        setLoading(true);
-
-        // Fetch user profile
-        profileUnsub = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
-            setUserProfile(docSnap.exists() ? (docSnap.data() as UserProfile) : null);
-        });
-
-        // Fetch user memberships
-        const membershipsQuery = query(collection(db, 'memberships'), where('userId', '==', user.uid), where('status', '==', 'active'));
-        membershipsUnsub = onSnapshot(membershipsQuery, (snapshot) => {
-            const fetchedMemberships = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
-            setMemberships(fetchedMemberships);
-
-            if (fetchedMemberships.length > 0) {
-                const sorted = [...fetchedMemberships].sort((a, b) => {
-                    const roles = { 'gym-admin': 0, 'coach': 1, 'athlete': 2 };
-                    return roles[a.role] - roles[b.role];
-                });
-                setActiveMembership(sorted[0]);
-            } else {
-                setActiveMembership(null);
-                setLoading(false); // Finish loading if no memberships
-            }
-        }, (error) => {
-            console.error("Error fetching memberships:", error);
-            setLoading(false);
-        });
-
-        return () => {
-            if (profileUnsub) profileUnsub();
-            if (membershipsUnsub) membershipsUnsub();
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user]);
-
-    // Effect for fetching gym profile when active membership changes
-    useEffect(() => {
-        if (!activeMembership) {
-            setGymProfile(null);
-            // If user exists but has no active membership, they are done loading
-            if (user) {
-                setLoading(false);
-            }
-            return;
+        let unsubscribeUser: (() => void) | undefined;
+        
+        if (user) {
+            fetchAndSetData(user).then(unsub => {
+                if (unsub) {
+                    unsubscribeUser = unsub;
+                }
+            });
         }
 
-        const unsubGym = onSnapshot(doc(db, 'gyms', activeMembership.gymId), (doc) => {
-            setGymProfile(doc.exists() ? ({ id: doc.id, ...doc.data() } as GymProfile) : null);
-            setLoading(false); // Finish loading once gym profile is fetched
-        }, (error) => {
-            console.error("Error fetching gym profile:", error);
-            setLoading(false);
-        });
-
-        return () => unsubGym();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeMembership, user]);
+        return () => {
+            if (unsubscribeUser) {
+                unsubscribeUser();
+            }
+        };
+    }, [user, fetchAndSetData]);
     
     return <>{children}</>;
 }
