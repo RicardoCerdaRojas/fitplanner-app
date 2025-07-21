@@ -22,13 +22,15 @@ function ProcessingPayment() {
     const searchParams = useSearchParams();
 
     useEffect(() => {
-        console.log("ProcessingPayment: Component mounted for session_id:", searchParams.get('session_id'));
+        // CRITICAL: Do not run the effect until the user object is available.
+        // This prevents the race condition where the check runs before auth is initialized.
         if (!user) {
-            console.log("ProcessingPayment: No user found, redirecting to login.");
-            router.push('/login');
+            console.log("ProcessingPayment: Waiting for user authentication...");
             return;
         }
 
+        console.log("ProcessingPayment: Component mounted for session_id:", searchParams.get('session_id'));
+        
         const interval = setInterval(async () => {
             console.log("ProcessingPayment: Polling... Checking subscription status.");
             const isSubscribed = await checkSubscriptionStatus(user.uid);
@@ -51,7 +53,7 @@ function ProcessingPayment() {
             clearInterval(interval);
             clearTimeout(timeout);
         };
-    }, [router, user, searchParams]);
+    }, [router, user, searchParams]); // user is now a dependency
 
     return (
         <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
