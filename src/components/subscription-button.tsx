@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -8,6 +9,7 @@ import { loadStripe, type Stripe } from '@stripe/stripe-js';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { ArrowRight } from 'lucide-react';
 
 let stripePromise: Promise<Stripe | null>;
 const getStripe = () => {
@@ -30,6 +32,7 @@ type SubscriptionButtonProps = {
 
 export function SubscriptionButton({ plan, popular = false }: SubscriptionButtonProps) {
   const [loading, setLoading] = useState(false);
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -42,7 +45,7 @@ export function SubscriptionButton({ plan, popular = false }: SubscriptionButton
     
     setLoading(true);
     
-    const { sessionId, error } = await createCheckoutSession({ plan, uid: user.uid });
+    const { sessionId, error, url } = await createCheckoutSession({ plan, uid: user.uid });
 
     if (error) {
         toast({
@@ -54,10 +57,23 @@ export function SubscriptionButton({ plan, popular = false }: SubscriptionButton
         return;
     }
 
-    if (sessionId) {
+    if (url) {
+        setRedirectUrl(url);
+    } else if (sessionId) {
         const stripe = await getStripe();
         if (stripe) {
-            await stripe.redirectToCheckout({ sessionId });
+            const { error: stripeError } = await stripe.redirectToCheckout({ sessionId });
+            if (stripeError) {
+                // This will likely be caught by the sandbox policy, but handle it just in case
+                console.error("Stripe redirection error:", stripeError);
+                toast({
+                    variant: 'destructive',
+                    title: 'Redirection Failed',
+                    description: 'Could not automatically redirect to Stripe. Please use the provided link.',
+                });
+                // Construct the URL manually as a fallback
+                setRedirectUrl(`https://checkout.stripe.com/pay/${sessionId}`);
+            }
         } else {
              toast({
                 variant: 'destructive',
@@ -69,6 +85,22 @@ export function SubscriptionButton({ plan, popular = false }: SubscriptionButton
     
     setLoading(false);
   };
+  
+  if (redirectUrl) {
+    return (
+      <Button
+        size="lg"
+        asChild
+        className={cn(
+            'w-full text-lg bg-green-500 hover:bg-green-600 text-white',
+        )}
+      >
+        <a href={redirectUrl} target="_blank" rel="noopener noreferrer">
+          Proceed to Checkout <ArrowRight className="ml-2" />
+        </a>
+      </Button>
+    )
+  }
 
   return (
     <Button
