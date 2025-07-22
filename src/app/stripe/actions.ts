@@ -138,16 +138,22 @@ export async function createCustomerPortalSession(uid: string) {
         return { error: "You must be logged in." };
     }
 
-    const userDoc = await getDoc(doc(db, "users", uid));
+    const userDocRef = doc(db, "users", uid);
+    const userDoc = await getDoc(userDocRef);
+
     if (!userDoc.exists()) {
         return { error: "User not found." };
     }
     
     const userData = userDoc.data();
     const stripeCustomerId = userData?.stripeCustomerId;
+    const stripeSubscriptionId = userData?.stripeSubscriptionId;
 
     if (!stripeCustomerId) {
         return { error: "Stripe customer ID not found." };
+    }
+     if (!stripeSubscriptionId) {
+        return { error: "Stripe subscription ID not found." };
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:9002";
@@ -156,6 +162,12 @@ export async function createCustomerPortalSession(uid: string) {
         const portalSession = await stripe.billingPortal.sessions.create({
             customer: stripeCustomerId,
             return_url: `${appUrl}/admin/subscription`,
+            flow_data: {
+                type: 'subscription_update',
+                subscription_update: {
+                    subscription: stripeSubscriptionId,
+                },
+            },
         });
         return { url: portalSession.url };
     } catch (error: any) {
