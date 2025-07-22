@@ -6,7 +6,8 @@ import { headers } from 'next/headers';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
-// Deshabilitar el bodyParser para poder obtener el body como un Buffer crudo
+// This config is essential for Stripe webhooks to work correctly with Next.js.
+// It disables the default body parser so we can receive the raw request body for signature verification.
 export const config = {
   api: {
     bodyParser: false,
@@ -19,7 +20,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
-// Función para leer el Buffer crudo de la solicitud
+// Helper function to read the raw request body as a buffer.
 async function buffer(readable: NodeJS.ReadableStream) {
   const chunks = [];
   for await (const chunk of readable) {
@@ -37,12 +38,11 @@ export async function POST(req: NextRequest) {
 
   try {
     event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
+    console.log(`[Webhook] ✅ Webhook event received and verified: ${event.type}`);
   } catch (err: any) {
-    console.error(`❌ Webhook signature verification failed: ${err.message}`);
+    console.error(`❌ [Webhook] Signature verification failed: ${err.message}`);
     return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
   }
-  
-  console.log(`[Webhook] STEP 5: ✅ Webhook received and verified: ${event.type}`);
 
   // Handle the event
   switch (event.type) {
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       try {
         const userRef = doc(db, 'users', firebaseUID);
         await updateDoc(userRef, { stripeCustomerId });
-        console.log(`[Webhook] ✅ Updated user ${firebaseUID} with Stripe Customer ID: ${stripeCustomerId}`);
+        console.log(`[Webhook] ✅ Stored Stripe Customer ID: ${stripeCustomerId} for user ${firebaseUID}`);
       } catch (error) {
         console.error(`❌ [Webhook] Error updating user with customer ID for UID ${firebaseUID}:`, error);
         return NextResponse.json({ error: 'Failed to update user with customer ID.' }, { status: 500 });
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
         const firebaseUID = subscription.metadata?.firebaseUID;
         if (!firebaseUID) {
             console.error('❌ [Webhook] Error: Missing firebaseUID from subscription metadata on update.');
-            return NextResponse.json({ error: 'Missing firebaseUID metadata on subscription' });
+            return NextResponse.json({ error: 'Missing firebaseUID metadata on subscription' }, { status: 400 });
         }
         
         const userRef = doc(db, 'users', firebaseUID);
@@ -85,8 +85,7 @@ export async function POST(req: NextRequest) {
             stripeSubscriptionId: subscription.id,
             stripeSubscriptionStatus: subscription.status, // e.g., 'trialing', 'active', 'past_due', 'canceled'
         };
-        console.log(`[Webhook] STEP 6 (or update): Updating user from customer.subscription.updated for UID: ${firebaseUID}`);
-        console.log("[Webhook] Data to update:", dataToUpdate);
+        console.log(`[Webhook] Updating subscription status for UID: ${firebaseUID} to "${subscription.status}"`);
         await updateDoc(userRef, dataToUpdate);
         console.log(`[Webhook] ✅ Subscription status updated to ${subscription.status} for user ${firebaseUID}`);
         break;
@@ -98,16 +97,15 @@ export async function POST(req: NextRequest) {
       
       if (!firebaseUID) {
         console.error('❌ [Webhook] Error: Missing firebaseUID from subscription metadata on delete.');
-        return NextResponse.json({ error: 'Missing firebaseUID metadata' });
+        return NextResponse.json({ error: 'Missing firebaseUID metadata' }, { status: 400 });
       }
 
       const userRef = doc(db, 'users', firebaseUID);
       const dataToUpdate = {
         stripeSubscriptionId: null,
-        stripeSubscriptionStatus: 'canceled', // or subscription.status which would be 'canceled'
+        stripeSubscriptionStatus: 'canceled',
       };
-      console.log(`[Webhook] Canceling subscription for user: ${firebaseUID}`);
-      console.log("[Webhook] Data to update:", dataToUpdate);
+       console.log(`[Webhook] Canceling subscription for user: ${firebaseUID}`);
       await updateDoc(userRef, dataToUpdate);
       console.log(`[Webhook] ✅ Subscription canceled for user ${firebaseUID}`);
       break;
