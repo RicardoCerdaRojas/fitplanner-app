@@ -51,6 +51,13 @@ export default function SubscriptionPage() {
     const sessionId = searchParams.get('session_id');
 
     useEffect(() => {
+        if (loading) return; // Wait until auth state is resolved
+
+        if (!activeMembership || activeMembership.role !== 'gym-admin') {
+            router.push('/');
+            return;
+        }
+
         if (fromCheckout && sessionId && user) {
             startTransition(async () => {
                 const result = await confirmSubscription(sessionId, user.uid);
@@ -71,7 +78,7 @@ export default function SubscriptionPage() {
                 }
             });
         }
-    }, [fromCheckout, sessionId, user, router, toast]);
+    }, [fromCheckout, sessionId, user, router, toast, loading, activeMembership]);
 
     const handleManageSubscription = async () => {
         setIsRedirecting(true);
@@ -95,7 +102,7 @@ export default function SubscriptionPage() {
         }
     };
     
-    if (loading) {
+    if (loading || (!activeMembership || activeMembership.role !== 'gym-admin')) {
         return (
             <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
                 <AppHeader />
@@ -110,11 +117,6 @@ export default function SubscriptionPage() {
     
     if (isPending) {
         return <ProcessingPayment />;
-    }
-
-    if (!activeMembership || activeMembership.role !== 'gym-admin') {
-        router.push('/');
-        return null;
     }
 
     const isSubscribed = userProfile?.stripeSubscriptionStatus === 'active' || userProfile?.stripeSubscriptionStatus === 'trialing';
