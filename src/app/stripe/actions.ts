@@ -17,6 +17,8 @@ const priceIds: { [key: string]: string } = {
     STUDIO: process.env.STRIPE_STUDIO_PRICE_ID || '',
     GYM: process.env.STRIPE_GYM_PRICE_ID || '',
 };
+const fitPlannerProductId = process.env.STRIPE_FITPLANNER_PRODUCT_ID || '';
+
 
 type CreateCheckoutSessionParams = {
     plan: 'TRAINER' | 'STUDIO' | 'GYM';
@@ -39,8 +41,16 @@ async function getOrCreateStripeCustomer(uid: string, email: string): Promise<st
 
     // If the Stripe Customer ID already exists on the document, return it.
     if (userData?.stripeCustomerId) {
-        console.log(`[Stripe Action] Found existing Stripe Customer ID for user ${uid}: ${userData.stripeCustomerId}`);
-        return userData.stripeCustomerId;
+        // As an extra check, let's ensure the customer exists in Stripe to prevent issues with deleted test data
+        try {
+            const customer = await stripe.customers.retrieve(userData.stripeCustomerId);
+            if (customer && !customer.deleted) {
+                console.log(`[Stripe Action] Found existing Stripe Customer ID for user ${uid}: ${userData.stripeCustomerId}`);
+                return userData.stripeCustomerId;
+            }
+        } catch (error) {
+            console.warn(`[Stripe Action] Customer ID ${userData.stripeCustomerId} not found in Stripe. Will create a new one.`);
+        }
     }
 
     // If not, create a new customer in Stripe.
@@ -100,7 +110,7 @@ export async function createCheckoutSession({ plan, uid, origin }: CreateCheckou
         },
       ],
       mode: 'subscription',
-      success_url: `${origin}/admin/subscription?from_checkout=true&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${origin}/admin/subscription?session_id={CHECKOUT_SESSION_ID}&from_checkout=true`,
       cancel_url: `${origin}/admin/subscription`,
       metadata: {
         firebaseUID: uid,
@@ -138,12 +148,30 @@ export async function createCustomerPortalSession(uid: string) {
         return { error: "Stripe customer ID not found." };
     }
 
+    if (!fitPlannerProductId || !priceIds.TRAINER || !priceIds.STUDIO || !priceIds.GYM) {
+        console.error("Stripe Product or Price IDs are not configured in environment variables.");
+        return { error: "Server configuration error: Stripe IDs are missing." };
+    }
+
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:9002";
     
     try {
         const portalSession = await stripe.billingPortal.sessions.create({
             customer: stripeCustomerId,
             return_url: `${appUrl}/admin/subscription`,
+            configuration: {
+                features: {
+                    subscription_update: {
+                        enabled: true,
+                        products: [
+                            {
+                                product: fitPlannerProductId,
+                                prices: [priceIds.TRAINER, priceIds.STUDIO, priceIds.GYM],
+                            },
+                        ],
+                    },
+                },
+            },
         });
         return { url: portalSession.url };
     } catch (error: any) {
