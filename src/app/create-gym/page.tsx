@@ -31,11 +31,11 @@ import { AppHeader } from '@/components/app-header';
 import { addDays } from 'date-fns';
 
 const formSchema = z.object({
-  name: z.string().min(2, { message: 'Tu nombre debe tener al menos 2 caracteres.' }),
-  email: z.string().email({ message: 'Por favor, ingresa un email válido.' }),
-  password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres.' }),
-  gymName: z.string().min(3, { message: 'El nombre del centro debe tener al menos 3 caracteres.' }),
-  theme: z.string({ required_error: 'Por favor, selecciona un tema.' }),
+  name: z.string().min(2, { message: 'Your name must be at least 2 characters.' }),
+  email: z.string().email({ message: 'Please enter a valid email.' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  gymName: z.string().min(3, { message: 'Gym name must be at least 3 characters.' }),
+  theme: z.string({ required_error: 'Please select a theme.' }),
 });
 
 export default function CreateGymPage() {
@@ -63,7 +63,7 @@ export default function CreateGymPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     const selectedTheme = themes.find(t => t.id === values.theme);
     if (!selectedTheme) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona un tema válido.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Please select a valid theme.' });
         return;
     }
 
@@ -95,14 +95,14 @@ export default function CreateGymPage() {
 
         await batch.commit();
         
-        toast({ title: '¡Éxito!', description: 'Tu centro ha sido creado. Redirigiendo...' });
+        toast({ title: 'Success!', description: 'Your gym has been created. Redirecting...' });
         
         // We must reload the page for auth state to be picked up correctly by the app
         window.location.href = '/';
 
     } catch (error: any) {
       console.error("Error creating gym:", error);
-      toast({ variant: 'destructive', title: 'Error', description: error.message || "No se pudo crear el centro." });
+      toast({ variant: 'destructive', title: 'Error', description: error.message || "Could not create gym." });
     }
   }
   
@@ -115,7 +115,7 @@ export default function CreateGymPage() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <p className="text-lg text-muted-foreground">Verificando tu cuenta...</p>
+            <p className="text-lg text-muted-foreground">Verifying your account...</p>
         </div>
       </div>
     );
@@ -133,32 +133,32 @@ export default function CreateGymPage() {
             <CardHeader className="text-center">
                 <div className="flex justify-center items-center gap-2 mb-2">
                     <Building className="w-8 h-8 text-emerald-400" />
-                    <CardTitle className="text-3xl font-headline text-white">Configura tu Centro</CardTitle>
+                    <CardTitle className="text-3xl font-headline text-white">Set Up Your Gym</CardTitle>
                 </div>
-            <CardDescription className="text-gray-400">Vamos a registrar tu centro o negocio en Fit Planner.</CardDescription>
+            <CardDescription className="text-gray-400">Let's get your gym or business registered on Fit Planner.</CardDescription>
             </CardHeader>
             <CardContent>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
                 <FormField control={form.control} name="name" render={({ field }) => (
-                    <FormItem><FormLabel className="text-gray-300">Tu Nombre</FormLabel><FormControl><Input placeholder="John Doe" {...field} className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"/></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-gray-300">Your Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"/></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="email" render={({ field }) => (
-                    <FormItem><FormLabel className="text-gray-300">Tu Email</FormLabel><FormControl><Input type="email" placeholder="you@example.com" {...field} className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"/></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-gray-300">Your Email</FormLabel><FormControl><Input type="email" placeholder="you@example.com" {...field} className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"/></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="password" render={({ field }) => (
-                    <FormItem><FormLabel className="text-gray-300">Tu Contraseña</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"/></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-gray-300">Your Password</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"/></FormControl><FormMessage /></FormItem>
                 )}/>
 
                 <hr className="border-white/10" />
 
                 <FormField control={form.control} name="gymName" render={({ field }) => (
-                    <FormItem><FormLabel className="text-gray-300">Nombre del Centro</FormLabel><FormControl><Input placeholder="Ej: 'Gimnasio Power', 'Estudio Pilates Zen'" {...field} className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"/></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-gray-300">Gym Name</FormLabel><FormControl><Input placeholder="e.g., 'Power Gym', 'Zen Pilates Studio'" {...field} className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"/></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="theme" render={({ field }) => (
                     <FormItem className="space-y-3">
-                        <FormLabel className="flex items-center gap-2 text-gray-300"><Palette/> Selecciona un Tema</FormLabel>
+                        <FormLabel className="flex items-center gap-2 text-gray-300"><Palette/> Select a Theme</FormLabel>
                         <FormControl>
                         <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="grid grid-cols-1 gap-4">
                             {themes.map(theme => (
@@ -180,7 +180,7 @@ export default function CreateGymPage() {
                 )} />
 
                 <Button type="submit" className="w-full bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-base py-6" disabled={form.formState.isSubmitting}>
-                    {form.formState.isSubmitting ? 'Creando...' : 'Crear Centro y Continuar'}
+                    {form.formState.isSubmitting ? 'Creating...' : 'Create Gym & Continue'}
                 </Button>
                 </form>
             </Form>

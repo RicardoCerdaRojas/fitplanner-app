@@ -155,29 +155,29 @@ export default function GymSettingsPage() {
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2"><Upload /> Logo del Centro</CardTitle>
-                                    <CardDescription>Sube un logo para tu centro. Se mostrará en la cabecera de la aplicación para tus miembros.</CardDescription>
+                                    <CardTitle className="flex items-center gap-2"><Upload /> Gym Logo</CardTitle>
+                                    <CardDescription>Upload a logo for your gym. This will be displayed in the app header for your members.</CardDescription>
                                 </CardHeader>
                                 <CardContent className="flex flex-col sm:flex-row items-center gap-6">
                                     <div className="w-48 h-24 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/50">
                                         {logoPreview ? (
                                             <Image src={logoPreview} alt="Logo preview" width={180} height={90} className="object-contain h-full w-full p-2" />
                                         ) : (
-                                            <span className="text-sm text-muted-foreground">Vista Previa</span>
+                                            <span className="text-sm text-muted-foreground">Preview</span>
                                         )}
                                     </div>
                                     <div className="flex-1 w-full">
-                                        <FormLabel htmlFor="logo-upload">Subir nuevo logo</FormLabel>
+                                        <FormLabel htmlFor="logo-upload">Upload new logo</FormLabel>
                                         <Input id="logo-upload" type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={handleLogoChange} />
-                                        <p className="text-xs text-muted-foreground mt-2">Tamaño recomendado: 200x100px. Máx 5MB. PNG, JPG o SVG.</p>
+                                        <p className="text-xs text-muted-foreground mt-2">Recommended size: 200x100px. Max 5MB. PNG, JPG, or SVG.</p>
                                     </div>
                                 </CardContent>
                             </Card>
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2"><Palette /> Tema de Color</CardTitle>
-                                    <CardDescription>Selecciona un tema de color para el modo claro de la aplicación.</CardDescription>
+                                    <CardTitle className="flex items-center gap-2"><Palette /> Color Theme</CardTitle>
+                                    <CardDescription>Select a color theme for the app's light mode.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <FormField
@@ -219,7 +219,7 @@ export default function GymSettingsPage() {
                             
                             <div className="flex justify-end">
                                 <Button type="submit" size="lg" disabled={isSubmitting}>
-                                    {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+                                    {isSubmitting ? 'Saving...' : 'Save Changes'}
                                 </Button>
                             </div>
                         </form>
@@ -228,7 +228,7 @@ export default function GymSettingsPage() {
                 </main>
             )}
             <footer className="w-full text-center p-4 text-muted-foreground text-sm">
-                <p>&copy; {new Date().getFullYear()} Fit Planner. Todos los derechos reservados.</p>
+                <p>&copy; {new Date().getFullYear()} Fit Planner. All rights reserved.</p>
             </footer>
         </div>
     );

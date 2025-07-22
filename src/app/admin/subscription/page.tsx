@@ -24,14 +24,14 @@ function ProcessingPayment() {
                 <div className="bg-green-500/10 p-4 rounded-full border border-green-500/20">
                     <CheckCircle className="h-12 w-12 text-green-500 animate-pulse" />
                 </div>
-                <h2 className="text-2xl font-bold">¡Pago Exitoso!</h2>
-                <p className="text-lg text-muted-foreground">Estamos confirmando y actualizando tu suscripción. Esto puede tardar unos segundos...</p>
+                <h2 className="text-2xl font-bold">Payment Successful!</h2>
+                <p className="text-lg text-muted-foreground">We are confirming and updating your subscription. This may take a few seconds...</p>
                  <div className="flex items-center gap-2 mt-4">
                     <svg className="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span>Confirmando con Stripe... No cierres esta ventana.</span>
+                    <span>Confirming with Stripe... Please don't close this window.</span>
                 </div>
             </div>
         </div>
@@ -59,14 +59,14 @@ export default function SubscriptionPage() {
                 if (result.error) {
                     toast({
                         variant: 'destructive',
-                        title: 'Error de Confirmación',
-                        description: `No se pudo confirmar tu suscripción: ${result.error}`,
+                        title: 'Confirmation Error',
+                        description: `Could not confirm your subscription: ${result.error}`,
                     });
                     router.replace('/admin/subscription');
                 } else {
                     toast({
-                        title: '¡Suscripción Confirmada!',
-                        description: `Tu estado ahora es: ${result.status}`,
+                        title: 'Subscription Confirmed!',
+                        description: `Your status is now: ${result.status}`,
                     });
                     router.replace('/admin/subscription');
                     router.refresh(); 
@@ -118,7 +118,7 @@ export default function SubscriptionPage() {
                     <Skeleton className="h-16 w-full" />
                     <Skeleton className="h-64 w-full" />
                 </div>
-                 <p className='mt-8 text-lg text-muted-foreground'>Cargando detalles de suscripción...</p>
+                 <p className='mt-8 text-lg text-muted-foreground'>Loading subscription details...</p>
             </div>
         );
     }
@@ -136,7 +136,7 @@ export default function SubscriptionPage() {
              return (
                 <div className="flex items-center gap-2 text-green-600">
                     <CheckCircle className="h-5 w-5" />
-                    <span className="font-semibold">Suscripción Activa ({userProfile?.stripeSubscriptionStatus})</span>
+                    <span className="font-semibold">Active Subscription ({userProfile?.stripeSubscriptionStatus})</span>
                 </div>
             );
         }
@@ -145,7 +145,7 @@ export default function SubscriptionPage() {
                 <div className="flex items-center gap-2 text-blue-600">
                     <Sparkles className="h-5 w-5" />
                     <span className="font-semibold">
-                       Período de Prueba ({trialDaysLeft} días restantes)
+                       Trial Period ({trialDaysLeft} days remaining)
                     </span>
                 </div>
             );
@@ -153,7 +153,7 @@ export default function SubscriptionPage() {
         return (
             <div className="flex items-center gap-2 text-destructive">
                 <XCircle className="h-5 w-5" />
-                <span className="font-semibold">Inactiva / Prueba Terminada</span>
+                <span className="font-semibold">Inactive / Trial Ended</span>
             </div>
         );
     };
@@ -168,22 +168,22 @@ export default function SubscriptionPage() {
                     
                     <Card>
                         <CardHeader>
-                            <CardTitle>Gestión de Suscripción</CardTitle>
-                            <CardDescription>Ve tu plan actual, estado de prueba y gestiona tu información de facturación.</CardDescription>
+                            <CardTitle>Subscription Management</CardTitle>
+                            <CardDescription>View your current plan, trial status, and manage your billing information.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="p-4 bg-muted/50 rounded-lg space-y-4">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-muted-foreground font-medium">Nombre del Gimnasio</span>
+                                    <span className="text-muted-foreground font-medium">Gym Name</span>
                                     <span className="font-semibold">{gymProfile?.name}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-muted-foreground font-medium">Estado</span>
+                                    <span className="text-muted-foreground font-medium">Status</span>
                                     {renderSubscriptionStatus()}
                                 </div>
                                 {!isSubscribed && trialEndsAt && trialDaysLeft > 0 && (
                                      <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground font-medium">La prueba termina el</span>
+                                        <span className="text-muted-foreground font-medium">Trial ends on</span>
                                         <span className="font-semibold flex items-center gap-2">
                                             <Calendar className="h-4 w-4" />
                                             {format(trialEndsAt, 'PPP')}
@@ -195,19 +195,19 @@ export default function SubscriptionPage() {
                             {isSubscribed ? (
                                 <div>
                                     <p className="text-sm text-muted-foreground mb-4">
-                                        Tienes una suscripción activa. Puedes gestionar tus detalles de facturación, cambiar tu plan o cancelar tu suscripción en cualquier momento a través de nuestro portal de facturación seguro.
+                                        You have an active subscription. You can manage your billing details, change your plan, or cancel your subscription at any time through our secure billing portal.
                                     </p>
                                     <Button onClick={handleManageSubscription} className="w-full" disabled={isRedirecting}>
                                         <CreditCard className="mr-2 h-4 w-4" />
-                                        {isRedirecting ? 'Redirigiendo...' : 'Gestionar Facturación y Suscripción'}
+                                        {isRedirecting ? 'Redirecting...' : 'Manage Billing & Subscription'}
                                     </Button>
                                 </div>
                             ) : (
                                 <div>
                                      <p className="text-sm text-muted-foreground mb-4">
                                         {trialDaysLeft > 0 
-                                            ? "Tu prueba está activa. Elige un plan a continuación para continuar con tu servicio después de que finalice la prueba. No se te cobrará hasta que termine tu prueba."
-                                            : "Tu prueba ha finalizado. Elige un plan para seguir usando Fit Planner."
+                                            ? "Your trial is active. Choose a plan below to continue your service after the trial ends. You won't be charged until your trial is over."
+                                            : "Your trial has ended. Choose a plan to continue using Fit Planner."
                                         }
                                     </p>
                                     <div className="space-y-2">
@@ -223,7 +223,7 @@ export default function SubscriptionPage() {
                  </div>
             </main>
              <footer className="w-full text-center p-4 text-muted-foreground text-sm">
-                <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
+                <p>&copy; {new Date().getFullYear()} Fit Planner. All rights reserved.</p>
             </footer>
         </div>
     );
