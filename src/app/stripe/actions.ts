@@ -1,4 +1,3 @@
-
 'use server';
 
 import 'dotenv/config';
@@ -154,6 +153,13 @@ export async function createCustomerPortalSession(uid: string) {
         console.error(`[Portal Action] Error: Stripe customer ID not found for UID: ${uid}.`);
         return { error: "Stripe customer ID not found." };
     }
+    
+    const portalConfigurationId = process.env.STRIPE_PORTAL_CONFIGURATION_ID;
+
+    if (!portalConfigurationId) {
+        console.error("[Portal Action] Error: Stripe Portal Configuration ID is not set in environment variables.");
+        return { error: "Portal configuration is missing on the server. Please contact support." };
+    }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:9002";
     
@@ -161,6 +167,7 @@ export async function createCustomerPortalSession(uid: string) {
         const portalSession = await stripe.billingPortal.sessions.create({
             customer: stripeCustomerId,
             return_url: `${appUrl}/admin/subscription`,
+            configuration: portalConfigurationId,
         });
         return { url: portalSession.url };
     } catch (error: any) {
