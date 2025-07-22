@@ -13,9 +13,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 // Define your price IDs from your Stripe dashboard
 const priceIds: { [key: string]: string } = {
-    TRAINER: process.env.STRIPE_TRAINER_PRICE_ID || '',
-    STUDIO: process.env.STRIPE_STUDIO_PRICE_ID || '',
-    GYM: process.env.STRIPE_GYM_PRICE_ID || '',
+    TRAINER: process.env.NEXT_PUBLIC_STRIPE_TRAINER_PRICE_ID || '',
+    STUDIO: process.env.NEXT_PUBLIC_STRIPE_STUDIO_PRICE_ID || '',
+    GYM: process.env.NEXT_PUBLIC_STRIPE_GYM_PRICE_ID || '',
 };
 const fitPlannerProductId = process.env.STRIPE_FITPLANNER_PRODUCT_ID || '';
 
