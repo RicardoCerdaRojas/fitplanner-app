@@ -112,14 +112,12 @@ export async function createCheckoutSession({ plan, uid, origin }: CreateCheckou
 }
 
 
-export async function createCustomerPortalSession() {
-    const user = auth.currentUser;
-
-    if (!user) {
+export async function createCustomerPortalSession(uid: string) {
+    if (!uid) {
         return { error: "You must be logged in." };
     }
 
-    const userDoc = await getDoc(doc(db, "users", user.uid));
+    const userDoc = await getDoc(doc(db, "users", uid));
     if (!userDoc.exists()) {
         return { error: "User not found." };
     }

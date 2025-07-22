@@ -46,15 +46,12 @@ export default function SubscriptionPage() {
     const searchParams = useSearchParams();
     const [isRedirecting, setIsRedirecting] = useState(false);
     
-    // We use a transition to handle the server action without blocking the UI
     const [isPending, startTransition] = useTransition();
 
     const fromCheckout = searchParams.get('from_checkout');
     const sessionId = searchParams.get('session_id');
 
-    // This useEffect is the core of the new synchronous confirmation flow.
     useEffect(() => {
-        // Only run this logic if the user has returned from a checkout session.
         if (fromCheckout && sessionId && user) {
             startTransition(async () => {
                 const result = await confirmSubscription(sessionId, user.uid);
@@ -65,23 +62,20 @@ export default function SubscriptionPage() {
                         title: 'Error de Confirmación',
                         description: `No se pudo confirmar tu suscripción: ${result.error}`,
                     });
-                    // Remove the query params from the URL to prevent re-triggering.
                     router.replace('/admin/subscription');
                 } else {
                     toast({
                         title: '¡Suscripción Confirmada!',
                         description: `Tu estado ahora es: ${result.status}`,
                     });
-                    // Critical step: Force a full page reload. This clears all client-side state
-                    // and forces the AuthContext to refetch the user's profile with the new
-                    // subscription status from the database.
-                    window.location.href = '/admin/subscription';
+                    router.replace('/admin/subscription');
+                    router.refresh(); 
                 }
             });
         }
-    }, [fromCheckout, sessionId, user, router, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fromCheckout, sessionId, user]);
 
-    // This useEffect handles role-based redirection safely after the component renders.
     useEffect(() => {
         if (!loading && (!activeMembership || activeMembership.role !== 'gym-admin')) {
             router.push('/');
@@ -90,8 +84,13 @@ export default function SubscriptionPage() {
 
 
     const handleManageSubscription = async () => {
+        if (!user) {
+            toast({ variant: 'destructive', title: 'Error', description: 'User not found.' });
+            return;
+        }
+
         setIsRedirecting(true);
-        const { url, error } = await createCustomerPortalSession();
+        const { url, error } = await createCustomerPortalSession(user.uid);
 
         if (error) {
             toast({ variant: 'destructive', title: 'Error', description: error });
@@ -111,7 +110,6 @@ export default function SubscriptionPage() {
         }
     };
     
-    // Show a loading skeleton while the auth context is resolving.
     if (loading) {
         return (
             <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
@@ -125,7 +123,6 @@ export default function SubscriptionPage() {
         );
     }
     
-    // If we are in the process of confirming the subscription, show a dedicated processing screen.
     if (isPending) {
         return <ProcessingPayment />;
     }
