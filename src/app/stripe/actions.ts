@@ -143,45 +143,19 @@ export async function createCustomerPortalSession(uid: string) {
         return { error: "User not found." };
     }
     
-    const stripeCustomerId = userDoc.data()?.stripeCustomerId;
+    const userData = userDoc.data();
+    const stripeCustomerId = userData?.stripeCustomerId;
+
     if (!stripeCustomerId) {
         return { error: "Stripe customer ID not found." };
     }
 
-    const hasAllStripeIds = fitPlannerProductId && priceIds.TRAINER && priceIds.STUDIO && priceIds.GYM;
-
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:9002";
     
     try {
-        const portalConfig: Stripe.BillingPortal.SessionCreateParams.Configuration = {
-            features: {
-                invoice_history: { enabled: true },
-                payment_method_update: { enabled: true },
-                subscription_cancel: { enabled: true },
-            },
-        };
-
-        if (hasAllStripeIds) {
-            console.log("[Stripe Action] All product/price IDs found. Enabling subscription update in portal.");
-            portalConfig.features.subscription_update = {
-                enabled: true,
-                default_allowed_updates: ["price"],
-                products: [
-                    {
-                        product: fitPlannerProductId,
-                        prices: [priceIds.TRAINER, priceIds.STUDIO, priceIds.GYM],
-                    },
-                ],
-            };
-        } else {
-            console.warn("[Stripe Action] Not all Stripe IDs are set in .env. Customer portal will have limited functionality.");
-        }
-
-
         const portalSession = await stripe.billingPortal.sessions.create({
             customer: stripeCustomerId,
             return_url: `${appUrl}/admin/subscription`,
-            configuration: portalConfig,
         });
         return { url: portalSession.url };
     } catch (error: any) {
