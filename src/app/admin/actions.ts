@@ -2,7 +2,13 @@
 
 import 'server-only';
 import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-06-20',
+});
+
 
 export async function checkSubscriptionStatus(uid: string): Promise<boolean> {
   if (!uid) {
@@ -10,7 +16,7 @@ export async function checkSubscriptionStatus(uid: string): Promise<boolean> {
     return false;
   }
 
-  console.log(`[Action] STEP 7: Polling for subscription status for UID: ${uid}`);
+  console.log(`[Action] Polling for subscription status for UID: ${uid}`);
 
   try {
     const userRef = doc(db, 'users', uid);
@@ -38,4 +44,45 @@ export async function checkSubscriptionStatus(uid: string): Promise<boolean> {
     console.error('[Action] Error fetching user document:', error);
     return false;
   }
+}
+
+export async function confirmSubscription(sessionId: string, uid: string) {
+    if (!sessionId || !uid) {
+        return { error: "Session ID and User ID are required." };
+    }
+
+    try {
+        console.log(`[Action] Confirming subscription for session: ${sessionId}`);
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+        if (session.status !== 'complete') {
+            return { error: "Checkout session is not complete." };
+        }
+
+        if (!session.subscription) {
+            return { error: "No subscription found for this session." };
+        }
+
+        const subscription = await stripe.subscriptions.retrieve(
+            typeof session.subscription === 'string'
+                ? session.subscription
+                : session.subscription.id
+        );
+
+        const userRef = doc(db, 'users', uid);
+        await updateDoc(userRef, {
+            stripeSubscriptionId: subscription.id,
+            stripeSubscriptionStatus: subscription.status, // This will be 'trialing' or 'active'
+            stripeCustomerId: typeof subscription.customer === 'string'
+                ? subscription.customer
+                : subscription.customer.id,
+        });
+
+        console.log(`[Action] ✅ Successfully confirmed subscription for UID ${uid}. Status: ${subscription.status}`);
+        return { success: true, status: subscription.status };
+
+    } catch (error: any) {
+        console.error("[Action] Error confirming subscription:", error);
+        return { error: error.message };
+    }
 }

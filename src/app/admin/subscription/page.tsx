@@ -11,51 +11,13 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, CreditCard, XCircle, Calendar, Sparkles } from 'lucide-react';
 import { createCustomerPortalSession } from '@/app/stripe/actions';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { SubscriptionButton } from '@/components/subscription-button';
 import { differenceInCalendarDays, format } from 'date-fns';
-import { checkSubscriptionStatus } from '@/app/admin/actions';
+import { confirmSubscription } from '@/app/admin/actions';
 
 
 function ProcessingPayment() {
-    const router = useRouter();
-    const { user, loading } = useAuth();
-    const searchParams = useSearchParams();
-
-    useEffect(() => {
-        if (loading) {
-            console.log("ProcessingPayment: Waiting for user authentication...");
-            return;
-        }
-        if (!user) {
-             console.log("ProcessingPayment: No user found, should not happen if loading is false. Waiting...");
-            return;
-        }
-
-        console.log("ProcessingPayment: Component mounted for session_id:", searchParams.get('session_id'));
-        
-        const interval = setInterval(async () => {
-            console.log("ProcessingPayment: Polling... Checking subscription status.");
-            const isSubscribed = await checkSubscriptionStatus(user.uid);
-            if (isSubscribed) {
-                console.log("ProcessingPayment: ✅ Subscription is ACTIVE. Forcing full page reload to /admin/subscription.");
-                clearInterval(interval);
-                window.location.href = '/admin/subscription';
-            }
-        }, 2000);
-
-        const timeout = setTimeout(() => {
-            clearInterval(interval);
-            console.error("ProcessingPayment: Subscription check timed out after 2 minutes.");
-            router.push('/admin/subscription?error=timeout');
-        }, 120000); 
-
-        return () => {
-            clearInterval(interval);
-            clearTimeout(timeout);
-        };
-    }, [router, user, loading, searchParams]);
-
     return (
         <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-8">
             <div className="flex flex-col items-center gap-4 text-center">
@@ -63,13 +25,13 @@ function ProcessingPayment() {
                     <CheckCircle className="h-12 w-12 text-green-500 animate-pulse" />
                 </div>
                 <h2 className="text-2xl font-bold">¡Pago Exitoso!</h2>
-                <p className="text-lg text-muted-foreground">Estamos actualizando tu suscripción. Esto puede tardar unos segundos...</p>
+                <p className="text-lg text-muted-foreground">Estamos confirmando y actualizando tu suscripción. Esto puede tardar unos segundos...</p>
                  <div className="flex items-center gap-2 mt-4">
                     <svg className="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span>Sincronizando con Stripe... No cierres esta ventana.</span>
+                    <span>Confirmando con Stripe... No cierres esta ventana.</span>
                 </div>
             </div>
         </div>
@@ -79,13 +41,37 @@ function ProcessingPayment() {
 
 export default function SubscriptionPage() {
     const { toast } = useToast();
-    const { activeMembership, gymProfile, userProfile, loading, isTrialActive } = useAuth();
+    const { activeMembership, gymProfile, user, userProfile, loading, isTrialActive } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [isRedirecting, setIsRedirecting] = useState(false);
+    const [isPending, startTransition] = useTransition();
 
-    const isProcessing = searchParams.has('session_id');
-    const isSubscribed = userProfile?.stripeSubscriptionStatus === 'active' || userProfile?.stripeSubscriptionStatus === 'trialing';
+    const fromCheckout = searchParams.get('from_checkout');
+    const sessionId = searchParams.get('session_id');
+
+    useEffect(() => {
+        if (fromCheckout && sessionId && user) {
+            startTransition(async () => {
+                const result = await confirmSubscription(sessionId, user.uid);
+                if (result.error) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Error de Confirmación',
+                        description: `No se pudo confirmar tu suscripción: ${result.error}`,
+                    });
+                     router.replace('/admin/subscription');
+                } else {
+                     toast({
+                        title: '¡Suscripción Confirmada!',
+                        description: `Tu estado ahora es: ${result.status}`,
+                    });
+                    // Forzar un refresco completo para asegurar que el contexto de autenticación se actualice
+                    window.location.href = '/admin/subscription';
+                }
+            });
+        }
+    }, [fromCheckout, sessionId, user, router, toast]);
 
     const handleManageSubscription = async () => {
         setIsRedirecting(true);
@@ -122,7 +108,7 @@ export default function SubscriptionPage() {
         );
     }
     
-    if (isProcessing) {
+    if (isPending) {
         return <ProcessingPayment />;
     }
 
@@ -131,6 +117,7 @@ export default function SubscriptionPage() {
         return null;
     }
 
+    const isSubscribed = userProfile?.stripeSubscriptionStatus === 'active' || userProfile?.stripeSubscriptionStatus === 'trialing';
     const trialEndsAt = gymProfile?.trialEndsAt?.toDate();
     const trialDaysLeft = trialEndsAt ? differenceInCalendarDays(trialEndsAt, new Date()) : 0;
     
@@ -139,7 +126,7 @@ export default function SubscriptionPage() {
              return (
                 <div className="flex items-center gap-2 text-green-600">
                     <CheckCircle className="h-5 w-5" />
-                    <span className="font-semibold">Suscripción Activa</span>
+                    <span className="font-semibold">Suscripción Activa ({userProfile?.stripeSubscriptionStatus})</span>
                 </div>
             );
         }

@@ -89,7 +89,7 @@ export async function createCheckoutSession({ plan, uid, origin }: CreateCheckou
         },
       ],
       mode: 'subscription',
-      success_url: `${origin}/admin/subscription?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${origin}/admin/subscription?from_checkout=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/admin/subscription`,
       metadata: {
         firebaseUID: uid, // Redundant for safety
