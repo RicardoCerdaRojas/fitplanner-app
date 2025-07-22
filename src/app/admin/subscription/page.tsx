@@ -41,44 +41,53 @@ function ProcessingPayment() {
 
 export default function SubscriptionPage() {
     const { toast } = useToast();
-    const { activeMembership, gymProfile, user, userProfile, loading, isTrialActive } = useAuth();
+    const { activeMembership, gymProfile, user, userProfile, loading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [isRedirecting, setIsRedirecting] = useState(false);
+    
+    // We use a transition to handle the server action without blocking the UI
     const [isPending, startTransition] = useTransition();
 
     const fromCheckout = searchParams.get('from_checkout');
     const sessionId = searchParams.get('session_id');
 
+    // This useEffect is the core of the new synchronous confirmation flow.
     useEffect(() => {
-        if (loading) return; // Wait until auth state is resolved
-
-        if (!activeMembership || activeMembership.role !== 'gym-admin') {
-            router.push('/');
-            return;
-        }
-
+        // Only run this logic if the user has returned from a checkout session.
         if (fromCheckout && sessionId && user) {
             startTransition(async () => {
                 const result = await confirmSubscription(sessionId, user.uid);
+                
                 if (result.error) {
                     toast({
                         variant: 'destructive',
                         title: 'Error de Confirmación',
                         description: `No se pudo confirmar tu suscripción: ${result.error}`,
                     });
-                     router.replace('/admin/subscription');
+                    // Remove the query params from the URL to prevent re-triggering.
+                    router.replace('/admin/subscription');
                 } else {
-                     toast({
+                    toast({
                         title: '¡Suscripción Confirmada!',
                         description: `Tu estado ahora es: ${result.status}`,
                     });
-                    // Forzar un refresco completo para asegurar que el contexto de autenticación se actualice
+                    // Critical step: Force a full page reload. This clears all client-side state
+                    // and forces the AuthContext to refetch the user's profile with the new
+                    // subscription status from the database.
                     window.location.href = '/admin/subscription';
                 }
             });
         }
-    }, [fromCheckout, sessionId, user, router, toast, loading, activeMembership]);
+    }, [fromCheckout, sessionId, user, router, toast]);
+
+    // This useEffect handles role-based redirection safely after the component renders.
+    useEffect(() => {
+        if (!loading && (!activeMembership || activeMembership.role !== 'gym-admin')) {
+            router.push('/');
+        }
+    }, [loading, activeMembership, router]);
+
 
     const handleManageSubscription = async () => {
         setIsRedirecting(true);
@@ -102,7 +111,8 @@ export default function SubscriptionPage() {
         }
     };
     
-    if (loading || (!activeMembership || activeMembership.role !== 'gym-admin')) {
+    // Show a loading skeleton while the auth context is resolving.
+    if (loading) {
         return (
             <div className="flex flex-col min-h-screen items-center p-4 sm:p-8">
                 <AppHeader />
@@ -110,11 +120,12 @@ export default function SubscriptionPage() {
                     <Skeleton className="h-16 w-full" />
                     <Skeleton className="h-64 w-full" />
                 </div>
-                 <p className='mt-8 text-lg text-muted-foreground'>Loading subscription details...</p>
+                 <p className='mt-8 text-lg text-muted-foreground'>Cargando detalles de suscripción...</p>
             </div>
         );
     }
     
+    // If we are in the process of confirming the subscription, show a dedicated processing screen.
     if (isPending) {
         return <ProcessingPayment />;
     }
@@ -132,7 +143,7 @@ export default function SubscriptionPage() {
                 </div>
             );
         }
-        if (isTrialActive && trialDaysLeft > 0) {
+        if (trialDaysLeft > 0) {
              return (
                 <div className="flex items-center gap-2 text-blue-600">
                     <Sparkles className="h-5 w-5" />
@@ -173,7 +184,7 @@ export default function SubscriptionPage() {
                                     <span className="text-muted-foreground font-medium">Estado</span>
                                     {renderSubscriptionStatus()}
                                 </div>
-                                {isTrialActive && !isSubscribed && trialEndsAt && (
+                                {!isSubscribed && trialEndsAt && trialDaysLeft > 0 && (
                                      <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground font-medium">La prueba termina el</span>
                                         <span className="font-semibold flex items-center gap-2">
@@ -197,7 +208,7 @@ export default function SubscriptionPage() {
                             ) : (
                                 <div>
                                      <p className="text-sm text-muted-foreground mb-4">
-                                        {isTrialActive 
+                                        {trialDaysLeft > 0 
                                             ? "Tu prueba está activa. Elige un plan a continuación para continuar con tu servicio después de que finalice la prueba. No se te cobrará hasta que termine tu prueba."
                                             : "Tu prueba ha finalizado. Elige un plan para seguir usando Fit Planner."
                                         }
