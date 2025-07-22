@@ -148,10 +148,7 @@ export async function createCustomerPortalSession(uid: string) {
         return { error: "Stripe customer ID not found." };
     }
 
-    if (!fitPlannerProductId || !priceIds.TRAINER || !priceIds.STUDIO || !priceIds.GYM) {
-        console.error("Stripe Product or Price IDs are not configured in environment variables.");
-        return { error: "Server configuration error: Stripe IDs are missing." };
-    }
+    const hasAllStripeIds = fitPlannerProductId && priceIds.TRAINER && priceIds.STUDIO && priceIds.GYM;
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:9002";
     
@@ -159,19 +156,21 @@ export async function createCustomerPortalSession(uid: string) {
         const portalSession = await stripe.billingPortal.sessions.create({
             customer: stripeCustomerId,
             return_url: `${appUrl}/admin/subscription`,
-            configuration: {
-                features: {
-                    subscription_update: {
-                        enabled: true,
-                        products: [
-                            {
-                                product: fitPlannerProductId,
-                                prices: [priceIds.TRAINER, priceIds.STUDIO, priceIds.GYM],
-                            },
-                        ],
-                    },
-                },
-            },
+            ...(hasAllStripeIds && {
+              configuration: {
+                  features: {
+                      subscription_update: {
+                          enabled: true,
+                          products: [
+                              {
+                                  product: fitPlannerProductId,
+                                  prices: [priceIds.TRAINER, priceIds.STUDIO, priceIds.GYM],
+                              },
+                          ],
+                      },
+                  },
+              },
+            })
         });
         return { url: portalSession.url };
     } catch (error: any) {
