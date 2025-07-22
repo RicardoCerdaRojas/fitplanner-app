@@ -26,24 +26,35 @@ type CreateCheckoutSessionParams = {
 
 
 // Gets or creates a Stripe customer ID and saves it to Firestore.
-async function getOrCreateStripeCustomer(uid: string, email: string) {
+// This version is enhanced to be more robust.
+async function getOrCreateStripeCustomer(uid: string, email: string): Promise<string> {
     const userRef = doc(db, 'users', uid);
     const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+        throw new Error(`User with UID ${uid} not found in Firestore.`);
+    }
+
     const userData = userSnap.data();
 
+    // If the Stripe Customer ID already exists on the document, return it.
     if (userData?.stripeCustomerId) {
         console.log(`[Stripe Action] Found existing Stripe Customer ID for user ${uid}: ${userData.stripeCustomerId}`);
         return userData.stripeCustomerId;
     }
 
+    // If not, create a new customer in Stripe.
     console.log(`[Stripe Action] No Stripe Customer ID found for user ${uid}. Creating a new one.`);
     const customer = await stripe.customers.create({
         email: email,
+        name: userData.name, // Add name for better customer recognition in Stripe
         metadata: { firebaseUID: uid },
     });
 
+    // IMPORTANT: Save the new customer ID to Firestore immediately.
     await updateDoc(userRef, { stripeCustomerId: customer.id });
     console.log(`[Stripe Action] Created new Stripe Customer and saved to Firestore. Customer ID: ${customer.id}`);
+    
     return customer.id;
 }
 
@@ -92,7 +103,7 @@ export async function createCheckoutSession({ plan, uid, origin }: CreateCheckou
       success_url: `${origin}/admin/subscription?from_checkout=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/admin/subscription`,
       metadata: {
-        firebaseUID: uid, // Redundant for safety
+        firebaseUID: uid,
       },
       subscription_data: {
         trial_from_plan: true,
