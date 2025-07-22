@@ -1,3 +1,4 @@
+
 'use server';
 
 import 'dotenv/config';
@@ -138,38 +139,40 @@ export async function createCustomerPortalSession(uid: string) {
         return { error: "You must be logged in." };
     }
 
-    const userDocRef = doc(db, "users", uid);
-    const userDoc = await getDoc(userDocRef);
-
-    if (!userDoc.exists()) {
-        console.error(`[Portal Action] Error: User document not found for UID: ${uid}.`);
-        return { error: "User not found." };
-    }
-    
-    const userData = userDoc.data();
-    const stripeCustomerId = userData?.stripeCustomerId;
-
-    if (!stripeCustomerId) {
-        console.error(`[Portal Action] Error: Stripe customer ID not found for UID: ${uid}.`);
-        return { error: "Stripe customer ID not found." };
-    }
-    
-    const portalConfigurationId = process.env.STRIPE_PORTAL_CONFIGURATION_ID;
-
-    if (!portalConfigurationId) {
-        console.error("[Portal Action] Error: Stripe Portal Configuration ID is not set in environment variables.");
-        return { error: "Portal configuration is missing on the server. Please contact support." };
-    }
-
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:9002";
-    
     try {
+        const userDocRef = doc(db, "users", uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (!userDoc.exists()) {
+            console.error(`[Portal Action] Error: User document not found for UID: ${uid}.`);
+            return { error: "User not found." };
+        }
+        
+        const userData = userDoc.data();
+        const stripeCustomerId = userData?.stripeCustomerId;
+
+        if (!stripeCustomerId) {
+            console.error(`[Portal Action] Error: Stripe customer ID not found for UID: ${uid}.`);
+            return { error: "Stripe customer ID not found." };
+        }
+
+        const portalConfigurationId = process.env.STRIPE_PORTAL_CONFIGURATION_ID;
+
+        if (!portalConfigurationId || portalConfigurationId === "TU_ID_DE_CONFIGURACION_DE_PORTAL_AQUI") {
+            console.error('[Portal Action] Error: Stripe Portal Configuration ID is not set on the server.');
+            return { error: 'El ID de configuración del portal de Stripe no está configurado en el servidor. Por favor, añádelo al archivo .env.' };
+        }
+        
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:9002";
+        
         const portalSession = await stripe.billingPortal.sessions.create({
             customer: stripeCustomerId,
             return_url: `${appUrl}/admin/subscription`,
             configuration: portalConfigurationId,
         });
+
         return { url: portalSession.url };
+
     } catch (error: any) {
         console.error("[Portal Action] Error creating customer portal session: ", error);
         return { error: "Could not create customer portal session." };
