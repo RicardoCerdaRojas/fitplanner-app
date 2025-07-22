@@ -135,6 +135,7 @@ export async function createCheckoutSession({ plan, uid, origin }: CreateCheckou
 
 export async function createCustomerPortalSession(uid: string) {
     if (!uid) {
+        console.error("[Portal Action] Error: No UID provided.");
         return { error: "You must be logged in." };
     }
 
@@ -142,18 +143,16 @@ export async function createCustomerPortalSession(uid: string) {
     const userDoc = await getDoc(userDocRef);
 
     if (!userDoc.exists()) {
+        console.error(`[Portal Action] Error: User document not found for UID: ${uid}.`);
         return { error: "User not found." };
     }
     
     const userData = userDoc.data();
     const stripeCustomerId = userData?.stripeCustomerId;
-    const stripeSubscriptionId = userData?.stripeSubscriptionId;
 
     if (!stripeCustomerId) {
+        console.error(`[Portal Action] Error: Stripe customer ID not found for UID: ${uid}.`);
         return { error: "Stripe customer ID not found." };
-    }
-     if (!stripeSubscriptionId) {
-        return { error: "Stripe subscription ID not found." };
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:9002";
@@ -162,16 +161,10 @@ export async function createCustomerPortalSession(uid: string) {
         const portalSession = await stripe.billingPortal.sessions.create({
             customer: stripeCustomerId,
             return_url: `${appUrl}/admin/subscription`,
-            flow_data: {
-                type: 'subscription_update',
-                subscription_update: {
-                    subscription: stripeSubscriptionId,
-                },
-            },
         });
         return { url: portalSession.url };
     } catch (error: any) {
-        console.error("Error creating customer portal session: ", error);
+        console.error("[Portal Action] Error creating customer portal session: ", error);
         return { error: "Could not create customer portal session." };
     }
 }
