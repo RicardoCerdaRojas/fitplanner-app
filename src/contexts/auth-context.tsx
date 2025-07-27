@@ -13,9 +13,6 @@ export type UserProfile = {
   role?: 'member' | 'coach' | 'gym-admin';
   dob?: Timestamp;
   gender?: 'male' | 'female' | 'other';
-  stripeCustomerId?: string;
-  stripeSubscriptionId?: string | null;
-  stripeSubscriptionStatus?: string;
 };
 
 export type Membership = {

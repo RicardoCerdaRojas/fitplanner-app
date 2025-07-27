@@ -1,7 +1,8 @@
 
 'use client';
 
-// This file has been removed as part of the Stripe integration cleanup.
+// This file has been cleared as part of the Stripe integration cleanup.
+// It can be repurposed for a new subscription system in the future.
 
 import { Button } from "./ui/button";
 

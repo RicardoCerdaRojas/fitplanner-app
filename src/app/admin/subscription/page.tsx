@@ -1,6 +1,9 @@
 
 'use client';
 
+// This file has been cleared as part of the Stripe integration cleanup.
+// It can be repurposed for a new subscription system in the future.
+
 import { AppHeader } from '@/components/app-header';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,11 +21,11 @@ export default function SubscriptionPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><CreditCard /> Subscription</CardTitle>
-                            <CardDescription>Subscription management has been temporarily disabled.</CardDescription>
+                            <CardDescription>No subscription provider is currently configured.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <p className="text-muted-foreground">
-                                Please contact support for any subscription-related inquiries.
+                                Please contact support to enable a subscription plan.
                             </p>
                         </CardContent>
                     </Card>
