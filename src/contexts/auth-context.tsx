@@ -1,7 +1,7 @@
 
 'use client';
 
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useMemo, useCallback } from 'react';
 import { type User } from 'firebase/auth';
 import { Timestamp } from 'firebase/firestore';
 
@@ -42,7 +42,7 @@ type AuthContextType = {
   setActiveMembership: (membership: Membership | null) => void;
   gymProfile: GymProfile | null;
   setGymProfile: (gymProfile: GymProfile | null) => void;
-  isTrialActive: boolean | null;
+  isTrialActive: boolean;
   loading: boolean;
   setLoading: (loading: boolean) => void;
 };
@@ -50,29 +50,32 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [activeMembership, setActiveMembership] = useState<Membership | null>(null);
-  const [gymProfile, setGymProfile] = useState<GymProfile | null>(null);
-  const [isTrialActive, setIsTrialActive] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState(true);
-  
-  useEffect(() => {
-    if (loading) return;
+  const [user, setUserState] = useState<User | null>(null);
+  const [userProfile, setUserProfileState] = useState<UserProfile | null>(null);
+  const [activeMembership, setActiveMembershipState] = useState<Membership | null>(null);
+  const [gymProfile, setGymProfileState] = useState<GymProfile | null>(null);
+  const [loading, setLoadingState] = useState(true);
 
-    // A manual trial is active if the trialEndsAt date is in the future.
-    const hasAccess = gymProfile?.trialEndsAt ? new Date() < gymProfile.trialEndsAt.toDate() : false;
+  const setUser = useCallback((user: User | null) => setUserState(user), []);
+  const setUserProfile = useCallback((profile: UserProfile | null) => setUserProfileState(profile), []);
+  const setActiveMembership = useCallback((membership: Membership | null) => setActiveMembershipState(membership), []);
+  const setGymProfile = useCallback((gymProfile: GymProfile | null) => setGymProfileState(gymProfile), []);
+  const setLoading = useCallback((loading: boolean) => setLoadingState(loading), []);
 
-    // For non-admin roles, access is always granted as it's controlled by the gym's trial.
-    if (activeMembership && (activeMembership.role === 'member' || activeMembership.role === 'coach')) {
-        setIsTrialActive(true);
-    } else {
-        setIsTrialActive(hasAccess);
+  const isTrialActive = useMemo(() => {
+    if (!activeMembership) return false;
+    // Members and coaches have access as long as the gym is active.
+    if (activeMembership.role === 'member' || activeMembership.role === 'coach') {
+        return true;
     }
+    // For admins, check the trial date.
+    if (activeMembership.role === 'gym-admin' && gymProfile?.trialEndsAt) {
+      return new Date() < gymProfile.trialEndsAt.toDate();
+    }
+    return false;
+  }, [activeMembership, gymProfile]);
 
-  }, [loading, userProfile, gymProfile, activeMembership]);
-
-  const contextValue: AuthContextType = {
+  const contextValue = useMemo(() => ({
     user,
     setUser,
     userProfile,
@@ -84,7 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isTrialActive,
     loading,
     setLoading
-  };
+  }), [user, userProfile, activeMembership, gymProfile, isTrialActive, loading, setUser, setUserProfile, setActiveMembership, setGymProfile, setLoading]);
 
   return (
     <AuthContext.Provider value={contextValue}>
