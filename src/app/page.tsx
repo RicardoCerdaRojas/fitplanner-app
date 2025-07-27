@@ -38,7 +38,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Autoplay from 'embla-carousel-autoplay';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import ReactPlayer from 'react-player/lazy';
-import { SubscriptionButton } from '@/components/subscription-button';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import GuestHomepage from '@/components/guest-homepage';
@@ -495,21 +494,6 @@ export default function V2LandingPage() {
         }
     ];
 
-    const plans = {
-        monthly: [
-            { name: "TRAINER", price: 24, members: 25, features: ["Active Members", "Basic AI Generator", "Athlete App", "Email Support"] },
-            { name: "STUDIO", price: 59, members: 100, features: ["Everything in Trainer +", "Unlimited Coaches", "Brand Customization", "Advanced Analytics"], popular: true },
-            { name: "GYM", price: 99, members: 300, features: ["Everything in Studio +", "API Integration", "Priority Support", "Personalized Onboarding"] }
-        ],
-        yearly: [
-            { name: "TRAINER", price: 19, members: 25, features: ["Active Members", "Basic AI Generator", "Athlete App", "Email Support"] },
-            { name: "STUDIO", price: 47, members: 100, features: ["Everything in Trainer +", "Unlimited Coaches", "Brand Customization", "Advanced Analytics"], popular: true },
-            { name: "GYM", price: 79, members: 300, features: ["Everything in Studio +", "API Integration", "Priority Support", "Personalized Onboarding"] }
-        ]
-    };
-    
-    const currentPlans = isYearly ? plans.yearly : plans.monthly;
-
     const testimonials = [
         {
             quote: "Fit Planner revolutionized how I schedule my classes. My students love having their sequences in the app, and retention has increased by 40%. I stopped being an administrator to become a teacher again.",
@@ -691,27 +675,7 @@ export default function V2LandingPage() {
                         <span className="bg-emerald-400/20 text-emerald-300 text-xs font-bold px-2 py-1 rounded-full">SAVE 20%</span>
                     </div>
 
-                    <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-start">
-                        {currentPlans.map((plan) => (
-                            <div key={plan.name} className={cn("bg-[#111827] rounded-2xl p-8 border transition-all transform hover:scale-105", plan.popular ? "border-emerald-400 border-2 scale-105 relative hover:border-emerald-300" : "border-gray-700 hover:border-gray-500")}>
-                                 {plan.popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-emerald-400 text-black font-bold text-sm px-4 py-1 rounded-full uppercase tracking-wider">Most Popular</div>}
-                                <h3 className="text-2xl font-bold text-center mb-2">{plan.name}</h3>
-                                <p className="text-center text-gray-400 mb-6">Up to {plan.members} members</p>
-                                <p className="text-center text-5xl font-black mb-1">${plan.price}<span className="text-lg font-bold text-gray-400">/mo</span></p>
-                                <p className="text-center text-gray-500 mb-8 text-sm">{isYearly ? "Billed annually" : "Cancel anytime"}</p>
-                                <SubscriptionButton plan={plan.name as 'TRAINER' | 'STUDIO' | 'GYM'} popular={plan.popular} />
-                                <ul className="mt-8 space-y-4">
-                                    {plan.features.map(feat => (
-                                        <li key={feat} className="flex items-center gap-3">
-                                            <Check className="w-5 h-5 text-emerald-400 shrink-0"/>
-                                            <span className="text-gray-300">{feat}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
-                    </div>
-                     <div className="text-center mt-12 border-t border-gray-800 pt-8 max-w-3xl mx-auto">
+                    <div className="text-center mt-12 border-t border-gray-800 pt-8 max-w-3xl mx-auto">
                         <h3 className="text-2xl font-bold">Need more?</h3>
                         <p className="text-gray-400 my-4">For operations with more than 300 members, special requirements, or custom integrations, we have an Enterprise plan. Contact us for a personalized solution.</p>
                         <Button variant="outline" className="text-white border-white/20 bg-white/5 hover:bg-white/10 backdrop-blur-sm">Contact Sales <ArrowRight className="w-4 h-4 ml-2"/></Button>
