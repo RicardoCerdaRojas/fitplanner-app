@@ -50,17 +50,11 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUserState] = useState<User | null>(null);
-  const [userProfile, setUserProfileState] = useState<UserProfile | null>(null);
-  const [activeMembership, setActiveMembershipState] = useState<Membership | null>(null);
-  const [gymProfile, setGymProfileState] = useState<GymProfile | null>(null);
-  const [loading, setLoadingState] = useState(true);
-
-  const setUser = useCallback((user: User | null) => setUserState(user), []);
-  const setUserProfile = useCallback((profile: UserProfile | null) => setUserProfileState(profile), []);
-  const setActiveMembership = useCallback((membership: Membership | null) => setActiveMembershipState(membership), []);
-  const setGymProfile = useCallback((gymProfile: GymProfile | null) => setGymProfileState(gymProfile), []);
-  const setLoading = useCallback((loading: boolean) => setLoadingState(loading), []);
+  const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [activeMembership, setActiveMembership] = useState<Membership | null>(null);
+  const [gymProfile, setGymProfile] = useState<GymProfile | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const isTrialActive = useMemo(() => {
     if (!activeMembership) return false;

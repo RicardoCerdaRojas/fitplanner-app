@@ -1,38 +1,34 @@
 
 'use client';
 
-import { useEffect, ReactNode } from 'react';
+import { useEffect, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
-import type { UserProfile, Membership, GymProfile } from '@/contexts/auth-context';
+import type { UserProfile, GymProfile, Membership } from '@/contexts/auth-context';
 
 export function AuthProviderClient({ children }: { children: ReactNode }) {
     const {
-        user,
         setUser,
         setUserProfile,
         setActiveMembership,
         setGymProfile,
         setLoading,
+        user
     } = useAuth();
 
     // Effect to handle the initial auth state change from Firebase
     useEffect(() => {
-        setLoading(true);
         const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
-            setUser(authUser);
-            if (!authUser) {
-                setLoading(false);
-            }
+            setLoading(true);
+            setUser(authUser); // This will trigger the below effect
         });
         return () => unsubscribeAuth();
-    // This effect should only run once on mount to set up the listener.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); 
 
-    // Effect to fetch user data when the user object changes (login/logout)
+    // This effect runs only when the user object changes (login/logout)
     useEffect(() => {
         if (!user) {
             setUserProfile(null);
@@ -68,37 +64,31 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
                                 status: 'active',
                             });
                         } else {
-                            // User has a gymId, but the gym doc doesn't exist
                             setGymProfile(null);
                             setActiveMembership(null);
                         }
                         setLoading(false);
                     });
                 } else {
-                    // User exists but has no gymId or role
                     setGymProfile(null);
                     setActiveMembership(null);
                     setLoading(false);
                 }
             } else {
-                // User document doesn't exist in Firestore
                 setUserProfile(null);
                 setGymProfile(null);
                 setActiveMembership(null);
                 setLoading(false);
             }
-        }, (error) => {
-            console.error("Error fetching user profile:", error);
-            setLoading(false);
         });
 
-        // Cleanup function for this effect
+        // Cleanup function
         return () => {
             if (userUnsubscribe) userUnsubscribe();
             if (gymUnsubscribe) gymUnsubscribe();
         };
-    // This effect should ONLY depend on the user object.
-    }, [user, setUser, setUserProfile, setGymProfile, setActiveMembership, setLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
 
     return <>{children}</>;
 }
