@@ -1,7 +1,7 @@
 
 'use client';
 
-import { createContext, useContext, useState, ReactNode, useMemo } from 'react';
+import { createContext, useContext, useState, ReactNode, useMemo, useCallback } from 'react';
 import { type User } from 'firebase/auth';
 import { Timestamp } from 'firebase/firestore';
 
@@ -58,12 +58,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const isTrialActive = useMemo(() => {
     if (!activeMembership) return false;
+    // Members and coaches inherit access from the gym
     if (activeMembership.role === 'member' || activeMembership.role === 'coach') {
         return true;
     }
+    // Admin access depends on the trial period
     if (activeMembership.role === 'gym-admin' && gymProfile?.trialEndsAt) {
       return new Date() < gymProfile.trialEndsAt.toDate();
     }
+    // Default to no access if conditions aren't met
     return false;
   }, [activeMembership, gymProfile]);
 
