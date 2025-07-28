@@ -1,7 +1,7 @@
 
 'use client';
 
-import { createContext, useContext, useState, ReactNode, useEffect, useMemo, useCallback } from 'react';
+import { createContext, useContext, useState, ReactNode, useMemo } from 'react';
 import { type User } from 'firebase/auth';
 import { Timestamp } from 'firebase/firestore';
 
@@ -58,11 +58,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const isTrialActive = useMemo(() => {
     if (!activeMembership) return false;
-    // Members and coaches have access as long as the gym is active.
     if (activeMembership.role === 'member' || activeMembership.role === 'coach') {
         return true;
     }
-    // For admins, check the trial date.
     if (activeMembership.role === 'gym-admin' && gymProfile?.trialEndsAt) {
       return new Date() < gymProfile.trialEndsAt.toDate();
     }
@@ -81,7 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isTrialActive,
     loading,
     setLoading
-  }), [user, userProfile, activeMembership, gymProfile, isTrialActive, loading, setUser, setUserProfile, setActiveMembership, setGymProfile, setLoading]);
+  }), [user, userProfile, activeMembership, gymProfile, isTrialActive, loading]);
 
   return (
     <AuthContext.Provider value={contextValue}>
