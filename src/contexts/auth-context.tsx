@@ -1,7 +1,7 @@
 
 'use client';
 
-import { createContext, useContext, useState, ReactNode, useMemo, useCallback } from 'react';
+import { createContext, useContext, useState, ReactNode, useMemo } from 'react';
 import { type User } from 'firebase/auth';
 import { Timestamp } from 'firebase/firestore';
 
@@ -35,16 +35,18 @@ export type GymProfile = {
 
 type AuthContextType = {
   user: User | null;
-  setUser: (user: User | null) => void;
   userProfile: UserProfile | null;
-  setUserProfile: (profile: UserProfile | null) => void;
   activeMembership: Membership | null;
-  setActiveMembership: (membership: Membership | null) => void;
   gymProfile: GymProfile | null;
-  setGymProfile: (gymProfile: GymProfile | null) => void;
   isTrialActive: boolean;
   loading: boolean;
-  setLoading: (loading: boolean) => void;
+  
+  // Expose setters directly for the provider to use
+  _setUser: (user: User | null) => void;
+  _setUserProfile: (profile: UserProfile | null) => void;
+  _setActiveMembership: (membership: Membership | null) => void;
+  _setGymProfile: (gymProfile: GymProfile | null) => void;
+  _setLoading: (loading: boolean) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -58,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const isTrialActive = useMemo(() => {
     if (!activeMembership) return false;
-    // Members and coaches inherit access from the gym
+    // Members and coaches inherit access from the gym admin
     if (activeMembership.role === 'member' || activeMembership.role === 'coach') {
         return true;
     }
@@ -70,18 +72,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return false;
   }, [activeMembership, gymProfile]);
 
+  // Memoize the context value to prevent unnecessary re-renders in consumers
   const contextValue = useMemo(() => ({
     user,
-    setUser,
     userProfile,
-    setUserProfile,
     activeMembership,
-    setActiveMembership,
     gymProfile,
-    setGymProfile,
     isTrialActive,
     loading,
-    setLoading
+    _setUser: setUser,
+    _setUserProfile: setUserProfile,
+    _setActiveMembership: setActiveMembership,
+    _setGymProfile: setGymProfile,
+    _setLoading: setLoading,
   }), [user, userProfile, activeMembership, gymProfile, isTrialActive, loading]);
 
   return (
