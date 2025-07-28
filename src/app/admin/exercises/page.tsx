@@ -28,7 +28,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from '@/components/ui/sheet';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
-import { TrialEnded } from '@/components/trial-ended';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -225,70 +224,66 @@ export default function ExercisesPage() {
 
             <div className="flex flex-col min-h-screen">
                 <AppHeader />
-                {isTrialActive === false ? (
-                    <TrialEnded />
-                ) : (
-                    <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-16 md:pb-8">
-                        <div className="w-full max-w-4xl">
-                            <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
-                            <AdminBottomNav />
-                        
-                            <Card>
-                                <CardHeader>
-                                     <div className="flex justify-between items-center">
-                                        <div>
-                                            <CardTitle className="flex items-center gap-2"><BookOpen /> Exercise Library</CardTitle>
-                                            <CardDescription>Create and manage reusable exercises for your coaches.</CardDescription>
-                                        </div>
-                                        <Button onClick={() => openSheet()}>
-                                            <Plus className="mr-2 h-4 w-4" /> Add Exercise
-                                        </Button>
+                <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-16 md:pb-8">
+                    <div className="w-full max-w-4xl">
+                        <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
+                        <AdminBottomNav />
+                    
+                        <Card>
+                            <CardHeader>
+                                 <div className="flex justify-between items-center">
+                                    <div>
+                                        <CardTitle className="flex items-center gap-2"><BookOpen /> Exercise Library</CardTitle>
+                                        <CardDescription>Create and manage reusable exercises for your coaches.</CardDescription>
                                     </div>
-                                </CardHeader>
-                                <CardContent>
-                                    {isLoading ? (
-                                        <div className="space-y-2">
-                                            <Skeleton className="h-12 w-full" />
-                                            <Skeleton className="h-12 w-full" />
-                                        </div>
-                                    ) : exercises.length === 0 ? (
-                                        <div className="text-center py-10">
-                                            <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
-                                            <h3 className="mt-4 text-lg font-semibold">Your Library is Empty</h3>
-                                            <p className="mt-1 text-sm text-muted-foreground">Add your first exercise to get started.</p>
-                                        </div>
-                                    ) : (
-                                        <Accordion type="single" collapsible className="w-full space-y-2">
-                                            {exercises.map((exercise) => (
-                                                <AccordionItem value={exercise.id} key={exercise.id} className="border rounded-lg bg-muted/30">
-                                                    <div className="flex items-center justify-between w-full px-4 py-2">
-                                                        <AccordionTrigger className="flex-1 p-0 text-left hover:no-underline font-semibold text-lg">
-                                                            {exercise.name}
-                                                        </AccordionTrigger>
-                                                        <div className="flex items-center gap-1 pl-4">
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openSheet(exercise)}>
-                                                                <Edit className="h-4 w-4" />
-                                                            </Button>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setExerciseToDelete(exercise)}>
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        </div>
+                                    <Button onClick={() => openSheet()}>
+                                        <Plus className="mr-2 h-4 w-4" /> Add Exercise
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                {isLoading ? (
+                                    <div className="space-y-2">
+                                        <Skeleton className="h-12 w-full" />
+                                        <Skeleton className="h-12 w-full" />
+                                    </div>
+                                ) : exercises.length === 0 ? (
+                                    <div className="text-center py-10">
+                                        <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
+                                        <h3 className="mt-4 text-lg font-semibold">Your Library is Empty</h3>
+                                        <p className="mt-1 text-sm text-muted-foreground">Add your first exercise to get started.</p>
+                                    </div>
+                                ) : (
+                                    <Accordion type="single" collapsible className="w-full space-y-2">
+                                        {exercises.map((exercise) => (
+                                            <AccordionItem value={exercise.id} key={exercise.id} className="border rounded-lg bg-muted/30">
+                                                <div className="flex items-center justify-between w-full px-4 py-2">
+                                                    <AccordionTrigger className="flex-1 p-0 text-left hover:no-underline font-semibold text-lg">
+                                                        {exercise.name}
+                                                    </AccordionTrigger>
+                                                    <div className="flex items-center gap-1 pl-4">
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openSheet(exercise)}>
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setExerciseToDelete(exercise)}>
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
                                                     </div>
-                                                    <AccordionContent className="px-4 pb-3">
-                                                        <div className="space-y-2 pt-2 border-t text-sm text-muted-foreground">
-                                                            <p><strong>Description:</strong> {exercise.description || 'N/A'}</p>
-                                                            <p><strong>Video URL:</strong> {exercise.videoUrl ? <a href={exercise.videoUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{exercise.videoUrl}</a> : 'N/A'}</p>
-                                                        </div>
-                                                    </AccordionContent>
-                                                </AccordionItem>
-                                            ))}
-                                        </Accordion>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </main>
-                )}
+                                                </div>
+                                                <AccordionContent className="px-4 pb-3">
+                                                    <div className="space-y-2 pt-2 border-t text-sm text-muted-foreground">
+                                                        <p><strong>Description:</strong> {exercise.description || 'N/A'}</p>
+                                                        <p><strong>Video URL:</strong> {exercise.videoUrl ? <a href={exercise.videoUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{exercise.videoUrl}</a> : 'N/A'}</p>
+                                                    </div>
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        ))}
+                                    </Accordion>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                </main>
                 <footer className="w-full text-center p-4 text-muted-foreground text-sm">
                     <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
                 </footer>

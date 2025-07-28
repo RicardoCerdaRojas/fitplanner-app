@@ -12,7 +12,6 @@ import { AdminBottomNav } from '@/components/admin-bottom-nav';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LiveActivityCard, type WorkoutSessionData } from '@/components/live-activity-card';
 import { Activity } from 'lucide-react';
-import { TrialEnded } from '@/components/trial-ended';
 
 export default function LiveActivityPage() {
     const { activeMembership, loading, isTrialActive } = useAuth();
@@ -94,43 +93,37 @@ export default function LiveActivityPage() {
     return (
         <div className="flex flex-col min-h-screen pb-16 md:pb-0">
             <AppHeader />
-            {isTrialActive === false ? (
-                <TrialEnded />
-            ) : (
-                <>
-                    <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
-                        <div className="w-full max-w-7xl">
-                            <h1 className="text-3xl font-bold font-headline mb-4">Live Gym Activity</h1>
-                            <AdminBottomNav />
+            <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
+                <div className="w-full max-w-7xl">
+                    <h1 className="text-3xl font-bold font-headline mb-4">Live Gym Activity</h1>
+                    <AdminBottomNav />
+                </div>
+                
+                <div className="w-full max-w-7xl">
+                    {isLoading ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            <Skeleton className="h-64 w-full" />
+                            <Skeleton className="h-64 w-full" />
+                            <Skeleton className="h-64 w-full" />
                         </div>
-                        
-                        <div className="w-full max-w-7xl">
-                            {isLoading ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    <Skeleton className="h-64 w-full" />
-                                    <Skeleton className="h-64 w-full" />
-                                    <Skeleton className="h-64 w-full" />
-                                </div>
-                            ) : activeSessions.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    {activeSessions.map(session => (
-                                        <LiveActivityCard key={session.id} session={session} />
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg mt-8">
-                                    <Activity className="w-16 h-16 text-muted-foreground mb-4" />
-                                    <h3 className="text-xl font-semibold">No Active Workouts</h3>
-                                    <p className="text-muted-foreground">It's quiet in here... No athletes are currently in a workout session.</p>
-                                </div>
-                            )}
+                    ) : activeSessions.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {activeSessions.map(session => (
+                                <LiveActivityCard key={session.id} session={session} />
+                            ))}
                         </div>
-                    </main>
-                    <footer className="w-full text-center p-4 text-muted-foreground text-sm">
-                        <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
-                    </footer>
-                </>
-            )}
+                    ) : (
+                        <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg mt-8">
+                            <Activity className="w-16 h-16 text-muted-foreground mb-4" />
+                            <h3 className="text-xl font-semibold">No Active Workouts</h3>
+                            <p className="text-muted-foreground">It's quiet in here... No athletes are currently in a workout session.</p>
+                        </div>
+                    )}
+                </div>
+            </main>
+            <footer className="w-full text-center p-4 text-muted-foreground text-sm">
+                <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
+            </footer>
         </div>
     );
 }

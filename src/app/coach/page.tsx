@@ -12,7 +12,6 @@ import { CoachRoutineManagement } from '@/components/coach-routine-management';
 import { AppHeader } from '@/components/app-header';
 import type { RoutineType } from '@/app/admin/routine-types/page';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
-import { TrialEnded } from '@/components/trial-ended';
 
 
 export type Member = {
@@ -112,29 +111,25 @@ export default function CoachPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <AppHeader />
-       {isTrialActive === false ? (
-          <TrialEnded />
-      ) : (
-          <main className="flex-grow flex flex-col items-center p-4 sm:p-8 pb-16 md:pb-8">
-            <div className="w-full max-w-5xl">
-                <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
-                <AdminBottomNav />
-                
-                {isLoading ? (
-                    <div className="w-full max-w-4xl space-y-8 mt-4">
-                        <Skeleton className="h-24 w-full" />
-                        <Skeleton className="h-48 w-full" />
-                    </div>
-                ) : (
-                    <CoachRoutineManagement 
-                      routines={routines}
-                      members={members}
-                      routineTypes={routineTypes}
-                    />
-                )}
-            </div>
-          </main>
-      )}
+      <main className="flex-grow flex flex-col items-center p-4 sm:p-8 pb-16 md:pb-8">
+        <div className="w-full max-w-5xl">
+            <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
+            <AdminBottomNav />
+            
+            {isLoading ? (
+                <div className="w-full max-w-4xl space-y-8 mt-4">
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-48 w-full" />
+                </div>
+            ) : (
+                <CoachRoutineManagement 
+                  routines={routines}
+                  members={members}
+                  routineTypes={routineTypes}
+                />
+            )}
+        </div>
+      </main>
 
       <footer className="w-full text-center p-4 text-muted-foreground text-sm">
         <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>

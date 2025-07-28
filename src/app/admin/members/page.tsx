@@ -4,13 +4,11 @@ import { AppHeader } from '@/components/app-header';
 import { AdminUserManagement } from '@/components/admin-user-management';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AdminBottomNav } from '@/components/admin-bottom-nav';
-import { TrialEnded } from '@/components/trial-ended';
 
 export default function AdminMembersPage() {
-    const { activeMembership, loading, isTrialActive } = useAuth();
+    const { activeMembership, loading } = useAuth();
     const router = useRouter();
 
     if (loading) {
@@ -34,17 +32,13 @@ export default function AdminMembersPage() {
     return (
         <div className="flex flex-col min-h-screen">
             <AppHeader />
-            {isTrialActive === false ? (
-                <TrialEnded />
-            ) : (
-                 <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-28 md:pb-8">
-                     <div className="w-full max-w-4xl">
-                        <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
-                        <AdminBottomNav />
-                        {activeMembership.gymId && <AdminUserManagement gymId={activeMembership.gymId} />}
-                     </div>
-                </main>
-            )}
+             <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pb-28 md:pb-8">
+                 <div className="w-full max-w-4xl">
+                    <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
+                    <AdminBottomNav />
+                    {activeMembership.gymId && <AdminUserManagement gymId={activeMembership.gymId} />}
+                 </div>
+            </main>
              <footer className="w-full text-center p-4 text-muted-foreground text-sm">
                 <p>&copy; {new Date().getFullYear()} Fitness Flow. All Rights Reserved.</p>
             </footer>
