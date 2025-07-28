@@ -67,16 +67,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return new Date() < gymProfile.trialEndsAt.toDate();
     }
     // Default to no access if conditions aren't met
-    return false;
+    return true; // Failsafe to grant access if trial status is uncertain
   }, [activeMembership, gymProfile]);
   
-  const handleSetUser = useCallback((user: User | null) => setUser(user), []);
-  const handleSetUserProfile = useCallback((profile: UserProfile | null) => setUserProfile(profile), []);
-  const handleSetActiveMembership = useCallback((membership: Membership | null) => setActiveMembership(membership), []);
-  const handleSetGymProfile = useCallback((gymProfile: GymProfile | null) => setGymProfile(gymProfile), []);
-  const handleSetLoading = useCallback((loading: boolean) => setLoading(loading), []);
-
-
   // Memoize the context value to prevent unnecessary re-renders in consumers
   const contextValue = useMemo(() => ({
     user,
@@ -85,12 +78,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     gymProfile,
     isTrialActive,
     loading,
-    setUser: handleSetUser,
-    setUserProfile: handleSetUserProfile,
-    setActiveMembership: handleSetActiveMembership,
-    setGymProfile: handleSetGymProfile,
-    setLoading: handleSetLoading,
-  }), [user, userProfile, activeMembership, gymProfile, isTrialActive, loading, handleSetUser, handleSetUserProfile, handleSetActiveMembership, handleSetGymProfile, handleSetLoading]);
+    setUser,
+    setUserProfile,
+    setActiveMembership,
+    setGymProfile,
+    setLoading,
+  }), [user, userProfile, activeMembership, gymProfile, isTrialActive, loading]);
 
   return (
     <AuthContext.Provider value={contextValue}>

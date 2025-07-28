@@ -1,58 +1,52 @@
 
 'use client';
 
-import { useEffect, ReactNode } from 'react';
+import { useEffect, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
 import type { UserProfile, GymProfile, Membership } from '@/contexts/auth-context';
 
 export function AuthProviderClient({ children }: { children: ReactNode }) {
-    const { 
-        user, 
-        _setUser, 
-        _setUserProfile, 
-        _setActiveMembership, 
-        _setGymProfile, 
-        _setLoading 
+    const {
+        setUser,
+        setUserProfile,
+        setActiveMembership,
+        setGymProfile,
+        setLoading,
+        user
     } = useAuth();
 
-    // Effect 1: Manages the raw Firebase Auth state.
-    // This is the entry point for our entire auth flow.
+    // Effect to handle the initial auth state change from Firebase
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (authUser) => {
-            _setUser(authUser);
+        const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
+            setLoading(true);
+            setUser(authUser); // This will trigger the data fetching effect
             if (!authUser) {
-                // If there's no user, we are done loading.
-                _setLoading(false);
+                setLoading(false);
             }
         });
-        
-        // Cleanup the subscription on component unmount
-        return () => unsubscribe();
+        return () => unsubscribeAuth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Run only once on mount
+    }, []); 
 
-    // Effect 2: Manages fetching and subscribing to user data from Firestore.
-    // This effect runs ONLY when the user's authentication state changes.
+    // This effect runs only when the user object changes (login/logout)
     useEffect(() => {
         if (!user) {
-            // User is logged out, clear all profile data.
-            _setUserProfile(null);
-            _setGymProfile(null);
-            _setActiveMembership(null);
+            // No user, clear all data and finish loading
+            setUserProfile(null);
+            setGymProfile(null);
+            setActiveMembership(null);
+            setLoading(false);
             return;
         }
-
-        // Start loading user-specific data.
-        _setLoading(true);
 
         const userProfileRef = doc(db, 'users', user.uid);
         const userUnsubscribe = onSnapshot(userProfileRef, (userDoc) => {
             if (userDoc.exists()) {
                 const profileData = userDoc.data() as UserProfile;
-                _setUserProfile(profileData);
+                setUserProfile(profileData);
 
                 if (profileData.gymId && profileData.role) {
                     const gymDocRef = doc(db, 'gyms', profileData.gymId);
@@ -60,8 +54,8 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
                     const gymUnsubscribe = onSnapshot(gymDocRef, (gymDocSnap) => {
                         if (gymDocSnap.exists()) {
                             const gymData = gymDocSnap.data() as Omit<GymProfile, 'id'>;
-                            _setGymProfile({ id: gymDocSnap.id, ...gymData });
-                            _setActiveMembership({
+                            setGymProfile({ id: gymDocSnap.id, ...gymData });
+                            setActiveMembership({
                                 id: `${user.uid}_${profileData.gymId}`,
                                 userId: user.uid,
                                 gymId: profileData.gymId,
@@ -72,39 +66,38 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
                             });
                         } else {
                             // Gym document was deleted or doesn't exist
-                            _setGymProfile(null);
-                            _setActiveMembership(null);
+                            setGymProfile(null);
+                            setActiveMembership(null);
                         }
-                        // We are done loading data for this user.
-                        _setLoading(false);
+                        setLoading(false);
                     });
-
+                    
                     // Return cleanup function for gym listener
                     return () => gymUnsubscribe();
 
                 } else {
                     // User exists but has no gym/role assigned
-                    _setGymProfile(null);
-                    _setActiveMembership(null);
-                    _setLoading(false);
+                    setGymProfile(null);
+                    setActiveMembership(null);
+                    setLoading(false);
                 }
             } else {
-                // User document doesn't exist in Firestore
-                _setUserProfile(null);
-                _setGymProfile(null);
-                _setActiveMembership(null);
-                _setLoading(false);
+                 // User document doesn't exist in Firestore
+                 setUserProfile(null);
+                 setGymProfile(null);
+                 setActiveMembership(null);
+                 setLoading(false);
             }
         }, (error) => {
             console.error("Error fetching user profile:", error);
-            _setLoading(false);
+            setLoading(false);
         });
 
         // Cleanup the user profile listener when the user object changes
         return () => userUnsubscribe();
         
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user]); // This effect ONLY depends on the user object.
+    }, [user]);
 
     return <>{children}</>;
 }
