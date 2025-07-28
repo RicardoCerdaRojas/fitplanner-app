@@ -1,7 +1,7 @@
 
 'use client';
 
-import { createContext, useContext, useState, ReactNode, useMemo } from 'react';
+import { createContext, useContext, useState, ReactNode, useMemo, useCallback } from 'react';
 import { type User } from 'firebase/auth';
 import { Timestamp } from 'firebase/firestore';
 
@@ -40,13 +40,11 @@ type AuthContextType = {
   gymProfile: GymProfile | null;
   isTrialActive: boolean;
   loading: boolean;
-  
-  // Expose setters directly for the provider to use
-  _setUser: (user: User | null) => void;
-  _setUserProfile: (profile: UserProfile | null) => void;
-  _setActiveMembership: (membership: Membership | null) => void;
-  _setGymProfile: (gymProfile: GymProfile | null) => void;
-  _setLoading: (loading: boolean) => void;
+  setUser: (user: User | null) => void;
+  setUserProfile: (profile: UserProfile | null) => void;
+  setActiveMembership: (membership: Membership | null) => void;
+  setGymProfile: (gymProfile: GymProfile | null) => void;
+  setLoading: (loading: boolean) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -71,6 +69,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Default to no access if conditions aren't met
     return false;
   }, [activeMembership, gymProfile]);
+  
+  const handleSetUser = useCallback((user: User | null) => setUser(user), []);
+  const handleSetUserProfile = useCallback((profile: UserProfile | null) => setUserProfile(profile), []);
+  const handleSetActiveMembership = useCallback((membership: Membership | null) => setActiveMembership(membership), []);
+  const handleSetGymProfile = useCallback((gymProfile: GymProfile | null) => setGymProfile(gymProfile), []);
+  const handleSetLoading = useCallback((loading: boolean) => setLoading(loading), []);
+
 
   // Memoize the context value to prevent unnecessary re-renders in consumers
   const contextValue = useMemo(() => ({
@@ -80,12 +85,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     gymProfile,
     isTrialActive,
     loading,
-    _setUser: setUser,
-    _setUserProfile: setUserProfile,
-    _setActiveMembership: setActiveMembership,
-    _setGymProfile: setGymProfile,
-    _setLoading: setLoading,
-  }), [user, userProfile, activeMembership, gymProfile, isTrialActive, loading]);
+    setUser: handleSetUser,
+    setUserProfile: handleSetUserProfile,
+    setActiveMembership: handleSetActiveMembership,
+    setGymProfile: handleSetGymProfile,
+    setLoading: handleSetLoading,
+  }), [user, userProfile, activeMembership, gymProfile, isTrialActive, loading, handleSetUser, handleSetUserProfile, handleSetActiveMembership, handleSetGymProfile, handleSetLoading]);
 
   return (
     <AuthContext.Provider value={contextValue}>
