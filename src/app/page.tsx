@@ -94,9 +94,9 @@ const Hero = () => {
 // --- SECCIÓN 2: LA SOLUCIÓN (RUTAS LOCALES) ---
 const Solution = () => {
      const features = [
-        { icon: Dumbbell, title: "Planificación Inteligente", visual: "https://placehold.co/1000x800.png" },
-        { icon: Zap, title: "Seguimiento que Inspira", visual: "https://placehold.co/1000x800.png" },
-        { icon: LineChart, title: "Resultados que Fidelizan", visual: "https://placehold.co/1000x800.png" }
+        { icon: Dumbbell, title: "Planificación Inteligente", visual: "https://placehold.co/1000x800.png", hint: "app screenshot" },
+        { icon: Zap, title: "Seguimiento que Inspira", visual: "https://placehold.co/1000x800.png", hint: "app screenshot" },
+        { icon: LineChart, title: "Resultados que Fidelizan", visual: "https://placehold.co/1000x800.png", hint: "app screenshot" }
     ];
     return(
         <Section id="solution" className="bg-[#050505]">
@@ -109,7 +109,7 @@ const Solution = () => {
                         <h3 className="text-3xl font-bold text-white mb-4">{feature.title}</h3>
                         {/* Descripción omitida por brevedad */}
                     </div>
-                    <div className="bg-gray-900/40 p-8 rounded-2xl border border-white/10 backdrop-blur-xl"><Image src={feature.visual} alt={feature.title} width={1000} height={800} data-ai-hint="app screenshot" className="rounded-lg" /></div>
+                    <div className="bg-gray-900/40 p-8 rounded-2xl border border-white/10 backdrop-blur-xl"><Image src={feature.visual} alt={feature.title} width={1000} height={800} data-ai-hint={feature.hint} className="rounded-lg" /></div>
                 </div>
             ))}
             </div>
