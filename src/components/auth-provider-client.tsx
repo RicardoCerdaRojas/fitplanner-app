@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useEffect, ReactNode, useCallback } from 'react';
+import { useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { doc, onSnapshot, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
 import type { UserProfile, GymProfile, Membership } from '@/contexts/auth-context';
@@ -18,7 +18,7 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
         user
     } = useAuth();
 
-    // This effect runs only when the user object changes (login/logout)
+    // Effect to listen to user document and gym document
     useEffect(() => {
         let userUnsubscribe: (() => void) | undefined;
         let gymUnsubscribe: (() => void) | undefined;
@@ -68,25 +68,24 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
         if (user) {
             setupListeners(user);
         } else {
-            // No user, clear all data
             setUserProfile(null);
             setGymProfile(null);
             setActiveMembership(null);
             setLoading(false);
         }
 
-        // Cleanup function
         return () => {
             if (userUnsubscribe) userUnsubscribe();
             if (gymUnsubscribe) gymUnsubscribe();
         };
     }, [user, setUserProfile, setGymProfile, setActiveMembership, setLoading]);
 
-    // This effect handles the initial auth state change from Firebase
+    // Effect for initial auth check
     useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
-            setLoading(true);
-            setUser(authUser); // This will trigger the above effect
+            // DO NOT set loading to true here. This is the source of the infinite loop.
+            // Loading is only true on the very first load, managed by AuthProvider itself.
+            setUser(authUser);
         });
         return () => unsubscribeAuth();
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { createContext, useContext, useState, ReactNode, useMemo } from 'react';
+import { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react';
 import { type User } from 'firebase/auth';
 import { Timestamp } from 'firebase/firestore';
 
@@ -50,6 +50,8 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  console.log("LOG 1: AuthProvider se está renderizando.");
+
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [activeMembership, setActiveMembership] = useState<Membership | null>(null);
@@ -60,19 +62,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // This removes the dependency on subscription status which caused the infinite loop.
   const isTrialActive = true; 
 
-  const contextValue = useMemo(() => ({
-    user,
-    userProfile,
-    activeMembership,
-    gymProfile,
-    loading,
-    isTrialActive,
-    setUser,
-    setUserProfile,
-    setActiveMembership,
-    setGymProfile,
-    setLoading,
-  }), [user, userProfile, activeMembership, gymProfile, loading, isTrialActive]);
+  const contextValue = useMemo(() => {
+    console.log("LOG 2: Recalculando el valor del contexto. Loading:", loading, "User:", !!user);
+    return {
+      user,
+      userProfile,
+      activeMembership,
+      gymProfile,
+      loading,
+      isTrialActive,
+      setUser,
+      setUserProfile,
+      setActiveMembership,
+      setGymProfile,
+      setLoading,
+    };
+  }, [user, userProfile, activeMembership, gymProfile, loading, isTrialActive]);
+
+  useEffect(() => {
+    console.log("LOG 3: AuthProvider se ha montado (useEffect una sola vez).");
+  }, []);
 
   return (
     <AuthContext.Provider value={contextValue}>
