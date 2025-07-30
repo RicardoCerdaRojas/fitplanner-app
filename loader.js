@@ -1,9 +1,11 @@
 'use client';
 
-// Este loader personalizado simplemente devuelve la ruta de la imagen original.
-// Es la forma más robusta de asegurar que las imágenes locales funcionen
-// tanto en el entorno de desarrollo como en producción con Firebase App Hosting,
-// que tiene su propio sistema de optimización de imágenes.
+// Official Firebase App Hosting Image Loader
+// https://firebase.google.com/docs/hosting/frameworks/nextjs#image-optimization
 export default function firebaseImageLoader({ src, width, quality }) {
-  return src;
+  const params = new URLSearchParams();
+  params.set('src', src);
+  params.set('w', width);
+  params.set('q', quality || 75);
+  return `/_fah/image/process?${params.toString()}`;
 }
