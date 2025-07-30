@@ -50,11 +50,36 @@ const AnalyticsDiorama = () => ( <div className="w-full h-full bg-gray-900/40 p-
 
 // --- SECCIÓN 1: EL HÉROE ---
 const Hero = () => {
-    const heroRef = useRef<HTMLDivElement | null>(null);
+    const heroRef = useRef<HTMLDivElement>(null);
     const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
     const appY = useTransform(scrollYProgress, [0, 1], ['0%', '150%']);
     const graphY = useTransform(scrollYProgress, [0, 1], ['0%', '75%']);
-    return ( <section ref={heroRef} className="relative h-[150vh]"><div className="sticky top-0 h-screen flex items-center overflow-hidden"><div className="absolute inset-0 -z-10 bg-black" /><div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_800px_at_75%_30%,#3b82f61a,transparent)]" /><div className="container mx-auto grid md:grid-cols-2 gap-8 items-center"><div className="relative z-10 text-left"><h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter text-white mb-6">Más Allá de la Gestión.<br/><span className="bg-gradient-to-r from-emerald-400 to-blue-400 text-transparent bg-clip-text">Hacia la Transformación.</span></h1><p className="max-w-xl text-lg md:text-xl text-gray-300 mb-8">FitPlanner es un ecosistema de lealtad. Convierte a tus miembros en tu comunidad más fiel a través de planificación inteligente, seguimiento en vivo y motivación personalizada.</p><div className="flex gap-4"><Button size="lg" className="bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-lg py-7 px-8" asChild><Link href="/create-gym">Comenzar Prueba Gratuita</Link></Button></div></div><div className="relative h-[600px] hidden md:block" style={{ perspective: '1000px' }}><motion.div style={{ transform: 'translateZ(0px) scale(1)' }} className="absolute inset-0 flex items-center justify-center"><DashboardPreview /></motion.div><motion.div style={{ y: graphY, transform: 'translateZ(200px) scale(0.8)' }} className="absolute inset-0 flex items-center justify-center"><GraphPreview /></motion.div><motion.div style={{ y: appY, transform: 'translateZ(400px) scale(0.6)' }} className="absolute inset-0 flex items-center justify-center"><AppPreview /></motion.div></div></div></div></section> );
+
+    useEffect(() => {
+        const handleMouseMove = (event: MouseEvent) => {
+            if (!heroRef.current) return;
+            const { clientX, clientY } = event;
+            heroRef.current.style.setProperty('--mouse-x', `${clientX}px`);
+            heroRef.current.style.setProperty('--mouse-y', `${clientY}px`);
+        };
+        const container = heroRef.current;
+        container?.addEventListener('mousemove', handleMouseMove);
+        return () => container?.removeEventListener('mousemove', handleMouseMove);
+    }, []);
+
+    return (
+        <section ref={heroRef} className="relative h-[150vh]">
+            <div className="sticky top-0 h-screen flex items-center overflow-hidden">
+                <div className="absolute inset-0 -z-20 bg-black" />
+                <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,#80808011_1px,transparent_1px),linear-gradient(to_bottom,#80808011_1px,transparent_1px)] bg-[size:3rem_3rem]"></div>
+                <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_400px_at_var(--mouse-x)_var(--mouse-y),rgba(29,78,216,0.15),transparent)] transition-all duration-300 ease-out"></div>
+                <div className="container mx-auto grid md:grid-cols-2 gap-8 items-center">
+                    <div className="relative z-10 text-left"><h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter text-white mb-6">Más Allá de la Gestión.<br/><span className="bg-gradient-to-r from-emerald-400 to-blue-400 text-transparent bg-clip-text">Hacia la Transformación.</span></h1><p className="max-w-xl text-lg md:text-xl text-gray-300 mb-8">FitPlanner es un ecosistema de lealtad. Convierte a tus miembros en tu comunidad más fiel a través de planificación inteligente, seguimiento en vivo y motivación personalizada.</p><div className="flex gap-4"><Button size="lg" className="bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-lg py-7 px-8" asChild><Link href="/create-gym">Comenzar Prueba Gratuita</Link></Button></div></div>
+                    <div className="relative h-[600px] hidden md:block" style={{ perspective: '1000px' }}><motion.div style={{ transform: 'translateZ(0px) scale(1)' }} className="absolute inset-0 flex items-center justify-center"><DashboardPreview /></motion.div><motion.div style={{ y: graphY, transform: 'translateZ(200px) scale(0.8)' }} className="absolute inset-0 flex items-center justify-center"><GraphPreview /></motion.div><motion.div style={{ y: appY, transform: 'translateZ(400px) scale(0.6)' }} className="absolute inset-0 flex items-center justify-center"><AppPreview /></motion.div></div>
+                </div>
+            </div>
+        </section>
+    );
 };
 
 // --- SECCIÓN 2: LA SOLUCIÓN ---
