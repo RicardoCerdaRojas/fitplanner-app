@@ -9,9 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@genkit-ai/firebase": "^1.15.5",
     "@genkit-ai/googleai": "^1.15.5",
     "@google/generative-ai": "^0.2.1",
     "@hookform/resolvers": "^3.3.4",
+    "@opentelemetry/exporter-jaeger": "^2.0.1",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-avatar": "^1.0.4",
@@ -40,7 +42,7 @@
     "date-fns": "^3.4.0",
     "dotenv": "^17.2.1",
     "embla-carousel-react": "^8.0.0-rc23",
-    "firebase": "^10.8.1",
+    "firebase": "^12.0.0",
     "firebase-admin": "^12.0.0",
     "framer-motion": "^11.0.8",
     "geist": "^1.2.2",
@@ -59,6 +61,7 @@
     "stripe": "^14.20.0",
     "tailwind-merge": "^2.2.1",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.1.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
