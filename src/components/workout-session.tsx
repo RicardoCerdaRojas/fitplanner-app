@@ -7,7 +7,7 @@ import { DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/compon
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video, CheckCircle2, Circle, Info } from 'lucide-react';
-import ReactPlayer from 'react-player/lazy';
+import ReactPlayer from 'react-player';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, Timestamp, getDoc } from 'firebase/firestore';

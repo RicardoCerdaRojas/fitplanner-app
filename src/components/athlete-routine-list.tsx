@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Calendar, ClipboardList, PlaySquare, Dumbbell, Repeat, Clock, Rocket, CheckCircle2, Info } from 'lucide-react';
 import { WorkoutSession } from './workout-session';
-import ReactPlayer from 'react-player/lazy';
+import ReactPlayer from 'react-player';
 import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
