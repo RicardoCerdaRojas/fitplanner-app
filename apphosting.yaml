@@ -1,7 +1,32 @@
-# Settings to manage and configure a Firebase App Hosting backend.
-# https://firebase.google.com/docs/app-hosting/configure
-
+# Settings for Backend (on Cloud Run).
+# See https://firebase.google.com/docs/app-hosting/configure#cloud-run
 runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
-  maxInstances: 1
+  minInstances: 0
+
+# Environment variables and secrets.
+# See https://firebase.google.com/docs/app-hosting/configure
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: ${firebase.apiKey}
+    availability:
+      - BUILD
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: ${firebase.authDomain}
+    availability:
+      - BUILD
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: ${firebase.projectId}
+    availability:
+      - BUILD
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: ${firebase.storageBucket}
+    availability:
+      - BUILD
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: ${firebase.messagingSenderId}
+    availability:
+      - BUILD
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: ${firebase.appId}
+    availability:
+      - BUILD
