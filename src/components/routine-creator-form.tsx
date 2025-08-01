@@ -188,120 +188,116 @@ function ExerciseSheet({
 
     return (
         <Sheet open={isOpen} onOpenChange={onOpenChange}>
-            <SheetContent side="bottom" className="rounded-t-lg">
-                <form onSubmit={handleSubmit(onSubmit)}>
-                    <SheetHeader className="text-left">
-                        <SheetTitle>Edit Exercise Details</SheetTitle>
-                        <SheetDescription>Make changes to your exercise here. Click save when you're done.</SheetDescription>
-                    </SheetHeader>
-                    <div className="space-y-4 py-4">
-                        <p className="font-semibold text-lg">{watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.name`)}</p>
-                        
-                        <FormField
-                            control={control}
-                            name={`blocks.${blockIndex}.exercises.${exerciseIndex}.description`}
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Description / Help</FormLabel>
-                                    <FormControl>
-                                        <Textarea {...field} placeholder="e.g., Keep your back straight, chest up." />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        
-                        <div className="p-4 rounded-lg bg-muted">
-                            <div className="flex items-center justify-between">
-                                <Label className={repType === 'reps' ? 'font-bold' : ''}>Reps</Label>
-                                <FormField
-                                    control={control}
-                                    name={`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`}
-                                    render={({ field }) => (
-                                       <Switch
-                                            checked={field.value === 'duration'}
-                                            onCheckedChange={(checked) => field.onChange(checked ? 'duration' : 'reps')}
-                                        />
-                                    )}
-                                />
-                                <Label className={repType === 'duration' ? 'font-bold' : ''}>Duration</Label>
-                            </div>
-                        </div>
-
-                        {repType === 'reps' ? (
+            <form onSubmit={handleSubmit(onSubmit)}>
+                <SheetHeader className="text-left">
+                    <SheetTitle>Edit Exercise Details</SheetTitle>
+                    <SheetDescription>Make changes to your exercise here. Click save when you're done.</SheetDescription>
+                </SheetHeader>
+                <div className="space-y-4 py-4">
+                    <p className="font-semibold text-lg">{watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.name`)}</p>
+                    
+                    <FormField
+                        control={control}
+                        name={`blocks.${blockIndex}.exercises.${exerciseIndex}.description`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Description / Help</FormLabel>
+                                <FormControl>
+                                    <Textarea {...field} placeholder="e.g., Keep your back straight, chest up." />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    
+                    <div className="p-4 rounded-lg bg-muted">
+                        <div className="flex items-center justify-between">
+                            <Label className={repType === 'reps' ? 'font-bold' : ''}>Reps</Label>
                             <FormField
                                 control={control}
-                                name={`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`}
+                                name={`blocks.${blockIndex}.exercises.${exerciseIndex}.repType`}
                                 render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Reps</FormLabel>
-                                        <FormControl>
-                                            <Input {...field} placeholder="e.g., 8-12" />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
+                                   <Switch
+                                        checked={field.value === 'duration'}
+                                        onCheckedChange={(checked) => field.onChange(checked ? 'duration' : 'reps')}
+                                    />
                                 )}
                             />
-                        ) : (
-                             <FormField
-                                control={control}
-                                name={`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`}
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Duration (e.g., 30s, 1m)</FormLabel>
-                                        <FormControl>
-                                            <Input {...field} placeholder="e.g., 30s" />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        )}
+                            <Label className={repType === 'duration' ? 'font-bold' : ''}>Duration</Label>
+                        </div>
+                    </div>
+
+                    {repType === 'reps' ? (
                         <FormField
                             control={control}
-                            name={`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`}
+                            name={`blocks.${blockIndex}.exercises.${exerciseIndex}.reps`}
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Weight (kg or text)</FormLabel>
+                                    <FormLabel>Reps</FormLabel>
                                     <FormControl>
-                                        <Input {...field} placeholder="e.g., 50kg, Bodyweight" />
+                                        <Input {...field} placeholder="e.g., 8-12" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
+                    ) : (
                          <FormField
                             control={control}
-                            name={`blocks.${blockIndex}.exercises.${exerciseIndex}.videoUrl`}
+                            name={`blocks.${blockIndex}.exercises.${exerciseIndex}.duration`}
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Example Video URL</FormLabel>
+                                    <FormLabel>Duration (e.g., 30s, 1m)</FormLabel>
                                     <FormControl>
-                                        <Input {...field} placeholder="https://youtube.com/..." />
+                                        <Input {...field} placeholder="e.g., 30s" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
-                    </div>
-                    <SheetFooter>
-                        <Button type="submit">Save Changes</Button>
-                    </SheetFooter>
-                </form>
-            </SheetContent>
+                    )}
+                    <FormField
+                        control={control}
+                        name={`blocks.${blockIndex}.exercises.${exerciseIndex}.weight`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Weight (kg or text)</FormLabel>
+                                <FormControl>
+                                    <Input {...field} placeholder="e.g., 50kg, Bodyweight" />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={control}
+                        name={`blocks.${blockIndex}.exercises.${exerciseIndex}.videoUrl`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Example Video URL</FormLabel>
+                                <FormControl>
+                                    <Input {...field} placeholder="https://youtube.com/..." />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+                <SheetFooter>
+                    <Button type="submit">Save Changes</Button>
+                </SheetFooter>
+            </form>
         </Sheet>
     );
 }
 
-function RoutineDetailsSection({ members, routineTypes }: { members: Member[], routineTypes: RoutineType[] }) {
-    const { control } = useFormContext<RoutineFormValues>();
+function RoutineDetailsSection({ form, members, routineTypes }: { form: any, members: Member[], routineTypes: RoutineType[] }) {
+    const { control, setValue } = form;
     const [calendarOpen, setCalendarOpen] = React.useState(false);
 
     const handleDateSelect = (date: Date | undefined) => {
-        if(date) {
-            control.setValue('details.routineDate', date, { shouldValidate: true, shouldDirty: true });
-        }
         if (date) {
+            setValue('details.routineDate', date, { shouldValidate: true, shouldDirty: true });
             setCalendarOpen(false);
         }
     }
@@ -481,7 +477,8 @@ export function RoutineCreatorForm({
     onFormSubmit: () => void,
     isTemplateMode: boolean
 }) {
-    const { control, getValues } = useFormContext<RoutineFormValues>();
+    const form = useFormContext<RoutineFormValues>();
+    const { control, getValues } = form;
     const { fields, append, remove, insert } = useFieldArray({
         control,
         name: "blocks",
@@ -505,7 +502,7 @@ export function RoutineCreatorForm({
                 </TabsList>
                 
                 <TabsContent value="details" className="flex-grow p-4 md:p-6 overflow-y-auto pb-24">
-                    <RoutineDetailsSection members={members} routineTypes={routineTypes} />
+                    <RoutineDetailsSection form={form} members={members} routineTypes={routineTypes} />
                 </TabsContent>
 
                 <TabsContent value="blocks" className="flex-grow bg-muted/30 p-4 md:p-6 overflow-y-auto pb-24">

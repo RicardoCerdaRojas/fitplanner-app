@@ -23,37 +23,27 @@ const parseRoutineToJSON = (text: string): Block[] => {
   const lines = text.split('\n').filter(line => line.trim().length > 0);
   const blocks: Block[] = [];
   let currentBlock: Block | null = null;
-  let currentExercise: Exercise | null = null;
 
   lines.forEach(line => {
     line = line.trim();
     if (line.match(/^\*\*.+\*\*$/)) { // Block name
       if (currentBlock) {
-        if (currentExercise) {
-          currentBlock.exercises.push(currentExercise);
-        }
         blocks.push(currentBlock);
       }
       currentBlock = { name: line.replace(/\*\*/g, ''), exercises: [] };
-      currentExercise = null;
     } else if (line.match(/^\*.+\*$/)) { // Exercise name
       if (currentBlock) {
-        if (currentExercise) {
-          currentBlock.exercises.push(currentExercise);
-        }
-        currentExercise = { name: line.replace(/\*/g, ''), details: [] };
+        const newExercise: Exercise = { name: line.replace(/\*/g, ''), details: [] };
+        currentBlock.exercises.push(newExercise);
       }
     } else if (line.startsWith('- ')) { // Detail
-      if (currentExercise) {
-        currentExercise.details.push(line.substring(2));
+      if (currentBlock && currentBlock.exercises.length > 0) {
+        currentBlock.exercises[currentBlock.exercises.length - 1].details.push(line.substring(2).trim());
       }
     }
   });
 
   if (currentBlock) {
-    if (currentExercise) {
-      currentBlock.exercises.push(currentExercise);
-    }
     blocks.push(currentBlock);
   }
 

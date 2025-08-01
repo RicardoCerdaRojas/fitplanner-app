@@ -332,6 +332,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                                 height="100%"
                                 config={{
                                     youtube: {
+                                        // @ts-ignore
                                         playerVars: {
                                             autoplay: 1,
                                             mute: 1,

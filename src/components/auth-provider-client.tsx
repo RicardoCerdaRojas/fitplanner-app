@@ -30,17 +30,24 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
                     const profileData = userDoc.data() as UserProfile;
                     setUserProfile(profileData);
 
+                    // Check if gymId and role exist on the profile
                     if (profileData.gymId && profileData.role) {
-                        const gymDocRef = doc(db, 'gyms', profileData.gymId);
+                        // Capture the validated values in constants to preserve their types
+                        const validatedGymId = profileData.gymId;
+                        const validatedRole = profileData.role;
+
+                        const gymDocRef = doc(db, 'gyms', validatedGymId);
                         gymUnsubscribe = onSnapshot(gymDocRef, (gymDocSnap) => {
                             if (gymDocSnap.exists()) {
                                 const gymData = gymDocSnap.data() as Omit<GymProfile, 'id'>;
                                 setGymProfile({ id: gymDocSnap.id, ...gymData });
+                                
+                                // Now use the validated constants, which TypeScript knows are strings
                                 setActiveMembership({
-                                    id: `${authUser.uid}_${profileData.gymId}`,
+                                    id: `${authUser.uid}_${validatedGymId}`,
                                     userId: authUser.uid,
-                                    gymId: profileData.gymId,
-                                    role: profileData.role,
+                                    gymId: validatedGymId,
+                                    role: validatedRole,
                                     userName: profileData.name,
                                     gymName: gymData.name,
                                     status: 'active',
@@ -52,11 +59,13 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
                             setLoading(false);
                         });
                     } else {
+                        // If user has no gymId or role, they have no active membership
                         setGymProfile(null);
                         setActiveMembership(null);
                         setLoading(false);
                     }
                 } else {
+                    // If user profile doesn't exist
                     setUserProfile(null);
                     setGymProfile(null);
                     setActiveMembership(null);
@@ -68,12 +77,14 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
         if (user) {
             setupListeners(user);
         } else {
+            // If no authenticated user
             setUserProfile(null);
             setGymProfile(null);
             setActiveMembership(null);
             setLoading(false);
         }
 
+        // Cleanup listeners on unmount or when user changes
         return () => {
             if (userUnsubscribe) userUnsubscribe();
             if (gymUnsubscribe) gymUnsubscribe();
@@ -83,8 +94,6 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
     // Effect for initial auth check
     useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
-            // DO NOT set loading to true here. This is the source of the infinite loop.
-            // Loading is only true on the very first load, managed by AuthProvider itself.
             setUser(authUser);
         });
         return () => unsubscribeAuth();

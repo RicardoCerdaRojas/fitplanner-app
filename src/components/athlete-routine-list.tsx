@@ -113,6 +113,7 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
                     height="100%"
                     config={{
                         youtube: {
+                            // @ts-ignore 
                             playerVars: {
                                 autoplay: 1,
                                 mute: 1,
@@ -150,7 +151,7 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
                     block.exercises.forEach((_, eIndex) => {
                         for (let sIndex = 0; sIndex < setsInBlock; sIndex++) {
                             const key = `${bIndex}-${eIndex}-${sIndex}`;
-                            if (routine.progress[key]?.completed) {
+                            if (routine.progress && routine.progress[key]?.completed) {
                                 completedSets++;
                             }
                         }
@@ -210,7 +211,7 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
                                 if (routine.progress) {
                                     for (let i = 0; i < totalSetsInBlock; i++) {
                                         const setKey = `${blockIndex}-${exIndex}-${i}`;
-                                        if (routine.progress[setKey]?.completed) {
+                                        if (routine.progress && routine.progress[setKey]?.completed) {
                                             completedSetsForExercise++;
                                         }
                                     }
@@ -261,7 +262,7 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
                                                 </div>
                                             )}
                                             {exercise.videoUrl && (
-                                                <Button variant="ghost" size="icon" className="w-8 h-8 shrink-0" onClick={() => setVideoUrl(exercise.videoUrl)}>
+                                                <Button variant="ghost" size="icon" className="w-8 h-8 shrink-0" onClick={() => { if (exercise.videoUrl) setVideoUrl(exercise.videoUrl); }}>
                                                     <span className="sr-only">Watch video for {exercise.name}</span>
                                                     <PlaySquare className="w-5 h-5" />
                                                 </Button>

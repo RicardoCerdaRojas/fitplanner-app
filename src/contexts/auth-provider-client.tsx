@@ -6,18 +6,19 @@ import { onAuthStateChanged, type User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
-import type { UserProfile, GymProfile } from '@/contexts/auth-context';
+import type { UserProfile, GymProfile, Membership } from '@/contexts/auth-context';
 
 export function AuthProviderClient({ children }: { children: ReactNode }) {
     const {
-        user,
         setUser,
         setUserProfile,
         setActiveMembership,
         setGymProfile,
         setLoading,
+        user
     } = useAuth();
 
+    // Effect for initial auth check
     useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
             setUser(authUser);
@@ -26,8 +27,10 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
             }
         });
         return () => unsubscribeAuth();
-    }, [setUser, setLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); 
 
+    // Effect to listen to user document and gym document
     useEffect(() => {
         if (!user) {
             setUserProfile(null);
@@ -37,59 +40,59 @@ export function AuthProviderClient({ children }: { children: ReactNode }) {
             return;
         }
 
-        setLoading(true);
         const userProfileRef = doc(db, 'users', user.uid);
-
         const userUnsubscribe = onSnapshot(userProfileRef, (userDoc) => {
-            let gymUnsubscribe: (() => void) | undefined;
-
             if (userDoc.exists()) {
                 const profileData = userDoc.data() as UserProfile;
                 setUserProfile(profileData);
 
+                // Check if gymId and role exist on the profile
                 if (profileData.gymId && profileData.role) {
-                    const gymDocRef = doc(db, 'gyms', profileData.gymId);
-                    gymUnsubscribe = onSnapshot(gymDocRef, (gymDocSnap) => {
+                    // Capture the validated values in constants to preserve their types
+                    const validatedGymId = profileData.gymId;
+                    const validatedRole = profileData.role;
+
+                    const gymDocRef = doc(db, 'gyms', validatedGymId);
+                    const gymUnsubscribe = onSnapshot(gymDocRef, (gymDocSnap) => {
                         if (gymDocSnap.exists()) {
                             const gymData = gymDocSnap.data() as Omit<GymProfile, 'id'>;
                             setGymProfile({ id: gymDocSnap.id, ...gymData });
+                            
+                            // Now use the validated constants, which TypeScript knows are strings
                             setActiveMembership({
-                                id: `${user.uid}_${profileData.gymId}`,
+                                id: `${user.uid}_${validatedGymId}`,
                                 userId: user.uid,
-                                gymId: profileData.gymId,
-                                role: profileData.role,
+                                gymId: validatedGymId,
+                                role: validatedRole,
                                 userName: profileData.name,
                                 gymName: gymData.name,
                                 status: 'active',
                             });
                         } else {
+                            // The user's gym doesn't exist.
                             setGymProfile(null);
                             setActiveMembership(null);
                         }
                         setLoading(false);
                     });
+                    return () => gymUnsubscribe();
                 } else {
+                    // User has no gym or role assigned.
                     setGymProfile(null);
                     setActiveMembership(null);
                     setLoading(false);
                 }
             } else {
+                // User profile does not exist.
                 setUserProfile(null);
                 setGymProfile(null);
                 setActiveMembership(null);
                 setLoading(false);
             }
-
-            return () => {
-                if (gymUnsubscribe) gymUnsubscribe();
-            };
-        }, (error) => {
-            console.error("Error fetching user profile:", error);
-            setLoading(false);
         });
 
         return () => userUnsubscribe();
-    }, [user, setUserProfile, setGymProfile, setActiveMembership, setLoading]);
+    }, [user, setUser, setUserProfile, setGymProfile, setActiveMembership, setLoading]);
 
     return <>{children}</>;
 }

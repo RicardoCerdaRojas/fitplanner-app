@@ -42,25 +42,25 @@ export function AIWorkoutGenerator({ onRoutineGenerated }: AIWorkoutGeneratorPro
       fitnessLevel: undefined,
       goals: '',
     },
-    mode: 'onChange' // Important for real-time validation
+    mode: 'onChange'
   });
 
   const { fitnessLevel, goals } = form.watch();
 
   function calculateAge(dob: Date | undefined): number {
-    if (!dob) return 30; // Default age if not available for any reason
+    if (!dob) return 30;
     const today = new Date();
     let age = today.getFullYear() - dob.getFullYear();
     const m = today.getMonth() - dob.getMonth();
     if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-        age--;
+      age--;
     }
     return age;
   }
 
   async function onSubmit(values: FormValues) {
     setIsLoading(true);
-    onRoutineGenerated(null); // Clear previous routine
+    onRoutineGenerated(null);
 
     const dobDate = userProfile?.dob?.toDate();
     const age = calculateAge(dobDate);
@@ -75,7 +75,7 @@ export function AIWorkoutGenerator({ onRoutineGenerated }: AIWorkoutGeneratorPro
     setIsLoading(false);
 
     if (result.success && result.data) {
-       if (result.data.routine.trim() === '') {
+      if (result.data.routine.trim() === '') {
         toast({
           variant: 'destructive',
           title: 'Request out of scope',
@@ -86,7 +86,31 @@ export function AIWorkoutGenerator({ onRoutineGenerated }: AIWorkoutGeneratorPro
         onRoutineGenerated(result.data);
       }
     } else {
-      const errorMessage = result.error?._errors?.join(', ') || 'An unexpected error occurred.';
+      const error = result.error;
+      let errorMessage = 'An unexpected error occurred.';
+
+      if (error && typeof error === 'object') {
+        const errorObject = error as { [key: string]: any; _errors?: string[] };
+        if (errorObject._errors && errorObject._errors.length > 0) {
+          errorMessage = errorObject._errors.join(', ');
+        } else {
+          const fieldErrors = Object.keys(errorObject)
+            .map(key => {
+              const field = errorObject[key];
+              if (field && field._errors && Array.isArray(field._errors)) {
+                return field._errors.join(', ');
+              }
+              return null;
+            })
+            .filter(Boolean)
+            .join('; ');
+          
+          if (fieldErrors) {
+            errorMessage = fieldErrors;
+          }
+        }
+      }
+      
       toast({
         variant: 'destructive',
         title: 'Uh oh! Something went wrong.',
@@ -97,9 +121,8 @@ export function AIWorkoutGenerator({ onRoutineGenerated }: AIWorkoutGeneratorPro
 
   const handlePresetClick = (goal: string) => {
     form.setValue('goals', goal, { shouldValidate: true });
-    // Use timeout to ensure the value is set before triggering validation
     setTimeout(() => {
-        form.handleSubmit(onSubmit)();
+      form.handleSubmit(onSubmit)();
     }, 0);
   };
 
