@@ -261,7 +261,7 @@ export default function StatsPage() {
                  <Card>
                     <CardHeader>
                         <CardTitle>Difficulty Breakdown</CardTitle>
-                        <CardDescription>How you've rated your completed sets.</CardDescription>
+                        <CardDescription>How you&apos;ve rated your completed sets.</CardDescription>
                     </CardHeader>
                     <CardContent className="flex items-center justify-center">
                        <ChartContainer config={chartConfig} className="h-[300px] w-full">

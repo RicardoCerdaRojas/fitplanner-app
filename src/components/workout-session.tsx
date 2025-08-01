@@ -212,7 +212,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
             const currentItem = sessionPlaylist[currentIndex];
             if (!currentItem) return;
 
-            const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
+            const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${item.setIndex}`;
             const docSnapshot = await getDoc(sessionDocRef);
 
             const sessionData = {
@@ -249,16 +249,17 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         };
     }, [sessionDocRef, user, userProfile, routine, sessionPlaylist, currentIndex, progress]);
 
-
-    const handleSessionEnd = () => {
-        onSessionEnd();
-    };
-
     const currentItem = sessionPlaylist[currentIndex];
-    if (!currentItem) {
-        useEffect(() => {
+
+    // Effect to end session if playlist is exhausted
+    useEffect(() => {
+        if (!currentItem) {
             onSessionEnd();
-        }, [onSessionEnd]);
+        }
+    }, [currentItem, onSessionEnd]);
+    
+    // Return early if there's no item. This is now safe as all hooks are called.
+    if (!currentItem) {
         return null;
     }
 

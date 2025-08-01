@@ -116,7 +116,7 @@ export default function LiveActivityPage() {
                         <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg mt-8">
                             <Activity className="w-16 h-16 text-muted-foreground mb-4" />
                             <h3 className="text-xl font-semibold">No Active Workouts</h3>
-                            <p className="text-muted-foreground">It's quiet in here... No athletes are currently in a workout session.</p>
+                            <p className="text-muted-foreground">It&apos;s quiet in here... No athletes are currently in a workout session.</p>
                         </div>
                     )}
                 </div>

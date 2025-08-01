@@ -173,7 +173,7 @@ export default function GymSettingsPage() {
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><Palette /> Color Theme</CardTitle>
-                                <CardDescription>Select a color theme for the app's light mode.</CardDescription>
+                                <CardDescription>Select a color theme for the app&apos;s light mode.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <FormField
