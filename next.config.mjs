@@ -1,3 +1,4 @@
+
 /** @type {import('next').NextConfig} */
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -9,6 +10,12 @@ const nextConfig = {
   images: {
     loader: isProduction ? 'custom' : 'default',
     loaderFile: isProduction ? './loader.js' : undefined,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+      },
+    ],
   },
 };
 
