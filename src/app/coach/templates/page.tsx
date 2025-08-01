@@ -116,7 +116,7 @@ export default function TemplatesPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This will permanently delete the template "{templateToDelete?.templateName}". This action cannot be undone.
+                            This will permanently delete the template &quot;{templateToDelete?.templateName}&quot;. This action cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

@@ -48,7 +48,7 @@ export default function CreateGymPage() {
                     <Building className="w-8 h-8 text-emerald-400" />
                     <CardTitle className="text-3xl font-headline text-white">Set Up Your Gym</CardTitle>
                 </div>
-            <CardDescription className="text-gray-400">Let's get your gym or business registered on Fit Planner.</CardDescription>
+            <CardDescription className="text-gray-400">Let&apos;s get your gym or business registered on Fit Planner.</CardDescription>
             </CardHeader>
             <CardContent>
                 <CreateGymForm />

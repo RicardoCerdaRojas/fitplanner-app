@@ -290,7 +290,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         if (currentIndex < sessionPlaylist.length - 1) {
             setCurrentIndex(currentIndex + 1);
         } else {
-            handleSessionEnd();
+            onSessionEnd();
         }
     };
     

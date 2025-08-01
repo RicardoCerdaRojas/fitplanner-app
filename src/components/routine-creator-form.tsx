@@ -191,7 +191,7 @@ function ExerciseSheet({
             <form onSubmit={handleSubmit(onSubmit)}>
                 <SheetHeader className="text-left">
                     <SheetTitle>Edit Exercise Details</SheetTitle>
-                    <SheetDescription>Make changes to your exercise here. Click save when you're done.</SheetDescription>
+                    <SheetDescription>Make changes to your exercise here. Click save when you&apos;re done.</SheetDescription>
                 </SheetHeader>
                 <div className="space-y-4 py-4">
                     <p className="font-semibold text-lg">{watch(`blocks.${blockIndex}.exercises.${exerciseIndex}.name`)}</p>
@@ -426,7 +426,7 @@ function BlockItem({
                     <DialogHeader>
                         <DialogTitle>Block Actions</DialogTitle>
                         <DialogDescription>
-                            Perform actions on the "{block.name}" block.
+                            Perform actions on the &quot;{block.name}&quot; block.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex flex-col gap-2 py-4">
