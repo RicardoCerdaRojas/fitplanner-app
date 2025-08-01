@@ -59,8 +59,7 @@ function MemberDashboard() {
         <AppHeader />
         <div className="w-full max-w-4xl">
           <AthleteNav />
-          <h1 className="text-3xl font-bold font-headline mb-4">Tus Rutinas</h1>
-          <p className="text-muted-foreground mb-6">Estas son las rutinas recientes y futuras asignadas por tu coach.</p>
+          <h1 className="text-3xl font-bold font-headline mb-8">Tus Rutinas</h1>
           {loading ? (
             <div className="space-y-4">
               <Skeleton className="h-24 w-full" />
