@@ -1,35 +1,45 @@
-"use server";
+'use server';
 
-import { generateWorkoutRoutine, type GenerateWorkoutRoutineInput } from "@/ai/flows/generate-workout-routine";
-import { z } from "zod";
+import { db } from '@/lib/firebase';
+import { collection, doc, getDoc, query, where, getDocs } from 'firebase/firestore';
+import { z } from 'zod';
 
-const inputSchema = z.object({
-  fitnessLevel: z.enum(['beginner', 'intermediate', 'advanced']),
-  goals: z.string().min(10, "Please describe your goals in more detail."),
-  availableEquipment: z.string().min(3, "Please list your available equipment."),
-  age: z.number().positive(),
-});
+const emailSchema = z.string().email();
 
-export async function generateRoutineAction(values: GenerateWorkoutRoutineInput) {
-  const validatedInput = inputSchema.safeParse(values);
-  if (!validatedInput.success) {
-    return {
-      success: false,
-      error: validatedInput.error.flatten().fieldErrors,
-    };
+export async function checkMemberStatus(email: string) {
+  const validation = emailSchema.safeParse(email);
+  if (!validation.success) {
+    return { status: 'INVALID_EMAIL_FORMAT' };
   }
 
+  const lowercasedEmail = email.toLowerCase();
+
   try {
-    const result = await generateWorkoutRoutine(validatedInput.data);
-    return {
-      success: true,
-      data: result,
-    };
+    // 1. Check for a pending invitation
+    const membershipRef = doc(db, 'memberships', `PENDING_${lowercasedEmail}`);
+    const membershipSnap = await getDoc(membershipRef);
+
+    if (membershipSnap.exists() && membershipSnap.data().status === 'pending') {
+      return {
+        status: 'INVITED',
+        gymName: membershipSnap.data().gymName || 'your gym',
+      };
+    }
+
+    // 2. If no invitation, check if user is already registered
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("email", "==", lowercasedEmail));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      return { status: 'REGISTERED' };
+    }
+
+    // 3. If neither, the user is not found
+    return { status: 'NOT_FOUND' };
+
   } catch (error) {
-    console.error(error);
-    return {
-      success: false,
-      error: { _errors: ["An unexpected error occurred while generating the routine. Please try again."] },
-    };
+    console.error("Error in checkMemberStatus:", error);
+    return { status: 'ERROR', message: 'An unexpected error occurred.' };
   }
 }

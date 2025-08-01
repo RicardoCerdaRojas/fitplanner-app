@@ -33,9 +33,14 @@ const Header = () => (
                 <Link href="#pricing" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">Precios</Link>
                 <Link href="#testimonials" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">Testimonios</Link>
             </nav>
-            <Link href="/create-gym" className={cn(buttonVariants({}), "bg-emerald-400 text-black hover:bg-emerald-500 font-semibold")}>
-                Comenzar Prueba
-            </Link>
+            <div className="flex items-center gap-4">
+                <Link href="/login" className={cn(buttonVariants({ variant: "ghost" }), "text-white hover:bg-white/10 font-semibold")}>
+                    Ingresar
+                </Link>
+                <Link href="/create-gym" className={cn(buttonVariants({}), "bg-emerald-400 text-black hover:bg-emerald-500 font-semibold")}>
+                    Comenzar Prueba
+                </Link>
+            </div>
         </div>
     </header>
 );
