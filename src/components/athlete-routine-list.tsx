@@ -82,7 +82,7 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
       });
     } catch (error) {
       console.error("Error updating progress:", error);
-      toast({ variant: "destructive", title: "Update Failed", description: "Could not save your progress." });
+      toast({ variant: "destructive", title: "Error al Actualizar", description: "No se pudo guardar tu progreso." });
     }
   };
 
@@ -90,8 +90,8 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg">
         <ClipboardList className="w-12 h-12 text-muted-foreground mb-4" />
-        <h3 className="text-xl font-semibold">No Routines... Yet!</h3>
-        <p className="text-muted-foreground">Your coach has not assigned any routines to you. Check back later!</p>
+        <h3 className="text-xl font-semibold">No Hay Rutinas... ¡Aún!</h3>
+        <p className="text-muted-foreground">Tu entrenador no te ha asignado ninguna rutina. ¡Vuelve más tarde!</p>
       </div>
     );
   }
@@ -101,7 +101,7 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
       <Dialog open={!!videoUrl} onOpenChange={(isOpen) => !isOpen && setVideoUrl(null)}>
         <DialogContent className="max-w-3xl p-4">
           <DialogHeader>
-            <DialogTitle>Exercise Example</DialogTitle>
+            <DialogTitle>Ejemplo de Ejercicio</DialogTitle>
           </DialogHeader>
           {videoUrl && (
             <div className="w-full aspect-video bg-black rounded-lg overflow-hidden">
@@ -170,7 +170,7 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
                   <div className="flex items-center gap-4">
                       <Calendar className="w-5 h-5 text-muted-foreground"/>
                       <div className="flex flex-col items-start text-left">
-                        <span className="text-lg font-bold font-headline">{routine.routineTypeName || 'Untitled Routine'}</span>
+                        <span className="text-lg font-bold font-headline">{routine.routineTypeName || 'Rutina Sin Título'}</span>
                         <span className="text-sm text-muted-foreground">{format(routine.routineDate, 'PPP')}</span>
                       </div>
                   </div>
@@ -179,7 +179,7 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
                     {isCompleted ? (
                         <Badge variant="outline" className="font-semibold border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400">
                             <CheckCircle2 className="w-4 h-4 mr-1.5"/>
-                            Completed
+                            Completada
                         </Badge>
                     ) : (
                         <div className="flex items-center gap-2 w-28">
@@ -194,7 +194,7 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
                <div className="flex flex-col gap-4 pt-4 border-t">
                   {!isCompleted && (
                     <Button onClick={() => setSessionRoutine(routine)} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold">
-                        <Rocket className="w-4 h-4 mr-2" /> Start Workout Session
+                        <Rocket className="w-4 h-4 mr-2" /> Iniciar Sesión de Entrenamiento
                     </Button>
                   )}
                   <div className="space-y-4 pt-4">
@@ -238,32 +238,32 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
                                             </div>
                                             <div className="flex items-center gap-2 mt-1">
                                                 <Progress value={exerciseProgressPercentage} className="h-1 w-20" />
-                                                <span className="text-xs font-medium text-muted-foreground">{completedSetsForExercise}/{totalSetsInBlock} sets</span>
+                                                <span className="text-xs font-medium text-muted-foreground">{completedSetsForExercise}/{totalSetsInBlock} series</span>
                                             </div>
                                         </div>
 
                                         <div className="flex items-center gap-x-4 gap-y-2 text-sm text-muted-foreground flex-wrap justify-end">
                                             {exercise.repType === 'reps' && exercise.reps && (
-                                                <div className="flex items-center gap-1.5" title="Reps">
+                                                <div className="flex items-center gap-1.5" title="Repeticiones">
                                                     <Repeat className="w-4 h-4 text-primary" />
                                                     <span className="font-medium text-foreground">{exercise.reps}</span>
                                                 </div>
                                             )}
                                             {exercise.repType === 'duration' && exercise.duration && (
-                                                <div className="flex items-center gap-1.5" title="Duration">
+                                                <div className="flex items-center gap-1.5" title="Duración">
                                                     <Clock className="w-4 h-4 text-primary" />
                                                     <span className="font-medium text-foreground">{exercise.duration}</span>
                                                 </div>
                                             )}
                                             {exercise.weight && (
-                                                <div className="flex items-center gap-1.5" title="Weight">
+                                                <div className="flex items-center gap-1.5" title="Peso">
                                                     <Dumbbell className="w-4 h-4 text-primary" />
                                                     <span className="font-medium text-foreground">{exercise.weight}</span>
                                                 </div>
                                             )}
                                             {exercise.videoUrl && (
                                                 <Button variant="ghost" size="icon" className="w-8 h-8 shrink-0" onClick={() => { if (exercise.videoUrl) setVideoUrl(exercise.videoUrl); }}>
-                                                    <span className="sr-only">Watch video for {exercise.name}</span>
+                                                    <span className="sr-only">Ver video de {exercise.name}</span>
                                                     <PlaySquare className="w-5 h-5" />
                                                 </Button>
                                             )}

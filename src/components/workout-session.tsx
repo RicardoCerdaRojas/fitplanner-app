@@ -103,7 +103,7 @@ const Timer = ({ durationString, isCurrent }: { durationString: string; isCurren
         if (phase === 'countdown') {
             return (
                 <>
-                    <p className="text-2xl font-semibold text-muted-foreground mb-2">Get Ready!</p>
+                    <p className="text-2xl font-semibold text-muted-foreground mb-2">¡Prepárate!</p>
                     <div className="text-9xl font-bold font-mono text-accent tabular-nums">
                         {countdown}
                     </div>
@@ -124,11 +124,11 @@ const Timer = ({ durationString, isCurrent }: { durationString: string; isCurren
 
     const getButtonProps = () => {
         switch(phase) {
-            case 'idle': return { text: 'Start', icon: <Play className="mr-2 h-6 w-6" />, disabled: false, variant: 'default' as const };
-            case 'countdown': return { text: 'Starting...', icon: <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-current mr-2"></div>, disabled: true, variant: 'default' as const };
-            case 'running': return { text: 'Pause', icon: <Pause className="mr-2 h-6 w-6" />, disabled: false, variant: 'outline' as const };
-            case 'paused': return { text: 'Resume', icon: <Play className="mr-2 h-6 w-6" />, disabled: false, variant: 'default' as const };
-            case 'finished': return { text: 'Done!', icon: <CheckCircle2 className="mr-2 h-6 w-6" />, disabled: true, variant: 'default' as const };
+            case 'idle': return { text: 'Iniciar', icon: <Play className="mr-2 h-6 w-6" />, disabled: false, variant: 'default' as const };
+            case 'countdown': return { text: 'Iniciando...', icon: <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-current mr-2"></div>, disabled: true, variant: 'default' as const };
+            case 'running': return { text: 'Pausa', icon: <Pause className="mr-2 h-6 w-6" />, disabled: false, variant: 'outline' as const };
+            case 'paused': return { text: 'Reanudar', icon: <Play className="mr-2 h-6 w-6" />, disabled: false, variant: 'default' as const };
+            case 'finished': return { text: '¡Hecho!', icon: <CheckCircle2 className="mr-2 h-6 w-6" />, disabled: true, variant: 'default' as const };
         }
     }
     const buttonProps = getButtonProps();
@@ -142,7 +142,7 @@ const Timer = ({ durationString, isCurrent }: { durationString: string; isCurren
                 </Button>
                 <Button onClick={reset} size="lg" variant="ghost" disabled={phase === 'idle' || phase === 'countdown'}>
                     <RotateCcw className="mr-2 h-6 w-6" />
-                    Reset
+                    Reiniciar
                 </Button>
             </div>
         </div>
@@ -211,10 +211,10 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
             const sessionData = {
                 userId: user.uid,
-                userName: userProfile.name || user.email || 'Unknown User',
+                userName: userProfile.name || user.email || 'Usuario Desconocido',
                 gymId: userProfile.gymId,
                 routineId: routine.id,
-                routineName: routine.routineTypeName || routine.routineName || 'Untitled Routine',
+                routineName: routine.routineTypeName || routine.routineName || 'Rutina sin Título',
                 startTime: docSnapshot.exists() ? docSnapshot.data().startTime : Timestamp.now(),
                 status: 'active' as const,
                 currentExerciseName: currentItem.name,
@@ -308,7 +308,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                 <DialogTitle className="font-headline text-xl">{routine.routineTypeName || routine.routineName}</DialogTitle>
                 <div className="space-y-1 mt-2">
                     <Progress value={progressPercentage} />
-                    <p className="text-xs text-muted-foreground text-center">Step {currentIndex + 1} of {sessionPlaylist.length}</p>
+                    <p className="text-xs text-muted-foreground text-center">Paso {currentIndex + 1} de {sessionPlaylist.length}</p>
                 </div>
             </DialogHeader>
 
@@ -334,12 +334,12 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                             />
                         </div>
                         <Button variant="outline" onClick={() => setShowVideo(false)}>
-                            <ChevronLeft className="mr-2 h-4 w-4" /> Back to Exercise
+                            <ChevronLeft className="mr-2 h-4 w-4" /> Volver al Ejercicio
                         </Button>
                     </div>
                 ) : (
                     <div className="w-full max-w-md flex flex-col items-center justify-center">
-                        <p className="font-semibold text-accent">{currentItem.blockName} &bull; Set {currentItem.setIndex + 1} of {currentItem.totalSets}</p>
+                        <p className="font-semibold text-accent">{currentItem.blockName} &bull; Serie {currentItem.setIndex + 1} de {currentItem.totalSets}</p>
                         <h2 className="text-5xl font-bold font-headline my-4">{currentItem.name}</h2>
                         
                         {currentItem.description && (
@@ -363,7 +363,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                                 <div className="flex items-center gap-2"><Dumbbell className="w-5 h-5" /><span>{currentItem.weight}</span></div>
                             )}
                             {currentItem.videoUrl && (
-                                <Button variant="outline" onClick={() => setShowVideo(true)}><Video className="w-5 h-5 mr-2" /> Watch Example</Button>
+                                <Button variant="outline" onClick={() => setShowVideo(true)}><Video className="w-5 h-5 mr-2" /> Ver Ejemplo</Button>
                             )}
                         </div>
                     </div>
@@ -372,12 +372,12 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
             <DialogFooter className="p-4 border-t bg-background flex flex-col gap-4">
                  <div className="w-full">
-                    <p className="text-sm font-medium text-center mb-2 text-muted-foreground">How was that set?</p>
+                    <p className="text-sm font-medium text-center mb-2 text-muted-foreground">¿Qué tal estuvo esa serie?</p>
                     <div className="grid grid-cols-3 gap-2">
-                        {(['easy', 'medium', 'hard'] as const).map(difficulty => (
+                        {(['fácil', 'medio', 'difícil'] as const).map(difficulty => (
                             <Button
                                 key={difficulty}
-                                variant={currentSetProgress?.difficulty === difficulty || (!currentSetProgress?.difficulty && difficulty === 'medium') ? 'default' : 'outline'}
+                                variant={currentSetProgress?.difficulty === difficulty || (!currentSetProgress?.difficulty && difficulty === 'medio') ? 'default' : 'outline'}
                                 onClick={() => handleProgressUpdate({ difficulty })}
                                 className="capitalize h-12 text-base"
                             >
@@ -396,14 +396,14 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                         className="flex-1 h-14 text-lg font-bold"
                     >
                         {isCompleted ? <CheckCircle2 className="mr-2 h-5 w-5"/> : <Circle className="mr-2 h-5 w-5"/>}
-                        {isCompleted ? 'Completed' : 'Mark as Complete'}
+                        {isCompleted ? 'Completado' : 'Marcar como Completado'}
                     </Button>
                     <Button 
                         size="icon" 
                         onClick={handleNext}
                         className="h-14 w-14 bg-accent hover:bg-accent/90"
                     >
-                       {isLastItem ? 'End' : <ChevronRight className="h-5 w-5" />}
+                       {isLastItem ? 'Fin' : <ChevronRight className="h-5 w-5" />}
                     </Button>
                 </div>
             </DialogFooter>
