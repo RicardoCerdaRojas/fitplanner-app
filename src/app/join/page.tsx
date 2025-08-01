@@ -19,7 +19,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc, writeBatch, Timestamp, query, collection, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, writeBatch, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
 import { useEffect, useState, useTransition, useCallback, useMemo } from 'react';
@@ -27,6 +27,7 @@ import { AppHeader } from '@/components/app-header';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle, Mail, AlertTriangle, User, Lock } from 'lucide-react';
 import { debounce } from 'lodash';
+import { checkMemberStatus } from '../actions';
 
 const fullSchema = z.object({
   email: z.string().email(),
@@ -35,6 +36,7 @@ const fullSchema = z.object({
 });
 
 type FullFormValues = z.infer<typeof fullSchema>;
+type MemberStatus = 'IDLE' | 'CHECKING' | 'VALID' | 'INVALID' | 'REGISTERED' | 'ERROR';
 
 export default function JoinPage() {
   const { toast } = useToast();
@@ -42,7 +44,7 @@ export default function JoinPage() {
   const { user, loading } = useAuth();
   
   const [isPending, startTransition] = useTransition();
-  const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid' | 'registered'>('idle');
+  const [emailStatus, setEmailStatus] = useState<MemberStatus>('IDLE');
   const [gymName, setGymName] = useState('');
 
   const form = useForm<FullFormValues>({
@@ -50,7 +52,7 @@ export default function JoinPage() {
     defaultValues: { email: '', name: '', password: '' },
   });
   
-  const { control, handleSubmit, setValue, trigger, watch } = form;
+  const { control, handleSubmit, watch, trigger } = form;
   const emailValue = watch('email');
 
   useEffect(() => {
@@ -59,39 +61,34 @@ export default function JoinPage() {
     }
   }, [user, loading, router]);
   
-  const checkEmail = useCallback(async (email: string) => {
-    if (!z.string().email().safeParse(email).success) {
-      setEmailStatus('idle');
+  const performEmailCheck = useCallback(async (email: string) => {
+    const isEmailValid = await trigger('email');
+    if (!isEmailValid) {
+      setEmailStatus('IDLE');
       return;
     }
     
-    setEmailStatus('checking');
+    setEmailStatus('CHECKING');
+    const result = await checkMemberStatus(email);
     
-    const membershipRef = doc(db, 'memberships', `PENDING_${email.toLowerCase()}`);
-    const membershipSnap = await getDoc(membershipRef);
-    
-    if (membershipSnap.exists() && membershipSnap.data().status === 'pending') {
-      setGymName(membershipSnap.data().gymName);
-      setEmailStatus('valid');
-    } else {
-        const usersRef = collection(db, "users");
-        const q = query(usersRef, where("email", "==", email.toLowerCase()));
-        
-        try {
-            const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) {
-                setEmailStatus('registered');
-            } else {
-                setEmailStatus('invalid');
-            }
-        } catch (error) {
-            console.error("Error checking user email:", error);
-            setEmailStatus('invalid'); 
-        }
+    switch (result.status) {
+      case 'INVITED':
+        setGymName(result.gymName || '');
+        setEmailStatus('VALID');
+        break;
+      case 'REGISTERED':
+        setEmailStatus('REGISTERED');
+        break;
+      case 'NOT_FOUND':
+        setEmailStatus('INVALID');
+        break;
+      default:
+        setEmailStatus('ERROR');
+        break;
     }
-  }, []);
+  }, [trigger]);
   
-  const debouncedCheckEmail = useMemo(() => debounce(checkEmail, 500), [checkEmail]);
+  const debouncedCheckEmail = useMemo(() => debounce(performEmailCheck, 500), [performEmailCheck]);
   
   useEffect(() => {
       debouncedCheckEmail(emailValue);
@@ -142,14 +139,16 @@ export default function JoinPage() {
 
   const renderEmailStatus = () => {
     switch (emailStatus) {
-      case 'checking':
+      case 'CHECKING':
         return <p className="text-xs text-muted-foreground flex items-center gap-1"><span className="animate-spin h-3 w-3 border-b-2 border-current rounded-full"></span> Verificando invitación...</p>;
-      case 'valid':
+      case 'VALID':
         return <p className="text-xs text-green-400 flex items-center gap-1"><CheckCircle className="h-4 w-4" /> ¡Invitación encontrada para {gymName}!</p>;
-      case 'invalid':
+      case 'INVALID':
         return <p className="text-xs text-amber-400 flex items-center gap-1"><AlertTriangle className="h-4 w-4" /> No se encontró una invitación para este email.</p>;
-        case 'registered':
+      case 'REGISTERED':
         return <p className="text-xs text-amber-400 flex items-center gap-1"><AlertTriangle className="h-4 w-4" /> Este email ya está registrado. Por favor, <Link href="/login" className="underline">inicia sesión</Link>.</p>;
+      case 'ERROR':
+        return <p className="text-xs text-red-500 flex items-center gap-1"><AlertTriangle className="h-4 w-4" /> Error al verificar el email. Inténtalo de nuevo.</p>;
       default:
         return null;
     }
@@ -189,7 +188,7 @@ export default function JoinPage() {
                             placeholder="you@example.com" 
                             {...field}
                             className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400"
-                            disabled={emailStatus === 'valid'}
+                            disabled={emailStatus === 'VALID'}
                           />
                         </FormControl>
                         <div className="h-4 mt-2">
@@ -200,7 +199,7 @@ export default function JoinPage() {
                   />
                   
                   <AnimatePresence>
-                    {emailStatus === 'valid' && (
+                    {emailStatus === 'VALID' && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
@@ -218,7 +217,7 @@ export default function JoinPage() {
                     )}
                   </AnimatePresence>
                   
-                  <Button type="submit" className="w-full bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-base py-6" disabled={isPending || emailStatus !== 'valid'}>
+                  <Button type="submit" className="w-full bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-base py-6" disabled={isPending || emailStatus !== 'VALID'}>
                     {isPending ? 'Creando cuenta...' : 'Completar Registro y Unirme'}
                   </Button>
                 </form>
