@@ -91,7 +91,7 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
       <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg">
         <ClipboardList className="w-12 h-12 text-muted-foreground mb-4" />
         <h3 className="text-xl font-semibold">No Routines... Yet!</h3>
-        <p className="text-muted-foreground">Your coach hasn't assigned any routines to you. Check back later!</p>
+        <p className="text-muted-foreground">Your coach has not assigned any routines to you. Check back later!</p>
       </div>
     );
   }
