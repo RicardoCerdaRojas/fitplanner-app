@@ -140,10 +140,10 @@ export default function ExercisesPage() {
             if (editingExercise) {
                 const exerciseRef = doc(db, 'exercises', editingExercise.id);
                 await updateDoc(exerciseRef, values);
-                toast({ title: 'Success!', description: `Exercise "${values.name}" has been updated.` });
+                toast({ title: 'Success!', description: `Exercise &quot;${values.name}&quot; has been updated.` });
             } else {
                 await addDoc(collection(db, 'exercises'), { ...values, gymId: activeMembership.gymId });
-                toast({ title: 'Success!', description: `Exercise "${values.name}" has been added to your library.` });
+                toast({ title: 'Success!', description: `Exercise &quot;${values.name}&quot; has been added to your library.` });
             }
             closeSheet();
         } catch (error) {
@@ -159,7 +159,7 @@ export default function ExercisesPage() {
         if (!exerciseToDelete) return;
         try {
             await deleteDoc(doc(db, "exercises", exerciseToDelete.id));
-            toast({ title: 'Exercise Deleted', description: `"${exerciseToDelete.name}" has been removed from the library.`});
+            toast({ title: 'Exercise Deleted', description: `&quot;${exerciseToDelete.name}&quot; has been removed from the library.`});
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not delete the exercise.' });
         } finally {
@@ -192,7 +192,7 @@ export default function ExercisesPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the exercise "{exerciseToDelete?.name}". It will not affect routines where this exercise has already been used.
+                            This action cannot be undone. This will permanently delete the exercise &quot;{exerciseToDelete?.name}&quot;. It will not affect routines where this exercise has already been used.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

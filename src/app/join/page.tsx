@@ -22,7 +22,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc, writeBatch, Timestamp, query, collection, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
-import { useEffect, useState, useTransition, useCallback } from 'react';
+import { useEffect, useState, useTransition, useCallback, useMemo } from 'react';
 import { AppHeader } from '@/components/app-header';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle, Mail, AlertTriangle, User, Lock } from 'lucide-react';
@@ -91,7 +91,7 @@ export default function JoinPage() {
     }
   }, []);
   
-  const debouncedCheckEmail = useCallback(debounce(checkEmail, 500), [checkEmail]);
+  const debouncedCheckEmail = useMemo(() => debounce(checkEmail, 500), [checkEmail]);
   
   useEffect(() => {
       debouncedCheckEmail(emailValue);
