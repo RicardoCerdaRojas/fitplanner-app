@@ -166,9 +166,6 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
             if (block.exercises && block.exercises.length > 0) {
                 const totalSets = parseInt(block.sets.match(/\d+/)?.[0] || '1', 10);
                 for (let sIndex = 0; sIndex < totalSets; sIndex++) {
-                    // This was creating one playlist entry per set, we want one per exercise.
-                    // The logic below is better.
-                    // Let's create one entry per set of an exercise.
                      block.exercises.forEach((exercise, eIndex) => {
                         playlist.push({
                             ...exercise,
@@ -202,17 +199,14 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         return doc(db, "workoutSessions", sessionId);
     }, [sessionId]);
 
+    const currentItem = sessionPlaylist[currentIndex];
+
     // Effect for Firestore: Update live session document for gym admin view
     useEffect(() => {
-        if (!sessionDocRef || !user || !userProfile?.gymId) return;
+        if (!sessionDocRef || !user || !userProfile?.gymId || !currentItem) return;
 
         const updateSessionDocument = async () => {
-             if (!sessionDocRef || !user || !userProfile?.gymId) return;
-
-            const currentItem = sessionPlaylist[currentIndex];
-            if (!currentItem) return;
-
-            const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${item.setIndex}`;
+            const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
             const docSnapshot = await getDoc(sessionDocRef);
 
             const sessionData = {
@@ -247,9 +241,8 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                 deleteDoc(sessionDocRef);
             }
         };
-    }, [sessionDocRef, user, userProfile, routine, sessionPlaylist, currentIndex, progress]);
+    }, [sessionDocRef, user, userProfile, routine, sessionPlaylist, currentIndex, progress, currentItem]);
 
-    const currentItem = sessionPlaylist[currentIndex];
 
     // Effect to end session if playlist is exhausted
     useEffect(() => {
@@ -258,9 +251,12 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         }
     }, [currentItem, onSessionEnd]);
     
-    // Return early if there's no item. This is now safe as all hooks are called.
+    useEffect(() => {
+        setShowVideo(false);
+    }, [currentIndex]);
+    
     if (!currentItem) {
-        return null;
+        return null; // Return early if there's no item. This is now safe as all hooks are called before this point.
     }
 
     const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
@@ -301,12 +297,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         }
     };
 
-    useEffect(() => {
-        setShowVideo(false);
-    }, [currentIndex]);
-    
     const progressPercentage = ((currentIndex) / sessionPlaylist.length) * 100;
-    
     const isLastItem = currentIndex === sessionPlaylist.length - 1;
     const isCompleted = currentSetProgress?.completed || false;
     
