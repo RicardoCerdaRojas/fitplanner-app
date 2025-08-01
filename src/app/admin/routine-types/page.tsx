@@ -79,7 +79,7 @@ export default function RoutineTypesPage() {
         setIsSubmitting(true);
         try {
             await addDoc(collection(db, 'routineTypes'), { ...values, gymId: activeMembership.gymId });
-            toast({ title: 'Success!', description: `Type "${values.name}" has been added.` });
+            toast({ title: 'Success!', description: `Type &quot;${values.name}&quot; has been added.` });
             reset({ name: '' });
         } catch (error) {
             console.error("Error submitting form:", error);
@@ -93,7 +93,7 @@ export default function RoutineTypesPage() {
         if (!typeToDelete) return;
         try {
             await deleteDoc(doc(db, "routineTypes", typeToDelete.id));
-            toast({ title: 'Type Deleted', description: `"${typeToDelete.name}" has been removed.`});
+            toast({ title: 'Type Deleted', description: `&quot;${typeToDelete.name}&quot; has been removed.`});
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not delete the type.' });
         } finally {
@@ -126,7 +126,7 @@ export default function RoutineTypesPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the routine type "{typeToDelete?.name}".
+                            This action cannot be undone. This will permanently delete the routine type &quot;{typeToDelete?.name}&quot;.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
