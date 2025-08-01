@@ -1,0 +1,46 @@
+# Nombre del workflow, aparecerá en la pestaña "Actions" de GitHub
+name: Deploy to Firebase App Hosting
+
+# Define cuándo se debe ejecutar este workflow
+on:
+  # Se activa cada vez que se hace un push a la rama 'main'
+  # Esto incluye cuando se fusiona un Pull Request
+  push:
+    branches:
+      - main
+
+# Define los trabajos que se ejecutarán
+jobs:
+  build_and_deploy:
+    # El tipo de máquina virtual en la que se ejecutará el trabajo
+    runs-on: ubuntu-latest
+
+    # Los pasos que componen el trabajo
+    steps:
+      # 1. Obtiene una copia del código de tu repositorio
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Configura Node.js para que podamos usar npm
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Usa una versión de Node.js compatible
+
+      # 3. Instala las dependencias de forma limpia y rápida
+      - name: Install Dependencies
+        run: npm ci
+
+      # 4. (Opcional pero recomendado) Ejecuta el linter para validar la calidad del código
+      - name: Run Lint
+        run: npm run lint
+
+      # 5. Autentica con Google Cloud usando la cuenta de servicio que creamos
+      - name: Authenticate to Google Cloud
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FITNESS_FLOW_1K4YL }}
+
+      # 6. Despliega a Firebase App Hosting
+      - name: Deploy to Firebase
+        run: npx firebase-tools deploy --project fitness-flow-1k4yl --only apphosting
