@@ -39,7 +39,7 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: 'google-github-actions/auth@v2'
         with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FITNESS_FLOW_1K4YL }}
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FITNESS_FLOW }}
 
       # 6. Despliega a Firebase App Hosting
       - name: Deploy to Firebase
