@@ -35,9 +35,16 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Authenticate to Google Cloud
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_FITNESS_FLOW }}'
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -45,5 +52,4 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
       - name: Deploy to Firebase App Hosting
-        run: |
-          firebase deploy --only apphosting --project ${{ secrets.FIREBASE_PROJECT_ID }} --token ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FITNESS_FLOW }}
+        run: firebase deploy --only apphosting --project ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
