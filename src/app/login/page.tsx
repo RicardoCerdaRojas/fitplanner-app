@@ -70,19 +70,14 @@ export default function LoginPage() {
     setMemberStatus('CHECKING');
     startTransition(async () => {
       const result = await checkMemberStatus(emailValue);
-      if (result.status === 'INVITED') {
-        setGymName(result.gymName || '');
-        setMemberStatus('INVITED');
-      } else {
-        setMemberStatus('REGISTERED'); // Or NOT_FOUND, both default to standard login
-      }
+      setGymName(result.gymName || '');
+      setMemberStatus(result.status as MemberStatus);
     });
   }, [emailValue, trigger]);
 
   async function onSubmit(values: FormValues) {
     startTransition(async () => {
         if (memberStatus === 'INVITED') {
-            // Logic for completing a new member's registration
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
                 const authUser = userCredential.user;
@@ -112,14 +107,17 @@ export default function LoginPage() {
             } catch (error: any) {
                 toast({ variant: 'destructive', title: 'Error en el Registro', description: error.message });
             }
-        } else {
-            // Standard login logic
+        } else if (memberStatus === 'REGISTERED') {
             try {
                 await signInWithEmailAndPassword(auth, values.email, values.password);
                 router.push('/');
             } catch (error: any) {
                 toast({ variant: 'destructive', title: 'Login Failed', description: 'Invalid credentials. Please check your email and password.' });
             }
+        } else if (memberStatus === 'NOT_FOUND') {
+            toast({ variant: 'destructive', title: 'Cuenta no encontrada', description: 'No existe una cuenta con este correo electrónico.' });
+        } else {
+            toast({ variant: 'destructive', title: 'Error', description: 'Ha ocurrido un error inesperado. Por favor, inténtalo de nuevo.' });
         }
     });
   }
