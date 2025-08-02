@@ -277,7 +277,7 @@ export function AthleteRoutineList({ routines }: AthleteRoutineListProps) {
             <DialogHeader>
                 <DialogTitle>Ejemplo de Ejercicio</DialogTitle>
             </DialogHeader>
-            {videoUrl && <div className="w-full aspect-video bg-black rounded-lg overflow-hidden"><ReactPlayer url={videoUrl} playing controls width="100%" height="100%" /></div>}
+            {videoUrl && <div className="w-full aspect-video bg-black rounded-lg overflow-hidden"><ReactPlayer url={videoUrl} playing controls width="100%" height="100%" config={{ youtube: { playerVars: { autoplay: 1, mute: 1 }}}} /></div>}
         </DialogContent>
       </Dialog>
 
