@@ -156,6 +156,14 @@ type WorkoutSessionProps = {
   onProgressChange: (routineId: string, exerciseKey: string, currentProgress: any, newProgress: { completed?: boolean; difficulty?: 'easy' | 'medium' | 'hard' }) => void;
 };
 
+const difficultyMap: { [key in 'fácil' | 'medio' | 'difícil']: 'easy' | 'medium' | 'hard' } = {
+    'fácil': 'easy',
+    'medio': 'medium',
+    'difícil': 'hard'
+};
+
+const displayDifficulties: ('fácil' | 'medio' | 'difícil')[] = ['fácil', 'medio', 'difícil'];
+
 export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: WorkoutSessionProps) {
     const { user, userProfile } = useAuth();
     const sessionId = user?.uid; 
@@ -201,7 +209,6 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
 
     const currentItem = sessionPlaylist[currentIndex];
 
-    // Effect for Firestore: Update live session document for gym admin view
     useEffect(() => {
         if (!sessionDocRef || !user || !userProfile?.gymId || !currentItem) return;
 
@@ -243,8 +250,6 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
         };
     }, [sessionDocRef, user, userProfile, routine, sessionPlaylist, currentIndex, progress, currentItem]);
 
-
-    // Effect to end session if playlist is exhausted
     useEffect(() => {
         if (!currentItem) {
             onSessionEnd();
@@ -256,7 +261,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
     }, [currentIndex]);
     
     if (!currentItem) {
-        return null; // Return early if there's no item. This is now safe as all hooks are called before this point.
+        return null;
     }
 
     const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
@@ -374,11 +379,11 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                  <div className="w-full">
                     <p className="text-sm font-medium text-center mb-2 text-muted-foreground">¿Qué tal estuvo esa serie?</p>
                     <div className="grid grid-cols-3 gap-2">
-                        {(['fácil', 'medio', 'difícil'] as const).map(difficulty => (
+                        {displayDifficulties.map(difficulty => (
                             <Button
                                 key={difficulty}
-                                variant={currentSetProgress?.difficulty === difficulty || (!currentSetProgress?.difficulty && difficulty === 'medio') ? 'default' : 'outline'}
-                                onClick={() => handleProgressUpdate({ difficulty })}
+                                variant={currentSetProgress?.difficulty === difficultyMap[difficulty] || (!currentSetProgress?.difficulty && difficulty === 'medio') ? 'default' : 'outline'}
+                                onClick={() => handleProgressUpdate({ difficulty: difficultyMap[difficulty] })}
                                 className="capitalize h-12 text-base"
                             >
                                 {difficulty}
