@@ -13,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { generateRoutineAction } from '@/app/actions';
+import { generateWorkoutRoutine } from '@/ai/flows/generate-workout-routine';
 import type { GenerateWorkoutRoutineOutput } from '@/ai/flows/generate-workout-routine';
 import { useAuth } from '@/contexts/auth-context';
 import { Separator } from '@/components/ui/separator';
@@ -71,11 +71,11 @@ export function AIWorkoutGenerator({ onRoutineGenerated }: AIWorkoutGeneratorPro
       availableEquipment: 'Standard gym equipment, including free weights, benches, and cardio machines.',
     };
 
-    const result = await generateRoutineAction(routineInput);
-    setIsLoading(false);
+    try {
+      const result = await generateWorkoutRoutine(routineInput);
+      setIsLoading(false);
 
-    if (result.success && result.data) {
-      if (result.data.routine.trim() === '') {
+      if (result.routine.trim() === '') {
         toast({
           variant: 'destructive',
           title: 'Request out of scope',
@@ -83,39 +83,20 @@ export function AIWorkoutGenerator({ onRoutineGenerated }: AIWorkoutGeneratorPro
         });
         onRoutineGenerated(null);
       } else {
-        onRoutineGenerated(result.data);
+        onRoutineGenerated(result);
       }
-    } else {
-      const error = result.error;
-      let errorMessage = 'An unexpected error occurred.';
-
-      if (error && typeof error === 'object') {
-        const errorObject = error as { [key: string]: any; _errors?: string[] };
-        if (errorObject._errors && errorObject._errors.length > 0) {
-          errorMessage = errorObject._errors.join(', ');
-        } else {
-          const fieldErrors = Object.keys(errorObject)
-            .map(key => {
-              const field = errorObject[key];
-              if (field && field._errors && Array.isArray(field._errors)) {
-                return field._errors.join(', ');
-              }
-              return null;
-            })
-            .filter(Boolean)
-            .join('; ');
-          
-          if (fieldErrors) {
-            errorMessage = fieldErrors;
-          }
+    } catch (error: any) {
+        setIsLoading(false);
+        let errorMessage = 'An unexpected error occurred.';
+        // Attempt to parse a more specific error message if available
+        if (error && error.message) {
+            errorMessage = error.message;
         }
-      }
-      
-      toast({
-        variant: 'destructive',
-        title: 'Uh oh! Something went wrong.',
-        description: errorMessage,
-      });
+        toast({
+            variant: 'destructive',
+            title: 'Uh oh! Something went wrong.',
+            description: errorMessage,
+        });
     }
   }
 
