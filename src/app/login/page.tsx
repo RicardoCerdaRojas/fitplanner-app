@@ -62,54 +62,74 @@ export default function LoginPage() {
   const { control, handleSubmit, getValues } = form;
 
   async function onSubmit(values: FormValues) {
+    console.log('onSubmit triggered. Current view state:', view.state);
+    console.log('Form values:', values);
+
     startTransition(async () => {
-      // If we are in the registration view, we already have the user status.
       if (view.state === 'REGISTER_INVITED') {
+        console.log('Executing registration logic for invited user...');
         if (!values.name) {
+          console.error('Registration failed: Name is required.');
           toast({ variant: "destructive", title: "Nombre requerido", description: "Por favor, introduce tu nombre completo." });
           return;
         }
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, view.email, values.password);
+            console.log('Firebase user created successfully:', userCredential.user.uid);
+            
             const batch = writeBatch(db);
             const newUserRef = doc(db, 'users', userCredential.user.uid);
             const membershipRef = doc(db, 'memberships', `PENDING_${view.email.toLowerCase()}`);
             const membershipSnap = await getDoc(membershipRef);
-            if (!membershipSnap.exists()) throw new Error("Invitación no encontrada.");
+            
+            if (!membershipSnap.exists()) {
+              console.error('Critical error: Invitation document not found for a user who is in REGISTER_INVITED state.');
+              throw new Error("Invitación no encontrada.");
+            }
             
             const { gymId, role } = membershipSnap.data();
             batch.set(newUserRef, { name: values.name, email: view.email.toLowerCase(), createdAt: Timestamp.now(), gymId, role });
             batch.delete(membershipRef);
+            
+            console.log('Preparing to commit batch...');
             await batch.commit();
+            console.log('Batch committed successfully.');
 
             toast({ title: '¡Bienvenido!', description: `Tu cuenta ha sido creada en ${view.gymName}.` });
             router.push('/');
         } catch (error: any) {
+            console.error('Registration error:', error);
             toast({ variant: 'destructive', title: 'Error en el Registro', description: error.message });
         }
         return;
       }
       
-      // --- This is the main logic block for a standard login attempt ---
+      console.log('Checking user status for email:', values.email);
       const result = await checkMemberStatus(values.email);
+      console.log('checkMemberStatus result:', result);
       
       switch (result.status) {
         case 'REGISTERED':
+          console.log('User is REGISTERED. Attempting sign in...');
           try {
             await signInWithEmailAndPassword(auth, values.email, values.password);
+            console.log('Sign in successful. Redirecting...');
             router.push('/');
           } catch (error) {
+            console.error('Sign in error:', error);
             toast({ variant: "destructive", title: "Error de inicio de sesión", description: "Credenciales inválidas. Por favor, revisa tu email y contraseña." });
           }
           break;
         case 'INVITED':
-          // Transition to the registration view
+          console.log('User is INVITED. Transitioning to REGISTER_INVITED view.');
           setView({ state: 'REGISTER_INVITED', gymName: result.gymName || 'tu gimnasio', email: values.email });
           break;
         case 'NOT_FOUND':
+          console.log('User is NOT_FOUND.');
           toast({ variant: "destructive", title: "Cuenta no encontrada", description: "El email que introdujiste no está registrado. Si fuiste invitado, usa el enlace de tu email." });
           break;
         default:
+          console.log(`Unhandled status: ${result.status}`);
           toast({ variant: "destructive", title: "Error", description: "Ha ocurrido un error inesperado." });
       }
     });
