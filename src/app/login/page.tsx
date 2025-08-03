@@ -43,7 +43,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const [isPending, startTransition] = useTransition();
-  const [memberStatus, setMemberStatus] = useState<MemberStatus>('IDLE');
+  const [isInvited, setIsInvited] = useState(false);
   const [gymName, setGymName] = useState('');
 
   useEffect(() => {
@@ -57,27 +57,23 @@ export default function LoginPage() {
     defaultValues: { email: '', password: '', name: '' },
   });
   
-  const { control, handleSubmit, watch, trigger, formState: { errors } } = form;
-  const emailValue = watch('email');
-
-  const handleEmailBlur = useCallback(async () => {
-    const isEmailValid = await trigger('email');
-    if (!isEmailValid) {
-      setMemberStatus('IDLE');
-      return;
-    }
-    
-    setMemberStatus('CHECKING');
-    startTransition(async () => {
-      const result = await checkMemberStatus(emailValue);
-      setGymName(result.gymName || '');
-      setMemberStatus(result.status as MemberStatus);
-    });
-  }, [emailValue, trigger]);
+  const { control, handleSubmit } = form;
 
   async function onSubmit(values: FormValues) {
     startTransition(async () => {
-        if (memberStatus === 'INVITED') {
+        const result = await checkMemberStatus(values.email);
+        
+        if (result.status === 'INVITED') {
+            setIsInvited(true);
+            setGymName(result.gymName || '');
+            
+            // If the user hasn't provided a name yet, we stop here to let them fill it.
+            if (!values.name) {
+                toast({ title: 'Completa tu perfil', description: 'Por favor, introduce tu nombre para continuar.' });
+                return;
+            }
+
+            // If we have the name, proceed with registration
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
                 const authUser = userCredential.user;
@@ -107,14 +103,14 @@ export default function LoginPage() {
             } catch (error: any) {
                 toast({ variant: 'destructive', title: 'Error en el Registro', description: error.message });
             }
-        } else if (memberStatus === 'REGISTERED') {
+        } else if (result.status === 'REGISTERED') {
             try {
                 await signInWithEmailAndPassword(auth, values.email, values.password);
                 router.push('/');
             } catch (error: any) {
                 toast({ variant: 'destructive', title: 'Login Failed', description: 'Invalid credentials. Please check your email and password.' });
             }
-        } else if (memberStatus === 'NOT_FOUND') {
+        } else if (result.status === 'NOT_FOUND') {
             toast({ variant: 'destructive', title: 'Cuenta no encontrada', description: 'No existe una cuenta con este correo electrónico.' });
         } else {
             toast({ variant: 'destructive', title: 'Error', description: 'Ha ocurrido un error inesperado. Por favor, inténtalo de nuevo.' });
@@ -123,7 +119,7 @@ export default function LoginPage() {
   }
   
   const renderHeader = () => {
-    if (memberStatus === 'INVITED') {
+    if (isInvited) {
       return {
         title: `¡Bienvenido a ${gymName}!`,
         description: 'Crea tu cuenta para unirte al centro.'
@@ -161,14 +157,14 @@ export default function LoginPage() {
                       <FormItem>
                         <FormLabel className="text-gray-300">Email</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="you@example.com" {...field} onBlur={handleEmailBlur} className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400" disabled={memberStatus === 'INVITED'} />
+                          <Input type="email" placeholder="you@example.com" {...field} className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400" disabled={isInvited} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   <AnimatePresence>
-                  {memberStatus === 'INVITED' && (
+                  {isInvited && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                        <FormField control={control} name="name" render={({ field }) => (
                             <FormItem><FormLabel className="text-gray-300">Tu Nombre Completo</FormLabel><FormControl><Input placeholder="John Doe" {...field} className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400" /></FormControl><FormMessage /></FormItem>
@@ -178,7 +174,7 @@ export default function LoginPage() {
                   </AnimatePresence>
                   <FormField control={control} name="password" render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-300">{memberStatus === 'INVITED' ? 'Crea una Contraseña' : 'Password'}</FormLabel>
+                        <FormLabel className="text-gray-300">{isInvited ? 'Crea una Contraseña' : 'Password'}</FormLabel>
                         <FormControl>
                           <Input type="password" placeholder="••••••••" {...field} className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:ring-emerald-400" />
                         </FormControl>
@@ -187,13 +183,13 @@ export default function LoginPage() {
                     )}
                   />
                   <Button type="submit" className="w-full bg-emerald-400 text-black font-bold hover:bg-emerald-500 text-base py-6" disabled={isPending}>
-                    {isPending ? 'Procesando...' : (memberStatus === 'INVITED' ? 'Completar Registro' : 'Ingresar')}
+                    {isPending ? 'Procesando...' : (isInvited ? 'Completar Registro' : 'Ingresar')}
                   </Button>
                 </form>
               </Form>
             </CardContent>
              <AnimatePresence>
-                {memberStatus !== 'INVITED' && (
+                {!isInvited && (
                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                         <CardFooter className="flex-col text-center text-sm">
                              <p className="w-full text-gray-400">
