@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, getDoc } from 'firebase/firestore';
 import { z } from 'zod';
 
 const emailSchema = z.string().email();
@@ -15,7 +15,7 @@ export async function checkMemberStatus(email: string) {
   const lowercasedEmail = email.toLowerCase();
 
   try {
-    // 1. Check for a pending invitation
+    // 1. Check for a pending invitation first.
     const membershipRef = doc(db, 'memberships', `PENDING_${lowercasedEmail}`);
     const membershipSnap = await getDoc(membershipRef);
 
@@ -26,16 +26,15 @@ export async function checkMemberStatus(email: string) {
       };
     }
 
-    // 2. If no invitation, check if user is already registered
-    const usersRef = collection(db, "users");
-    const q = query(usersRef, where("email", "==", lowercasedEmail));
-    const querySnapshot = await getDocs(q);
+    // 2. If no invitation, check the public userEmails collection to see if the user is already registered.
+    const userEmailRef = doc(db, "userEmails", lowercasedEmail);
+    const userEmailSnap = await getDoc(userEmailRef);
 
-    if (!querySnapshot.empty) {
+    if (userEmailSnap.exists()) {
       return { status: 'REGISTERED' };
     }
 
-    // 3. If neither, the user is not found
+    // 3. If neither, the user is not found.
     return { status: 'NOT_FOUND' };
 
   } catch (error) {
