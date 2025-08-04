@@ -64,8 +64,6 @@ export default function LoginPage() {
   // --- The Core State Machine Logic ---
   async function onSubmit(values: FormValues) {
     startTransition(async () => {
-      // --- STATE: IDENTIFY ---
-      // The user has only submitted their email. We need to determine the next state.
       if (view.name === 'IDENTIFY') {
         const isValid = await trigger("email");
         if (!isValid) return;
@@ -81,14 +79,16 @@ export default function LoginPage() {
           case 'NOT_FOUND':
             setError("email", { type: "manual", message: "No se encontró una cuenta con este email." });
             break;
+          case 'ERROR':
+            // Display the detailed diagnostic message from the backend
+            toast({ variant: "destructive", title: "Error de Configuración del Backend", description: result.message, duration: 10000 });
+            break;
           default:
             toast({ variant: "destructive", title: "Error", description: "Ha ocurrido un error inesperado." });
         }
         return;
       }
       
-      // --- STATE: LOGIN ---
-      // The user has submitted their email and password to sign in.
       if (view.name === 'LOGIN') {
         if (!values.password) {
           setError("password", { type: "manual", message: "La contraseña es requerida." });
@@ -103,8 +103,6 @@ export default function LoginPage() {
         return;
       }
 
-      // --- STATE: REGISTER ---
-      // The user is completing their registration.
       if (view.name === 'REGISTER') {
          if (!values.password || !values.name) {
             if(!values.name) setError("name", { type: "manual", message: "El nombre es requerido." });
