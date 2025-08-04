@@ -1,7 +1,6 @@
 
 'use client';
 
-// Implements the Progressive Login State Machine pattern for robust authentication.
 import { useState, useTransition, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,7 +20,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase/client'; // Correctly import from the new client file
 import { doc, getDoc, writeBatch, Timestamp } from 'firebase/firestore';
 import { useAuth } from '@/contexts/auth-context';
 import { AppHeader } from '@/components/app-header';
