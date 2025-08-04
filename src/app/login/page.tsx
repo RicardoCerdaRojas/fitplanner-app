@@ -63,23 +63,29 @@ export default function LoginPage() {
 
   async function onSubmit(values: FormValues) {
     startTransition(async () => {
+      // STATE: REGISTER_INVITED
       if (view.state === 'REGISTER_INVITED') {
         if (!values.name) {
           toast({ variant: "destructive", title: "Nombre requerido", description: "Por favor, introduce tu nombre completo." });
           return;
         }
         try {
+            // Step 1: Create the user in Firebase Auth. This is the critical first step.
             const userCredential = await createUserWithEmailAndPassword(auth, view.email, values.password);
+            
+            // Step 2: Only if Auth creation is successful, create the user documents in Firestore.
+            // This prevents data inconsistency where a Firestore user exists without an Auth user.
             const batch = writeBatch(db);
             const newUserRef = doc(db, 'users', userCredential.user.uid);
             const membershipRef = doc(db, 'memberships', `PENDING_${view.email.toLowerCase()}`);
             const membershipSnap = await getDoc(membershipRef);
-            if (!membershipSnap.exists()) throw new Error("Invitación no encontrada.");
+
+            if (!membershipSnap.exists()) throw new Error("La invitación no fue encontrada. Por favor, contacta a tu gimnasio.");
             
             const { gymId, role } = membershipSnap.data();
             batch.set(newUserRef, { name: values.name, email: view.email.toLowerCase(), createdAt: Timestamp.now(), gymId, role });
             
-            // Also create the public email record
+            // Also create the public email record for future lookups
             const userEmailRef = doc(db, 'userEmails', view.email.toLowerCase());
             batch.set(userEmailRef, { userId: userCredential.user.uid });
 
@@ -94,6 +100,7 @@ export default function LoginPage() {
         return;
       }
       
+      // STATE: LOGIN
       const result = await checkMemberStatus(values.email);
       
       switch (result.status) {
@@ -102,6 +109,8 @@ export default function LoginPage() {
             await signInWithEmailAndPassword(auth, values.email, values.password);
             router.push('/');
           } catch (error) {
+            // This is the most likely point of failure for existing users.
+            // It triggers if the user exists in our DB but not in Firebase Auth, or if the password is wrong.
             toast({ variant: "destructive", title: "Error de inicio de sesión", description: "Credenciales inválidas. Por favor, revisa tu email y contraseña." });
           }
           break;
