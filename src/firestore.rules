@@ -7,15 +7,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Default minimalist rules for most collections
-    match /{document=**} {
-      allow read, write: if isSignedIn();
-    }
-    
-    // --- Specific exceptions for unauthenticated/public flows ---
+    // --- Specific rules for collections ---
 
     match /users/{userId} {
-       // Allow user creation on signup.
+      // Allow user creation on signup.
       allow create: if true;
       // ONLY a signed-in user can read or update their own data.
       allow read, update: if isSignedIn() && request.auth.uid == userId;
@@ -23,7 +18,6 @@ service cloud.firestore {
       allow delete: if isSignedIn();
     }
     
-    // New collection for public email lookups.
     match /userEmails/{email} {
       // Allow anyone to check if a single email document exists.
       allow get: if true;
@@ -44,6 +38,12 @@ service cloud.firestore {
         allow get: if true;
         // Allow signed-in users to manage memberships.
         allow list, write: if isSignedIn();
+    }
+
+    // Fallback rule for any other collection not explicitly defined.
+    // By default, require authentication for any read/write.
+    match /{document=**} {
+      allow read, write: if isSignedIn();
     }
   }
 }
