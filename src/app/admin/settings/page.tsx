@@ -8,7 +8,7 @@ import { z } from 'zod';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { db, storage } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase/client';
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
