@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebase'; // Use the server-side adminDb
 import { collection, doc, getDoc } from 'firebase/firestore';
 import { z } from 'zod';
 import { getApp } from 'firebase-admin/app';
@@ -16,31 +16,30 @@ export async function checkMemberStatus(email: string) {
   const lowercasedEmail = email.toLowerCase();
 
   try {
-    const membershipRef = doc(db, 'memberships', `PENDING_${lowercasedEmail}`);
-    const membershipSnap = await getDoc(membershipRef);
+    const membershipsRef = adminDb.collection('memberships');
+    const membershipRef = membershipsRef.doc(`PENDING_${lowercasedEmail}`);
+    const membershipSnap = await membershipRef.get();
 
-    if (membershipSnap.exists() && membershipSnap.data().status === 'pending') {
+    if (membershipSnap.exists && membershipSnap.data()?.status === 'pending') {
       return {
         status: 'INVITED',
-        gymName: membershipSnap.data().gymName || 'your gym',
+        gymName: membershipSnap.data()?.gymName || 'your gym',
       };
     }
 
-    const userEmailRef = doc(db, "userEmails", lowercasedEmail);
-    const userEmailSnap = await getDoc(userEmailRef);
+    const userEmailsRef = adminDb.collection('userEmails');
+    const userEmailRef = userEmailsRef.doc(lowercasedEmail);
+    const userEmailSnap = await userEmailRef.get();
 
-    if (userEmailSnap.exists()) {
+    if (userEmailSnap.exists) {
       return { status: 'REGISTERED' };
     }
 
     return { status: 'NOT_FOUND' };
 
   } catch (error: any) {
-    // --- Definitive Diagnostic Logging ---
-    // This will tell us exactly what project the backend is trying to connect to.
     let projectId = 'Not available';
     try {
-      // getApp() will throw if Firebase Admin is not initialized.
       projectId = getApp().options.projectId || 'Not found';
     } catch (e) {
       projectId = 'Firebase Admin not initialized';
