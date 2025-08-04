@@ -9,24 +9,24 @@ env:
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
     value: ${firebase.apiKey}
     availability:
-      - BUILD
+      - RUNTIME # Changed from BUILD to RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
     value: ${firebase.authDomain}
     availability:
-      - BUILD
+      - RUNTIME # Changed from BUILD to RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
     value: ${firebase.projectId}
     availability:
-      - BUILD
+      - RUNTIME # Changed from BUILD to RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
     value: ${firebase.storageBucket}
     availability:
-      - BUILD
+      - RUNTIME # Changed from BUILD to RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
     value: ${firebase.messagingSenderId}
     availability:
-      - BUILD
+      - RUNTIME # Changed from BUILD to RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
     value: ${firebase.appId}
     availability:
-      - BUILD
+      - RUNTIME # Changed from BUILD to RUNTIME
