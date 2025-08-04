@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase/client';
 import { doc, setDoc, Timestamp, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 const formSchema = z.object({

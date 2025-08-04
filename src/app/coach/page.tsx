@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { collection, query, where, onSnapshot, Timestamp, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase/client';
 import { useToast } from '@/hooks/use-toast';
 import { CoachRoutineManagement } from '@/components/coach-routine-management';
 import { AppHeader } from '@/components/app-header';

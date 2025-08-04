@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth, isSameMonth, isBefore } from 'date-fns';
 import { Calendar, ClipboardList, PlaySquare, Dumbbell, Repeat, Clock, Rocket, CheckCircle2, Info, Pencil } from 'lucide-react';

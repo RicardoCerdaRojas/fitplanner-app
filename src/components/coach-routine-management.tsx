@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useTransition } from 'react';
 import Link from 'next/link';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase/client';
 import { doc, deleteDoc, addDoc, collection, Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';

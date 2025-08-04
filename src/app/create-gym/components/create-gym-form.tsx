@@ -9,7 +9,7 @@ import { Form } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { writeBatch, doc, collection, Timestamp } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { db, auth } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase/client';
 import { themes } from '@/lib/themes';
 import { addDays } from 'date-fns';
 import { useMultiStepForm } from '@/hooks/use-multi-step-form';
