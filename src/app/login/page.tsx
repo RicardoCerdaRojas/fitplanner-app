@@ -132,7 +132,7 @@ export default function LoginPage() {
       };
     }
     return {
-      title: 'Bienvenido de Vuelta',
+      title: 'Bienvenido',
       description: 'Accede a tu cuenta para continuar'
     };
   };
