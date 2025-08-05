@@ -3,30 +3,37 @@
 runConfig:
   minInstances: 0
 
-# Environment variables and secrets.
-# See https://firebase.google.com/docs/app-hosting/configure
+# Environment variables must be available during both build and runtime.
+# BUILD: For prerendering pages (SSG/ISR) which requires Firebase initialization.
+# RUNTIME: For server-side rendering (SSR) and Server Actions.
 env:
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
     value: ${firebase.apiKey}
     availability:
+      - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
     value: ${firebase.authDomain}
     availability:
+      - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
     value: ${firebase.projectId}
     availability:
+      - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
     value: ${firebase.storageBucket}
     availability:
+      - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
     value: ${firebase.messagingSenderId}
     availability:
+      - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
     value: ${firebase.appId}
     availability:
+      - BUILD
       - RUNTIME
