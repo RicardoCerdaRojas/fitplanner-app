@@ -4,7 +4,7 @@
 import { useAuth } from '@/contexts/auth-context';
 import { AppHeader } from '@/components/app-header';
 import { collection, onSnapshot, query, where, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase/client';
 import { AthleteNav } from '@/components/athlete-nav';
 import { AthleteRoutineList, type Routine } from '@/components/athlete-routine-list';
 import { useState, useEffect } from 'react';

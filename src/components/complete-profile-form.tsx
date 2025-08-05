@@ -25,7 +25,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase/client';
 import { doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
