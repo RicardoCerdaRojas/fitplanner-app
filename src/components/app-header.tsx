@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { useAuth } from '@/contexts/auth-context';
-import { auth } from '@/lib/firebase';
+import { auth } from '@/lib/firebase/client';
 import { LogOut, Moon, Sun, User as UserIcon } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { useRouter, usePathname } from 'next/navigation';

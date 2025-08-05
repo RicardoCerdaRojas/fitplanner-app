@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, Trash2, Search, MoreVertical, UserX, Edit, ShieldCheck, Dumbbell, ClipboardList, Clock } from 'lucide-react';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase/client';
 import { collection, query, where, onSnapshot, doc, Timestamp, deleteDoc, updateDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import {

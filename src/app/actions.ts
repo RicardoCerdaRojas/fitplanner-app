@@ -1,7 +1,6 @@
 'use server';
 
-import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, query, where, getDocs } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase/admin'; // Correctly import from the server-side admin file
 import { z } from 'zod';
 
 const emailSchema = z.string().email();
@@ -15,31 +14,32 @@ export async function checkMemberStatus(email: string) {
   const lowercasedEmail = email.toLowerCase();
 
   try {
-    // 1. Check for a pending invitation
-    const membershipRef = doc(db, 'memberships', `PENDING_${lowercasedEmail}`);
-    const membershipSnap = await getDoc(membershipRef);
+    const membershipRef = adminDb.collection('memberships').doc(`PENDING_${lowercasedEmail}`);
+    const membershipSnap = await membershipRef.get();
 
-    if (membershipSnap.exists() && membershipSnap.data().status === 'pending') {
+    if (membershipSnap.exists && membershipSnap.data()?.status === 'pending') {
       return {
         status: 'INVITED',
-        gymName: membershipSnap.data().gymName || 'your gym',
+        gymName: membershipSnap.data()?.gymName || 'your gym',
       };
     }
 
-    // 2. If no invitation, check if user is already registered
-    const usersRef = collection(db, "users");
-    const q = query(usersRef, where("email", "==", lowercasedEmail));
-    const querySnapshot = await getDocs(q);
+    const userEmailRef = adminDb.collection('userEmails').doc(lowercasedEmail);
+    const userEmailSnap = await userEmailRef.get();
 
-    if (!querySnapshot.empty) {
+    if (userEmailSnap.exists) {
       return { status: 'REGISTERED' };
     }
 
-    // 3. If neither, the user is not found
     return { status: 'NOT_FOUND' };
 
-  } catch (error) {
-    console.error("Error in checkMemberStatus:", error);
-    return { status: 'ERROR', message: 'An unexpected error occurred.' };
+  } catch (error: any) {
+    // We keep the diagnostic logging for now, just in case.
+    let projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not found in env';
+    console.error("CRITICAL ERROR in checkMemberStatus:", error);
+    return { 
+      status: 'ERROR', 
+      message: `El backend falló al contactar la base de datos. Proyecto: [${projectId}]. Error: ${error.message}`
+    };
   }
 }

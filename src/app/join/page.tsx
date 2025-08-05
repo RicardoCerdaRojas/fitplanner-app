@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc, writeBatch, Timestamp } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase/client';
 import { useAuth } from '@/contexts/auth-context';
 import { useEffect, useState, useTransition, useCallback, useMemo } from 'react';
 import { AppHeader } from '@/components/app-header';

@@ -4,7 +4,7 @@
 import { useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase/client';
 import { useAuth } from '@/contexts/auth-context';
 import type { UserProfile, GymProfile, Membership } from '@/contexts/auth-context';
 

@@ -10,6 +10,7 @@ if (!getAdminApps().length) {
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
   });
 }
+
 adminDb = getAdminFirestore();
 
 export { adminDb };
