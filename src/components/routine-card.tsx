@@ -32,14 +32,12 @@ export const RoutineCard = ({
 
     const totalExercises = routine.blocks?.reduce((acc, block) => acc + block.exercises.length, 0) || 0;
 
-    // --- VISTA COMPACTA ---
     const CompactView = () => (
         <>
             <div className="flex-1 text-left">
                 <p className="font-bold capitalize">{routine.routineDate.toLocaleDateString('es-ES', dateFormatOptions)}</p>
                 <p className="text-sm text-muted-foreground">{routine.routineTypeName}</p>
             </div>
-            {/* --- CORRECCIÓN CLAVE: Añadimos margen a la derecha (mr-2) --- */}
             <div className="flex-shrink-0 ml-4 mr-2">
                 {!routine.completed ? (
                     <div
@@ -56,7 +54,6 @@ export const RoutineCard = ({
         </>
     );
 
-    // --- VISTA COMPLETA ---
     const FullView = () => (
         <div className="w-full">
             <div className="flex justify-between items-start text-left">
@@ -74,8 +71,13 @@ export const RoutineCard = ({
     );
 
     return (
-        <AccordionItem value={routine.id} className={`border-none rounded-lg overflow-hidden group ${isToday ? 'bg-gradient-to-br from-primary to-primary/80' : 'bg-card'}`}>
-            <AccordionTrigger className="p-4 w-full hover:no-underline data-[state=open]:bg-primary/10">
+        // --- CORRECCIÓN DE DISEÑO ---
+        // Añadimos 'border' y 'shadow-sm' para dar definición visual.
+        <AccordionItem 
+            value={routine.id} 
+            className={`border shadow-sm rounded-lg overflow-hidden group ${isToday ? 'bg-gradient-to-br from-primary to-primary/80 border-primary/20' : 'bg-card'}`}
+        >
+            <AccordionTrigger className="p-4 w-full hover:no-underline data-[state=open]:bg-black/5 dark:data-[state=open]:bg-black/20">
                 {variant === 'compact' ? <CompactView /> : <FullView />}
             </AccordionTrigger>
             <AccordionContent>

@@ -2,6 +2,7 @@
 'use client';
 
 import { AppHeader } from "@/components/app-header";
+import { AthleteNav } from "@/components/athlete-nav"; // <-- PASO 1: Importar el menú de navegación
 import { AthleteRoutineList } from "@/components/athlete-routine-list";
 import { useAuth } from "@/contexts/auth-context";
 import { WeeklyProgress, RecentAchievement } from "@/components/athlete-dashboard-widgets";
@@ -36,9 +37,13 @@ export default function HomePage() {
         <div className="flex flex-col min-h-screen">
             <AppHeader />
             <div className="container mx-auto p-4 max-w-md space-y-8 flex-grow">
-                {/* El saludo ha sido eliminado para un diseño más limpio */}
                 
-                <section className="space-y-4 pt-4"> {/* Añadimos padding superior para compensar */}
+                {/* -- PASO 2: Añadir el menú de navegación en su lugar -- */}
+                <div className="pt-4">
+                    <AthleteNav />
+                </div>
+                
+                <section className="space-y-4">
                     <WeeklyProgress completedDays={completedDays} currentDay={currentDay} />
                     <RecentAchievement title={lastAchievement.title} description={lastAchievement.description} />
                 </section>
