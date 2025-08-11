@@ -1,9 +1,10 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react'; // Importamos useMemo
 import type { GenerateWorkoutRoutineOutput } from '@/ai/flows/generate-workout-routine';
 import { AIWorkoutGenerator } from '@/components/ai-workout-generator';
-import { WorkoutDisplay } from '@/components/workout-display';
+import { RoutineDetailView } from '@/components/routine-detail-view';
 import { AppHeader } from '@/components/app-header';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
@@ -14,6 +15,18 @@ export default function GenerateRoutinePage() {
     const [aiRoutine, setAiRoutine] = useState<GenerateWorkoutRoutineOutput | null>(null);
     const { user, loading } = useAuth();
     const router = useRouter();
+
+    // --- CORRECCIÓN: Parseamos el string JSON de la IA ---
+    const parsedRoutine = useMemo(() => {
+        if (!aiRoutine?.routine) return null;
+        try {
+            // El string de la IA se convierte en un objeto de JavaScript
+            return JSON.parse(aiRoutine.routine);
+        } catch (error) {
+            console.error("Error parsing AI-generated routine:", error);
+            return null;
+        }
+    }, [aiRoutine]);
 
     if (loading) {
         return (
@@ -39,7 +52,13 @@ export default function GenerateRoutinePage() {
                 <div className="w-full max-w-4xl space-y-8">
                     <AthleteNav />
                     <AIWorkoutGenerator onRoutineGenerated={setAiRoutine} />
-                    <WorkoutDisplay routine={aiRoutine} />
+                    
+                    {/* -- Usamos el objeto parseado para renderizar la vista -- */}
+                    {parsedRoutine && parsedRoutine.blocks && (
+                        <div className="mt-8 border rounded-lg">
+                           <RoutineDetailView blocks={parsedRoutine.blocks} />
+                        </div>
+                    )}
                 </div>
             </main>
             <footer className="w-full text-center p-4 text-muted-foreground text-sm">
