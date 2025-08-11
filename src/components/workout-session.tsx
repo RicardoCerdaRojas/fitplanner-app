@@ -1,17 +1,17 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Routine, Exercise, ExerciseProgress } from './athlete-routine-list';
 import { DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Dumbbell, Repeat, Clock, Video, CheckCircle2, Circle, Info } from 'lucide-react';
-import ReactPlayer from 'react-player';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, Timestamp, getDoc } from 'firebase/firestore';
-
+import { YouTubePlayer } from './youtube-player'; // <-- Importamos nuestro nuevo reproductor
+import { getYouTubeId } from '@/lib/utils'; // <-- Importamos la utilidad centralizada
 
 // A type for the items in our session "playlist"
 type SessionExercise = Exercise & {
@@ -24,7 +24,7 @@ type SessionExercise = Exercise & {
 };
 
 
-// Timer Component
+// Timer Component (sin cambios)
 const Timer = ({ durationString, isCurrent }: { durationString: string; isCurrent: boolean }) => {
     const parseDuration = (str: string) => {
         let seconds = 0;
@@ -32,96 +32,54 @@ const Timer = ({ durationString, isCurrent }: { durationString: string; isCurren
         const secMatch = str.match(/(\d+)\s*s/);
         if (minMatch) seconds += parseInt(minMatch[1], 10) * 60;
         if (secMatch) seconds += parseInt(secMatch[1], 10);
-        if (!minMatch && !secMatch) { // fallback for just numbers
-            const numMatch = str.match(/(\d+)/);
-            if (numMatch) seconds = parseInt(numMatch[0], 10);
-        }
+        if (!minMatch && !secMatch) { const numMatch = str.match(/(\d+)/); if (numMatch) seconds = parseInt(numMatch[0], 10); }
         return seconds;
     };
-
     const initialSeconds = useMemo(() => parseDuration(durationString), [durationString]);
-    
     type Phase = 'idle' | 'countdown' | 'running' | 'paused' | 'finished';
     const [phase, setPhase] = useState<Phase>('idle');
     const [secondsLeft, setSecondsLeft] = useState(initialSeconds);
     const [countdown, setCountdown] = useState(5);
-    
     const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
-
-    useEffect(() => {
-        setAudioRef(new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"));
-    }, [])
-
-    // Effect to handle timer ticks
+    useEffect(() => { setAudioRef(new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg")); }, [])
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
-
         if (phase === 'countdown' && countdown > 0) {
-            interval = setInterval(() => {
-                setCountdown(c => c - 1);
-            }, 1000);
+            interval = setInterval(() => { setCountdown(c => c - 1); }, 1000);
         } else if (phase === 'countdown' && countdown <= 0) {
             setPhase('running');
         } else if (phase === 'running' && secondsLeft > 0) {
-            interval = setInterval(() => {
-                setSecondsLeft(s => s - 1);
-            }, 1000);
+            interval = setInterval(() => { setSecondsLeft(s => s - 1); }, 1000);
         } else if (phase === 'running' && secondsLeft <= 0) {
             setPhase('finished');
             audioRef?.play().catch(e => console.error("Audio play failed:", e));
         }
-
-        return () => {
-            if (interval) clearInterval(interval);
-        };
+        return () => { if (interval) clearInterval(interval); };
     }, [phase, countdown, secondsLeft, audioRef]);
-
-    // Effect to reset timer when the exercise changes
     useEffect(() => {
         setSecondsLeft(initialSeconds);
         setCountdown(5);
         setPhase('idle');
     }, [initialSeconds, isCurrent]);
-
     const handlePrimaryAction = () => {
-        if (phase === 'idle') {
-            setPhase('countdown');
-        } else if (phase === 'running') {
-            setPhase('paused');
-        } else if (phase === 'paused') {
-            setPhase('running');
-        }
+        if (phase === 'idle') setPhase('countdown');
+        else if (phase === 'running') setPhase('paused');
+        else if (phase === 'paused') setPhase('running');
     };
-
     const reset = () => {
         setPhase('idle');
         setSecondsLeft(initialSeconds);
         setCountdown(5);
     };
-
     const renderTime = () => {
         if (phase === 'countdown') {
-            return (
-                <>
-                    <p className="text-2xl font-semibold text-muted-foreground mb-2">¡Prepárate!</p>
-                    <div className="text-9xl font-bold font-mono text-accent tabular-nums">
-                        {countdown}
-                    </div>
-                </>
-            );
+            return ( <> <p className="text-2xl font-semibold text-muted-foreground mb-2">¡Prepárate!</p> <div className="text-9xl font-bold font-mono text-accent tabular-nums"> {countdown} </div> </> );
         }
-        
         const displaySeconds = (phase === 'finished') ? 0 : secondsLeft;
         const minutes = Math.floor(displaySeconds / 60);
         const seconds = displaySeconds % 60;
-        
-        return (
-            <div className="text-9xl font-bold font-mono text-primary tabular-nums">
-                <span>{String(minutes).padStart(2, '0')}</span>:<span>{String(seconds).padStart(2, '0')}</span>
-            </div>
-        );
+        return ( <div className="text-9xl font-bold font-mono text-primary tabular-nums"> <span>{String(minutes).padStart(2, '0')}</span>:<span>{String(seconds).padStart(2, '0')}</span> </div> );
     };
-
     const getButtonProps = () => {
         switch(phase) {
             case 'idle': return { text: 'Iniciar', icon: <Play className="mr-2 h-6 w-6" />, disabled: false, variant: 'default' as const };
@@ -132,18 +90,12 @@ const Timer = ({ durationString, isCurrent }: { durationString: string; isCurren
         }
     }
     const buttonProps = getButtonProps();
-
     return (
         <div className="flex flex-col items-center gap-4">
             {renderTime()}
             <div className="flex items-center gap-4 mt-4">
-                <Button onClick={handlePrimaryAction} size="lg" disabled={buttonProps.disabled} variant={buttonProps.variant}>
-                    {buttonProps.icon} {buttonProps.text}
-                </Button>
-                <Button onClick={reset} size="lg" variant="ghost" disabled={phase === 'idle' || phase === 'countdown'}>
-                    <RotateCcw className="mr-2 h-6 w-6" />
-                    Reiniciar
-                </Button>
+                <Button onClick={handlePrimaryAction} size="lg" disabled={buttonProps.disabled} variant={buttonProps.variant}> {buttonProps.icon} {buttonProps.text} </Button>
+                <Button onClick={reset} size="lg" variant="ghost" disabled={phase === 'idle' || phase === 'countdown'}> <RotateCcw className="mr-2 h-6 w-6" /> Reiniciar </Button>
             </div>
         </div>
     );
@@ -156,18 +108,12 @@ type WorkoutSessionProps = {
   onProgressChange: (routineId: string, exerciseKey: string, currentProgress: any, newProgress: { completed?: boolean; difficulty?: 'easy' | 'medium' | 'hard' }) => void;
 };
 
-const difficultyMap: { [key in 'fácil' | 'medio' | 'difícil']: 'easy' | 'medium' | 'hard' } = {
-    'fácil': 'easy',
-    'medio': 'medium',
-    'difícil': 'hard'
-};
-
+const difficultyMap: { [key in 'fácil' | 'medio' | 'difícil']: 'easy' | 'medium' | 'hard' } = { 'fácil': 'easy', 'medio': 'medium', 'difícil': 'hard' };
 const displayDifficulties: ('fácil' | 'medio' | 'difícil')[] = ['fácil', 'medio', 'difícil'];
 
 export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: WorkoutSessionProps) {
     const { user, userProfile } = useAuth();
     const sessionId = user?.uid; 
-
     const sessionPlaylist = useMemo(() => {
         const playlist: SessionExercise[] = [];
         routine.blocks?.forEach((block, bIndex) => {
@@ -175,53 +121,33 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                 const totalSets = parseInt(block.sets.match(/\d+/)?.[0] || '1', 10);
                 for (let sIndex = 0; sIndex < totalSets; sIndex++) {
                      block.exercises.forEach((exercise, eIndex) => {
-                        playlist.push({
-                            ...exercise,
-                            blockName: block.name,
-                            blockSets: block.sets,
-                            blockIndex: bIndex,
-                            exerciseIndex: eIndex,
-                            setIndex: sIndex,
-                            totalSets: totalSets,
-                        });
+                        playlist.push({ ...exercise, blockName: block.name, blockSets: block.sets, blockIndex: bIndex, exerciseIndex: eIndex, setIndex: sIndex, totalSets: totalSets, });
                     });
                 }
             }
         });
         return playlist;
     }, [routine.blocks]);
-  
     const [currentIndex, setCurrentIndex] = useState(() => {
-        const firstUncompletedIndex = sessionPlaylist.findIndex(item => {
-            const key = `${item.blockIndex}-${item.exerciseIndex}-${item.setIndex}`;
-            return !routine.progress?.[key]?.completed;
-        });
+        const firstUncompletedIndex = sessionPlaylist.findIndex(item => { const key = `${item.blockIndex}-${item.exerciseIndex}-${item.setIndex}`; return !routine.progress?.[key]?.completed; });
         return firstUncompletedIndex === -1 ? 0 : firstUncompletedIndex;
     });
-
     const [showVideo, setShowVideo] = useState(false);
     const [progress, setProgress] = useState<ExerciseProgress>(routine.progress || {});
-    
-    const sessionDocRef = useMemo(() => {
-        if (!sessionId) return null;
-        return doc(db, "workoutSessions", sessionId);
-    }, [sessionId]);
-
+    const sessionDocRef = useMemo(() => { if (!sessionId) return null; return doc(db, "workoutSessions", sessionId); }, [sessionId]);
     const currentItem = sessionPlaylist[currentIndex];
 
     useEffect(() => {
         if (!sessionDocRef || !user || !userProfile?.gymId || !currentItem) return;
-
         const updateSessionDocument = async () => {
             const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
             const docSnapshot = await getDoc(sessionDocRef);
-
             const sessionData = {
                 userId: user.uid,
                 userName: userProfile.name || user.email || 'Usuario Desconocido',
                 gymId: userProfile.gymId,
                 routineId: routine.id,
-                routineName: routine.routineTypeName || routine.routineName || 'Rutina sin Título',
+                routineName: routine.routineTypeName || (routine as any).routineName || 'Rutina sin Título',
                 startTime: docSnapshot.exists() ? docSnapshot.data().startTime : Timestamp.now(),
                 status: 'active' as const,
                 currentExerciseName: currentItem.name,
@@ -230,87 +156,41 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                 lastReportedDifficulty: progress[exerciseKey]?.difficulty || null,
                 lastUpdateTime: Timestamp.now(),
             };
-            
-            try {
-                await setDoc(sessionDocRef, sessionData, { merge: true });
-            } catch (error) {
-                console.error("Error creating/updating session document:", error);
-            }
+            try { await setDoc(sessionDocRef, sessionData, { merge: true }); } catch (error) { console.error("Error creating/updating session document:", error); }
         };
-
         updateSessionDocument();
-
         const heartbeatInterval = setInterval(updateSessionDocument, 15000);
-
-        return () => {
-            clearInterval(heartbeatInterval);
-            if (sessionDocRef) {
-                deleteDoc(sessionDocRef);
-            }
-        };
+        return () => { clearInterval(heartbeatInterval); if (sessionDocRef) { deleteDoc(sessionDocRef); } };
     }, [sessionDocRef, user, userProfile, routine, sessionPlaylist, currentIndex, progress, currentItem]);
 
-    useEffect(() => {
-        if (!currentItem) {
-            onSessionEnd();
-        }
-    }, [currentItem, onSessionEnd]);
+    useEffect(() => { if (!currentItem) { onSessionEnd(); } }, [currentItem, onSessionEnd]);
+    useEffect(() => { setShowVideo(false); }, [currentIndex]);
     
-    useEffect(() => {
-        setShowVideo(false);
-    }, [currentIndex]);
-    
-    if (!currentItem) {
-        return null;
-    }
+    if (!currentItem) return null;
 
     const exerciseKey = `${currentItem.blockIndex}-${currentItem.exerciseIndex}-${currentItem.setIndex}`;
     const currentSetProgress = progress?.[exerciseKey];
     
     const handleProgressUpdate = (newData: { completed?: boolean; difficulty?: 'easy' | 'medium' | 'hard' }) => {
-        const updatedProgressForSet = {
-            ...(progress[exerciseKey] || { completed: false, difficulty: 'medium' }),
-            ...newData,
-        };
-
-        const newProgressState = {
-            ...progress,
-            [exerciseKey]: updatedProgressForSet,
-        };
-        
+        const updatedProgressForSet = { ...(progress[exerciseKey] || { completed: false, difficulty: 'medium' }), ...newData, };
+        const newProgressState = { ...progress, [exerciseKey]: updatedProgressForSet, };
         setProgress(newProgressState);
         onProgressChange(routine.id, exerciseKey, progress[exerciseKey] || {}, newData);
     };
 
-    const toggleCompletion = () => {
-        handleProgressUpdate({ completed: !currentSetProgress?.completed });
-    };
-
-    const handleNext = () => {
-        setShowVideo(false);
-        if (currentIndex < sessionPlaylist.length - 1) {
-            setCurrentIndex(currentIndex + 1);
-        } else {
-            onSessionEnd();
-        }
-    };
-    
-    const handlePrev = () => {
-        setShowVideo(false);
-        if (currentIndex > 0) {
-            setCurrentIndex(currentIndex - 1);
-        }
-    };
+    const toggleCompletion = () => { handleProgressUpdate({ completed: !currentSetProgress?.completed }); };
+    const handleNext = () => { setShowVideo(false); if (currentIndex < sessionPlaylist.length - 1) { setCurrentIndex(currentIndex + 1); } else { onSessionEnd(); } };
+    const handlePrev = () => { setShowVideo(false); if (currentIndex > 0) { setCurrentIndex(currentIndex - 1); } };
 
     const progressPercentage = ((currentIndex) / sessionPlaylist.length) * 100;
     const isLastItem = currentIndex === sessionPlaylist.length - 1;
     const isCompleted = currentSetProgress?.completed || false;
-    
+    const videoId = currentItem.videoUrl ? getYouTubeId(currentItem.videoUrl) : null;
 
     return (
         <DialogContent className="max-w-5xl h-[95vh] flex flex-col p-0 gap-0">
             <DialogHeader className="p-4 border-b pr-12">
-                <DialogTitle className="font-headline text-xl">{routine.routineTypeName || routine.routineName}</DialogTitle>
+                <DialogTitle className="font-headline text-xl">{routine.routineTypeName || (routine as any).routineName}</DialogTitle>
                 <div className="space-y-1 mt-2">
                     <Progress value={progressPercentage} />
                     <p className="text-xs text-muted-foreground text-center">Paso {currentIndex + 1} de {sessionPlaylist.length}</p>
@@ -318,26 +198,10 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
             </DialogHeader>
 
             <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-muted/20 overflow-y-auto">
-                {showVideo && currentItem.videoUrl ? (
+                {showVideo && videoId ? (
                     <div className="w-full max-w-2xl flex flex-col items-center gap-4">
-                        <div className="w-full aspect-video bg-black rounded-lg overflow-hidden">
-                           <ReactPlayer
-                                url={currentItem.videoUrl}
-                                playing
-                                controls
-                                width="100%"
-                                height="100%"
-                                config={{
-                                    youtube: {
-                                        // @ts-ignore
-                                        playerVars: {
-                                            autoplay: 1,
-                                            mute: 1,
-                                        },
-                                    },
-                                }}
-                            />
-                        </div>
+                        {/* --- REEMPLAZO DE LA TECNOLOGÍA DE VIDEO --- */}
+                        <YouTubePlayer videoId={videoId} />
                         <Button variant="outline" onClick={() => setShowVideo(false)}>
                             <ChevronLeft className="mr-2 h-4 w-4" /> Volver al Ejercicio
                         </Button>
@@ -367,7 +231,7 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                             {currentItem.weight && (
                                 <div className="flex items-center gap-2"><Dumbbell className="w-5 h-5" /><span>{currentItem.weight}</span></div>
                             )}
-                            {currentItem.videoUrl && (
+                            {videoId && (
                                 <Button variant="outline" onClick={() => setShowVideo(true)}><Video className="w-5 h-5 mr-2" /> Ver Ejemplo</Button>
                             )}
                         </div>
@@ -395,19 +259,11 @@ export function WorkoutSession({ routine, onSessionEnd, onProgressChange }: Work
                     <Button variant="outline" size="icon" onClick={handlePrev} disabled={currentIndex === 0} className="h-14 w-14">
                         <ChevronLeft className="h-5 w-5" />
                     </Button>
-                    <Button
-                        onClick={toggleCompletion}
-                        variant={isCompleted ? 'outline' : 'default'}
-                        className="flex-1 h-14 text-lg font-bold"
-                    >
+                    <Button onClick={toggleCompletion} variant={isCompleted ? 'outline' : 'default'} className="flex-1 h-14 text-lg font-bold">
                         {isCompleted ? <CheckCircle2 className="mr-2 h-5 w-5"/> : <Circle className="mr-2 h-5 w-5"/>}
                         {isCompleted ? 'Completado' : 'Marcar como Completado'}
                     </Button>
-                    <Button 
-                        size="icon" 
-                        onClick={handleNext}
-                        className="h-14 w-14 bg-accent hover:bg-accent/90"
-                    >
+                    <Button size="icon" onClick={handleNext} className="h-14 w-14 bg-accent hover:bg-accent/90">
                        {isLastItem ? 'Fin' : <ChevronRight className="h-5 w-5" />}
                     </Button>
                 </div>
