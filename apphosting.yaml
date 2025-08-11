@@ -3,37 +3,31 @@
 runConfig:
   minInstances: 0
 
-# Environment variables must be available during both build and runtime.
-# BUILD: For prerendering pages (SSG/ISR) which requires Firebase initialization.
-# RUNTIME: For server-side rendering (SSR) and Server Actions.
+# Environment variables that are available during runtime.
+# These secrets are created automatically by Firebase App Hosting.
 env:
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: ${firebase.apiKey}
-    availability:
-      - BUILD
-      - RUNTIME
+    secret: FIREBASE_API_KEY
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    value: ${firebase.authDomain}
-    availability:
-      - BUILD
-      - RUNTIME
+    secret: FIREBASE_AUTH_DOMAIN
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: ${firebase.projectId}
-    availability:
-      - BUILD
-      - RUNTIME
+    secret: FIREBASE_PROJECT_ID
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-    value: ${firebase.storageBucket}
-    availability:
-      - BUILD
-      - RUNTIME
+    secret: FIREBASE_STORAGE_BUCKET
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-    value: ${firebase.messagingSenderId}
-    availability:
-      - BUILD
-      - RUNTIME
+    secret: FIREBASE_MESSAGING_SENDER_ID
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: ${firebase.appId}
-    availability:
-      - BUILD
-      - RUNTIME
+    secret: FIREBASE_APP_ID
+
+# buildArgs are environment variables that are available only during build.
+# These are NOT available during runtime.
+# They are prefixed with NEXT_PUBLIC_ so that Next.js will inline them
+# into the client-side JavaScript bundle.
+build:
+  args:
+    NEXT_PUBLIC_FIREBASE_API_KEY: ${secrets.FIREBASE_API_KEY}
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${secrets.FIREBASE_AUTH_DOMAIN}
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${secrets.FIREBASE_PROJECT_ID}
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${secrets.FIREBASE_STORAGE_BUCKET}
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${secrets.FIREBASE_MESSAGING_SENDER_ID}
+    NEXT_PUBLIC_FIREBASE_APP_ID: ${secrets.FIREBASE_APP_ID}
