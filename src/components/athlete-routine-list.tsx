@@ -45,8 +45,8 @@ export interface Routine {
 }
 
 // --- COMPONENTES DE ESTADO ---
-const LoadingState = () => ( <div className="p-4 max-w-md mx-auto space-y-4 mt-6"> <Skeleton className="h-40 w-full rounded-lg" /> <Skeleton className="h-24 w-full rounded-lg" /> <Skeleton className="h-24 w-full rounded-lg" /> </div> );
-const EmptyState = () => ( <div className="text-center py-20 px-4"> <CalendarX className="mx-auto h-16 w-16 text-muted-foreground" /> <h2 className="mt-6 text-2xl font-bold">No Hay Rutinas... ¡Aún!</h2> <p className="mt-2 text-muted-foreground">Tu entrenador no te ha asignado ninguna rutina.</p> </div> );
+const LoadingState = () => ( <div className="space-y-4"> <Skeleton className="h-40 w-full rounded-lg" /> <Skeleton className="h-24 w-full rounded-lg" /> <Skeleton className="h-24 w-full rounded-lg" /> </div> );
+const EmptyState = () => ( <div className="text-center py-20 px-4 border rounded-lg"> <CalendarX className="mx-auto h-16 w-16 text-muted-foreground" /> <h2 className="mt-6 text-2xl font-bold">No Hay Rutinas... ¡Aún!</h2> <p className="mt-2 text-muted-foreground">Tu entrenador no te ha asignado ninguna rutina.</p> </div> );
 const ErrorState = ({ message }: { message: string }) => ( <div className="text-center py-20 px-4 bg-destructive/10 rounded-lg"> <AlertTriangle className="mx-auto h-16 w-16 text-destructive" /> <h2 className="mt-6 text-2xl font-bold text-destructive">Ocurrió un Error</h2> <p className="mt-2 text-muted-foreground">{message}</p> </div> );
 
 // --- FUNCIONES DE UTILIDAD ---
@@ -58,7 +58,6 @@ const getStartOfWeek = (date: Date) => {
   d.setHours(0, 0, 0, 0);
   return new Date(d.setDate(diff));
 };
-
 
 // --- COMPONENTE PRINCIPAL ---
 export const AthleteRoutineList = () => {
@@ -113,32 +112,33 @@ export const AthleteRoutineList = () => {
     if (error) return <ErrorState message={error} />;
 
     return (
+        // --- CORRECCIÓN DE LAYOUT ---
+        // Se elimina el div contenedor con max-w-md y padding.
+        // Ahora el componente solo renderiza su contenido, permitiendo que el padre controle el layout.
         <>
-            <div className="p-4 max-w-md mx-auto space-y-8">
-                {routines.length === 0 ? ( <EmptyState /> ) : (
-                    <Accordion type="single" collapsible className="w-full space-y-4">
-                        {todayRoutine && <RoutineCard routine={todayRoutine} isToday onStartWorkout={setActiveWorkout} />}
+            {routines.length === 0 ? ( <EmptyState /> ) : (
+                <Accordion type="single" collapsible className="w-full space-y-4">
+                    {todayRoutine && <RoutineCard routine={todayRoutine} isToday onStartWorkout={setActiveWorkout} />}
 
-                        {weekRoutines.length > 0 && (
-                            <section>
-                                <h2 className="text-xl font-bold mb-4">Próximas Sesiones</h2>
-                                <Accordion type="single" collapsible className="w-full space-y-3">
-                                    {weekRoutines.map(r => <RoutineCard key={r.id} routine={r} variant="compact" onStartWorkout={setActiveWorkout} dateFormatOptions={{ weekday: 'long' }} />)}
-                                </Accordion>
-                            </section>
-                        )}
+                    {weekRoutines.length > 0 && (
+                        <section>
+                            <h2 className="text-xl font-bold mb-4">Próximas Sesiones</h2>
+                            <Accordion type="single" collapsible className="w-full space-y-3">
+                                {weekRoutines.map(r => <RoutineCard key={r.id} routine={r} variant="compact" onStartWorkout={setActiveWorkout} dateFormatOptions={{ weekday: 'long' }} />)}
+                            </Accordion>
+                        </section>
+                    )}
 
-                        {historyRoutines.length > 0 && (
-                            <section>
-                                <h2 className="text-xl font-bold mb-4">Historial</h2>
-                                <Accordion type="single" collapsible className="w-full space-y-3">
-                                    {historyRoutines.map(r => <RoutineCard key={r.id} routine={r} variant="compact" onStartWorkout={setActiveWorkout} dateFormatOptions={{ day: 'numeric', month: 'long' }} />)}
-                                </Accordion>
-                            </section>
-                        )}
-                    </Accordion>
-                )}
-            </div>
+                    {historyRoutines.length > 0 && (
+                        <section>
+                            <h2 className="text-xl font-bold mb-4">Historial</h2>
+                            <Accordion type="single" collapsible className="w-full space-y-3">
+                                {historyRoutines.map(r => <RoutineCard key={r.id} routine={r} variant="compact" onStartWorkout={setActiveWorkout} dateFormatOptions={{ day: 'numeric', month: 'long' }} />)}
+                            </Accordion>
+                        </section>
+                    )}
+                </Accordion>
+            )}
             
             <Dialog open={!!activeWorkout} onOpenChange={(isOpen) => !isOpen && setActiveWorkout(null)}>
                 {activeWorkout && (
