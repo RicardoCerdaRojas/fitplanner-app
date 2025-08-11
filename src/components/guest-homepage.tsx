@@ -35,13 +35,16 @@ function MemberDashboard() {
       const fetchedRoutines = snapshot.docs
         .map((doc) => {
           const data = doc.data();
+          // --- CORRECCIÓN CLAVE ---
+          // Aseguramos que el objeto creado cumpla con el tipo 'Routine'
           return {
             id: doc.id,
-            routineName: data.routineName,
+            memberId: data.memberId,
+            userName: data.userName,
             routineTypeName: data.routineTypeName,
             routineDate: (data.routineDate as Timestamp).toDate(),
             blocks: data.blocks,
-            coachId: data.coachId,
+            completed: data.completed || false,
             progress: data.progress,
           } as Routine;
         })
@@ -53,6 +56,8 @@ function MemberDashboard() {
     return () => unsubscribe();
   }, [user]);
 
+  // El componente AthleteRoutineList ahora maneja su propia obtención de datos.
+  // Ya no necesitamos pasarle las rutinas como props, simplificando este componente.
   return (
     <div className="flex flex-col min-h-screen pb-16 md:pb-0">
       <main className="flex-grow flex flex-col items-center p-4 sm:p-8">
@@ -67,7 +72,8 @@ function MemberDashboard() {
               <Skeleton className="h-24 w-full" />
             </div>
           ) : (
-            <AthleteRoutineList routines={routines} />
+            // Simplificado: AthleteRoutineList ahora es autónomo.
+            <AthleteRoutineList />
           )}
         </div>
       </main>
@@ -93,50 +99,37 @@ function LoadingScreen() {
     );
 }
 
-// This component now contains the logic for routing authenticated users.
-// The new V2 landing page is now in /app/page.tsx
+// Este componente ahora contiene la lógica para enrutar a los usuarios autenticados.
 export default function GuestHomepage() {
     const { user, activeMembership, loading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        // Only run routing logic when auth state is fully resolved
-        if (loading) {
-            return;
-        }
+        if (loading) return;
 
         if (user) {
-            if (activeMembership) {
-                if (activeMembership.role === 'gym-admin') {
-                    router.replace('/admin');
-                } else if (activeMembership.role === 'coach') {
-                    router.replace('/coach');
-                }
-                // For members, the MemberDashboard is rendered below, so no redirect is needed.
+            // La lógica de enrutamiento principal ahora debería estar en /app/home/page.tsx
+            // Este componente se está volviendo redundante. Por ahora, redirigimos a /home
+            // si el usuario es un miembro, y dejamos que /home maneje el dashboard.
+            if (activeMembership?.role === 'member') {
+                router.replace('/home');
+            } else if (activeMembership?.role === 'gym-admin') {
+                router.replace('/admin');
+            } else if (activeMembership?.role === 'coach') {
+                router.replace('/coach');
             } else {
-                // User is authenticated but has no membership, send to create a gym.
                 router.replace('/create-gym');
             }
         }
-        // If there's no user and loading is false, do nothing. The parent component will render the public page.
+        // Si no hay usuario, no hacer nada, page.tsx mostrará la landing page.
     }, [user, activeMembership, loading, router]);
 
 
-    if (loading) {
+    // Durante la carga o la redirección, mostramos una pantalla de carga.
+    if (loading || user) {
         return <LoadingScreen />;
-    }
-
-    if (user && activeMembership?.role === 'member') {
-        return <MemberDashboard />;
     }
     
-    // This state is for users who have just logged in and are waiting for the redirection logic to complete.
-    // It prevents a flash of the wrong page.
-    if (user) {
-        return <LoadingScreen />;
-    }
-
-    // For unauthenticated users, this component will return null,
-    // allowing the parent component (e.g., page.tsx) to render the public landing page.
+    // Para usuarios no autenticados, devuelve null.
     return null;
 }
