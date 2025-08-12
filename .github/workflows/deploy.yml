@@ -45,25 +45,45 @@ jobs:
         run: npm install -g firebase-tools@latest
 
       # 👉 Cargar secrets en App Hosting y conceder acceso al backend
-      - name: Push App Hosting secrets and grant access
+      - name: Set up gcloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+
+      - name: Sync secrets to Secret Manager (non-interactive)
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROJECT_ID='${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}'
+
+          ensure_secret() {
+            local NAME="$1"; local VALUE="$2"
+            # crea si no existe
+            if ! gcloud secrets describe "$NAME" --project "$PROJECT_ID" >/dev/null 2>&1; then
+              gcloud secrets create "$NAME" --project "$PROJECT_ID" --replication-policy="automatic"
+            fi
+            # añade nueva versión desde stdin
+            printf '%s' "$VALUE" | gcloud secrets versions add "$NAME" --project "$PROJECT_ID" --data-file=-
+          }
+
+          ensure_secret NEXT_PUBLIC_FIREBASE_API_KEY            '${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}'
+          ensure_secret NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN        '${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}'
+          ensure_secret NEXT_PUBLIC_FIREBASE_PROJECT_ID         '${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}'
+          ensure_secret NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET     '${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}'
+          ensure_secret NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID '${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}'
+          ensure_secret NEXT_PUBLIC_FIREBASE_APP_ID             '${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}'
+
+      - name: Grant backend access to secrets
         run: |
           set -e
           PROJECT_ID='${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}'
           BACKEND_ID='studio'  # cambia si tu backend tiene otro ID
-
-          echo "${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}"             | firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_API_KEY --project "$PROJECT_ID" --force --data-file -
-          echo "${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}"         | firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN --project "$PROJECT_ID" --force --data-file -
-          echo "${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}"          | firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_PROJECT_ID --project "$PROJECT_ID" --force --data-file -
-          echo "${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}"      | firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET --project "$PROJECT_ID" --force --data-file -
-          echo "${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}" | firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID --project "$PROJECT_ID" --force --data-file -
-          echo "${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}"              | firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_APP_ID --project "$PROJECT_ID" --force --data-file -
-
-          firebase apphosting:secrets:grantaccess NEXT_PUBLIC_FIREBASE_API_KEY             --backend "$BACKEND_ID" --project "$PROJECT_ID"
-          firebase apphosting:secrets:grantaccess NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN         --backend "$BACKEND_ID" --project "$PROJECT_ID"
-          firebase apphosting:secrets:grantaccess NEXT_PUBLIC_FIREBASE_PROJECT_ID          --backend "$BACKEND_ID" --project "$PROJECT_ID"
-          firebase apphosting:secrets:grantaccess NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET      --backend "$BACKEND_ID" --project "$PROJECT_ID"
-          firebase apphosting:secrets:grantaccess NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID --backend "$BACKEND_ID" --project "$PROJECT_ID"
-          firebase apphosting:secrets:grantaccess NEXT_PUBLIC_FIREBASE_APP_ID              --backend "$BACKEND_ID" --project "$PROJECT_ID"
+          firebase apphosting:secrets:grantaccess NEXT_PUBLIC_FIREBASE_API_KEY            --backend "$BACKEND_ID" --project "$PROJECT_ID" --non-interactive
+          firebase apphosting:secrets:grantaccess NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN        --backend "$BACKEND_ID" --project "$PROJECT_ID" --non-interactive
+          firebase apphosting:secrets:grantaccess NEXT_PUBLIC_FIREBASE_PROJECT_ID         --backend "$BACKEND_ID" --project "$PROJECT_ID" --non-interactive
+          firebase apphosting:secrets:grantaccess NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET     --backend "$BACKEND_ID" --project "$PROJECT_ID" --non-interactive
+          firebase apphosting:secrets:grantaccess NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID --backend "$BACKEND_ID" --project "$PROJECT_ID" --non-interactive
+          firebase apphosting:secrets:grantaccess NEXT_PUBLIC_FIREBASE_APP_ID             --backend "$BACKEND_ID" --project "$PROJECT_ID" --non-interactive
 
       - name: Deploy to Firebase App Hosting
         run: firebase deploy --only apphosting --project ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
