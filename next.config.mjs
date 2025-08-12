@@ -18,7 +18,14 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'firebasestorage.googleapis.com',
-      }
+      },
+      // --- SOLUCIÓN: Añadir un patrón más genérico para capturar cualquier dominio de imagen ---
+      // Advertencia: Esto es menos seguro. Deberíamos reemplazarlo con el hostname específico
+      // una vez que lo identifiquemos en producción.
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
     ],
   },
 };
