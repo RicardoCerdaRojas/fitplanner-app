@@ -38,7 +38,7 @@ export function AppHeader() {
         const logoUrl = gymProfile?.logoUrl;
         const gymName = gymProfile?.name;
 
-        // --- DIAGNOSTIC LOGGING RC---
+        // --- DIAGNOSTIC LOGGING RC2---
         console.log('[AppHeader Diagnostics] ====================');
         console.log(`[AppHeader Diagnostics] logoUrl value: ${logoUrl}`);
         console.log(`[AppHeader Diagnostics] isTransparentHeader: ${isTransparentHeader}`);
