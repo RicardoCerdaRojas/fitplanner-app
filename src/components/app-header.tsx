@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from './ui/avatar';
-import { ThemeToggle } from './ui/theme-toggle'; // Importamos el ThemeToggle
+import { ThemeToggle } from './ui/theme-toggle';
 
 export function AppHeader() {
     const { user, userProfile, activeMembership, gymProfile, loading, isTrialActive } = useAuth();
@@ -33,23 +33,31 @@ export function AppHeader() {
     
     const isTransparentHeader = (!user && ['/', '/login', '/create-gym', '/join'].includes(pathname)) || (user && !activeMembership) || isTrialActive === false;
 
-    // --- Lógica de Renderizado del Logo ---
+    // --- Lógica de Renderizado del Logo con Diagnóstico ---
     const renderLogo = () => {
         const logoUrl = gymProfile?.logoUrl;
         const gymName = gymProfile?.name;
 
+        // --- DIAGNOSTIC LOGGING ---
+        console.log('[AppHeader Diagnostics] ====================');
+        console.log(`[AppHeader Diagnostics] logoUrl value: ${logoUrl}`);
+        console.log(`[AppHeader Diagnostics] isTransparentHeader: ${isTransparentHeader}`);
+
         if (logoUrl && !isTransparentHeader) {
-            // Si la URL es de Firebase Storage, usamos el optimizador de Next.js (<Image>)
+            console.log('[AppHeader Diagnostics] Condition MET: logoUrl is present and header is NOT transparent.');
             if (logoUrl.includes('firebasestorage.googleapis.com')) {
+                console.log('[AppHeader Diagnostics] Decision: Using Next.js <Image> component for Firebase URL.');
                 return <Image src={logoUrl} alt={gymName ? `${gymName} Logo` : 'Gym Logo'} width={100} height={50} className="object-contain h-10 w-auto" priority />;
             } else {
-                // Si es de otro dominio (ej. placehold.co), usamos una <img> estándar para bypassar el optimizador.
+                console.log('[AppHeader Diagnostics] Decision: Using standard <img> tag for non-Firebase URL.');
                 // eslint-disable-next-line @next/next/no-img-element
                 return <img src={logoUrl} alt={gymName ? `${gymName} Logo` : 'Gym Logo'} className="object-contain h-10 w-auto" />;
             }
         } else if (gymName && !isTransparentHeader) {
+            console.log('[AppHeader Diagnostics] Decision: Rendering gym name as text.');
             return <h1 className="font-headline font-bold text-card-foreground text-xl">{gymName}</h1>;
         } else {
+            console.log('[AppHeader Diagnostics] Decision: Rendering default "Fit Planner" text.');
             return <h1 className={cn("text-2xl font-black tracking-tight", isTransparentHeader ? "text-white" : "text-card-foreground")}>Fit Planner</h1>;
         }
     };
