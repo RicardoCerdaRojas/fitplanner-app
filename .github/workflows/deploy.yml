@@ -31,7 +31,6 @@ jobs:
       - name: Build Project
         run: npm run build
       
-      # --- PASO 1: Guardar el resultado del build como un artefacto ---
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -47,7 +46,6 @@ jobs:
       contents: 'read'
       id-token: 'write'
     steps:
-      # --- PASO 2: Descargar el artefacto del build ---
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
@@ -62,17 +60,19 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools@latest
 
-      # --- PASO ADICIONAL: Conceder rol de Secret Manager al servicio de App Hosting ---
-      - name: Grant Secret Manager Role to App Hosting Service Account
+      - name: Grant Secret Access to Cloud Build and App Hosting Services
         run: |
+          # Grant build-time secret access to the Cloud Build service account
           gcloud projects add-iam-policy-binding fitness-flow-1k4yl \
-            --member="serviceAccount:firebase-app-hosting-compute@fitness-flow-1k4yl.iam.gserviceaccount.com" \
+            --member="serviceAccount:481825355690@cloudbuild.gserviceaccount.com" \
             --role="roles/secretmanager.secretAccessor" \
             --condition=None
 
-      # El paso de 'update' ya no es necesario porque las variables de entorno 
-      # se incrustaron durante el 'build' job.
+          # Grant runtime secret access to the App Hosting service account
+          gcloud projects add-iam-policy-binding fitness-flow-1k4yl \
+            --member="serviceAccount:firebase-app-hosting-compute@firebase-flow-1k4yl.iam.gserviceaccount.com" \
+            --role="roles/secretmanager.secretAccessor" \
+            --condition=None
 
-      # --- PASO 3: Desplegar la aplicación ya construida ---
       - name: Deploy to Firebase App Hosting
         run: firebase deploy --only apphosting --project ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
