@@ -130,7 +130,7 @@ const Testimonials = () => {
 // --- SECCIÓN 7: FAQ ---
 const FAQ = () => {
     const [openIndex, setOpenIndex] = useState<number | null>(0);
-    const faqItems = [{ q: "¿Necesito instalar algún hardware?", a: "No. FitPlanner es 100% basado en la nube. Funciona en cualquier dispositivo con internet." }, /* ... */];
+    const faqItems = [{ q: "¿Necesito instalar algún hardware?", a: "No. Fit Planner es 100% basado en la nube. Funciona en cualquier dispositivo con internet." }, /* ... */];
     return (<Section id="faq" className="bg-black"><SectionTitle>Preguntas Frecuentes</SectionTitle><div className="max-w-3xl mx-auto space-y-4">{faqItems.map((item, index) => (<div key={index} className="bg-gray-900/40 rounded-2xl border border-white/10 backdrop-blur-xl overflow-hidden"><button onClick={() => setOpenIndex(openIndex === index ? null : index)} className="w-full flex justify-between items-center p-6 text-left font-bold text-lg text-white"><span>{item.q}</span><ChevronDown className={cn("w-6 h-6 transition-transform", openIndex === index && "rotate-180")} /></button><div className={cn("grid transition-all duration-300 ease-in-out", openIndex === index ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}><div className="overflow-hidden"><div className="px-6 pb-6 text-gray-300"><p>{item.a}</p></div></div></div></div>))}</div></Section>);
 };
 
