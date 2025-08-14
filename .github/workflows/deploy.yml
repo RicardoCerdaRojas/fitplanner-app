@@ -70,7 +70,7 @@ jobs:
 
           # Grant runtime secret access to the App Hosting service account
           gcloud projects add-iam-policy-binding fitness-flow-1k4yl \
-            --member="serviceAccount:firebase-app-hosting-compute@firebase-flow-1k4yl.iam.gserviceaccount.com" \
+            --member="serviceAccount:firebase-app-hosting-compute@fitness-flow-1k4yl.iam.gserviceaccount.com" \
             --role="roles/secretmanager.secretAccessor" \
             --condition=None
 
