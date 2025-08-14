@@ -65,7 +65,7 @@ jobs:
       # --- PASO ADICIONAL: Conceder rol de Secret Manager al servicio de App Hosting ---
       - name: Grant Secret Manager Role to App Hosting Service Account
         run: |
-          gcloud projects add-iam-policy-binding fitness-flow-1d4y1d \
+          gcloud projects add-iam-policy-binding fitness-flow-1k4yl \
             --member="serviceAccount:service-1003886861971@gcp-sa-firebaseapphosting.iam.gserviceaccount.com" \
             --role="roles/secretmanager.secretAccessor" \
             --condition=None
