@@ -147,19 +147,19 @@ const FinalCTA = () => (
 
 // --- COMPONENTE PRINCIPAL DE LA PÁGINA ---
 export default function LandingPage() {
-    const { user, loading } = useAuth();
+    const { user, userProfile, loading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        if (!loading && user) {
+        if (!loading && userProfile) {
             // Check user role and redirect accordingly
-            if (user.role === 'gym-admin' || user.role === 'coach') {
+            if (userProfile.role === 'gym-admin' || userProfile.role === 'coach') {
                 router.replace('/admin');
             } else {
                 router.replace('/home');
             }
         }
-    }, [user, loading, router]);
+    }, [userProfile, loading, router]);
 
     if (loading || user) {
         return <GuestHomepage />;
