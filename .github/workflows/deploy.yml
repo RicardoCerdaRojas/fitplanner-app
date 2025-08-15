@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
 
 jobs:
   build:
@@ -19,18 +19,22 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+
       - name: Install Dependencies
         run: npm ci
+
       - name: Run Lint
         run: npm run lint
+
       - name: Build Project
         run: npm run build
-      
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -43,8 +47,8 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     permissions:
-      contents: 'read'
-      id-token: 'write'
+      contents: read
+      id-token: write
 
     steps:
       - name: Download build artifact
@@ -53,22 +57,21 @@ jobs:
           name: build-artifact
           path: .
 
-      # 1) Autenticar contra GCP (estás bien usando service account JSON)
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_FITNESS_FLOW }}'
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FITNESS_FLOW }}
 
-      # 2) Instalar gcloud (necesario para los comandos gcloud)
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
 
-      # 3) Instalar Firebase CLI
       - name: Install Firebase CLI
         run: npm install -g firebase-tools@latest
 
-      # 4) (Opcional pero recomendado) asegurar que existan versiones ENABLED
-      #    Omite este bloque si ya creaste los secretos y tienen versión.
+      - name: Install jq (for debug)
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      # Crea secretos si faltan y garantiza al menos una versión ENABLED
       - name: Ensure GSM secrets have versions
         env:
           PROJECT_ID: fitness-flow-1k4yl
@@ -84,9 +87,7 @@ jobs:
 
           ensure_secret() {
             NAME="$1"; VALUE="$2"
-            # crea el secreto si no existe
             gcloud secrets describe "$NAME" >/dev/null 2>&1 || gcloud secrets create "$NAME" --replication-policy="automatic"
-            # agrega versión solo si no hay una ENABLED
             HAS_VERSION=$(gcloud secrets versions list "$NAME" --filter="state:ENABLED" --format="value(name)" | head -n1 || true)
             if [ -z "$HAS_VERSION" ]; then
               echo -n "$VALUE" | gcloud secrets versions add "$NAME" --data-file=-
@@ -103,24 +104,16 @@ jobs:
           ensure_secret FIREBASE_MESSAGING_SENDER_ID  "$FIREBASE_MESSAGING_SENDER_ID"
           ensure_secret FIREBASE_APP_ID               "$FIREBASE_APP_ID"
 
-      # 5) Grant explícito al backend 'studio' (esto es lo que te está faltando)
       - name: Debug - Show project & backends
         run: |
+          gcloud config set project fitness-flow-1k4yl
           gcloud config list
           echo "Project number:"
           gcloud projects describe fitness-flow-1k4yl --format='value(projectNumber)'
           echo "App Hosting backends:"
           firebase apphosting:backends:list --project fitness-flow-1k4yl || true
 
-      - name: Debug - Show project & backends
-          run: |
-            gcloud config set project fitness-flow-1k4yl
-            gcloud config list
-            echo "Project number:"
-            gcloud projects describe fitness-flow-1k4yl --format='value(projectNumber)'
-            echo "App Hosting backends:"
-            firebase apphosting:backends:list --project fitness-flow-1k4yl || true
-
+      # Da acceso a Cloud Build, App Hosting runtime y Default Compute SA
       - name: Grant secrets to build/runtime/compute SAs (via gcloud)
         env:
           PROJECT_ID: fitness-flow-1k4yl
@@ -152,12 +145,9 @@ jobs:
           for S in FIREBASE_API_KEY FIREBASE_AUTH_DOMAIN FIREBASE_PROJECT_ID FIREBASE_STORAGE_BUCKET FIREBASE_MESSAGING_SENDER_ID FIREBASE_APP_ID; do
             echo "== $S versions =="
             gcloud secrets versions list "$S" --format="table(name,state,createTime)"
-            echo "== $S IAM (looking for secretAccessor) =="
+            echo "== $S IAM (secretAccessor) =="
             gcloud secrets get-iam-policy "$S" --format="json" | jq '.bindings[] | select(.role=="roles/secretmanager.secretAccessor")'
           done
 
-      # 6) Deploy App Hosting
       - name: Deploy to Firebase App Hosting
-        env:
-          PROJECT_ID: fitness-flow-1k4yl
-        run: firebase deploy --only apphosting --project "$PROJECT_ID"
+        run: firebase deploy --only apphosting --project fitness-flow-1k4yl
