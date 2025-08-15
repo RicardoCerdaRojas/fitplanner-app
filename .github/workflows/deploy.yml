@@ -71,7 +71,7 @@ jobs:
       - name: Install jq (for debug)
         run: sudo apt-get update && sudo apt-get install -y jq
 
-      # Crea secretos si faltan y garantiza al menos una versión ENABLED
+      # 1) Secretos: crear si faltan y garantizar al menos una versión ENABLED
       - name: Ensure GSM secrets have versions
         env:
           PROJECT_ID: fitness-flow-1k4yl
@@ -113,8 +113,8 @@ jobs:
           echo "App Hosting backends:"
           firebase apphosting:backends:list --project fitness-flow-1k4yl || true
 
-      # Da acceso a Cloud Build, App Hosting runtime y Default Compute SA
-      - name: Grant secrets to build/runtime/compute SAs (via gcloud)
+      # 2) Conceder accesos a TODOS los SAs relevantes (proyecto + secreto)
+      - name: Grant secret access (project-level + per-secret)
         env:
           PROJECT_ID: fitness-flow-1k4yl
         run: |
@@ -125,19 +125,37 @@ jobs:
           CB_SA="${PN}@cloudbuild.gserviceaccount.com"
           RUNTIME_SA="firebase-app-hosting-compute@${PROJECT_ID}.iam.gserviceaccount.com"
           COMPUTE_SA="${PN}-compute@developer.gserviceaccount.com"
-          CBA_AGENT="service-${PN}@gcp-sa-cloudbuild.iam.gserviceaccount.com" # opcional
+          CBA_AGENT="service-${PN}@gcp-sa-cloudbuild.iam.gserviceaccount.com"
+          FAH_AGENT="service-${PN}@gcp-sa-firebaseapphosting.iam.gserviceaccount.com"
 
+          SVC_ACCOUNTS=("$CB_SA" "$RUNTIME_SA" "$COMPUTE_SA" "$CBA_AGENT" "$FAH_AGENT")
+
+          # a) Project-level bindings (heredados a todos los secretos)
+          for SA in "${SVC_ACCOUNTS[@]}"; do
+            gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+              --member="serviceAccount:${SA}" \
+              --role="roles/secretmanager.secretAccessor" >/dev/null || true
+
+            gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+              --member="serviceAccount:${SA}" \
+              --role="roles/secretmanager.viewer" >/dev/null || true
+          done
+
+          # b) Per-secret bindings (por si algún secreto tuviera política explícita)
           for S in FIREBASE_API_KEY FIREBASE_AUTH_DOMAIN FIREBASE_PROJECT_ID FIREBASE_STORAGE_BUCKET FIREBASE_MESSAGING_SENDER_ID FIREBASE_APP_ID; do
-            echo "Granting $S to: $CB_SA, $RUNTIME_SA, $COMPUTE_SA"
-            for SA in "$CB_SA" "$RUNTIME_SA" "$COMPUTE_SA" "$CBA_AGENT"; do
+            for SA in "${SVC_ACCOUNTS[@]}"; do
               gcloud secrets add-iam-policy-binding "$S" \
                 --member="serviceAccount:${SA}" \
                 --role="roles/secretmanager.secretAccessor" >/dev/null || true
+
+              gcloud secrets add-iam-policy-binding "$S" \
+                --member="serviceAccount:${SA}" \
+                --role="roles/secretmanager.viewer" >/dev/null || true
             done
           done
 
-          # pequeña espera por propagación de IAM
-          sleep 10
+          # Espera por propagación de IAM
+          sleep 30
 
       - name: Debug - Check IAM & versions on secrets
         run: |
@@ -145,8 +163,8 @@ jobs:
           for S in FIREBASE_API_KEY FIREBASE_AUTH_DOMAIN FIREBASE_PROJECT_ID FIREBASE_STORAGE_BUCKET FIREBASE_MESSAGING_SENDER_ID FIREBASE_APP_ID; do
             echo "== $S versions =="
             gcloud secrets versions list "$S" --format="table(name,state,createTime)"
-            echo "== $S IAM (secretAccessor) =="
-            gcloud secrets get-iam-policy "$S" --format="json" | jq '.bindings[] | select(.role=="roles/secretmanager.secretAccessor")'
+            echo "== $S IAM (secretAccessor/viewer) =="
+            gcloud secrets get-iam-policy "$S" --format="json" | jq '.bindings[] | select(.role=="roles/secretmanager.secretAccessor" or .role=="roles/secretmanager.viewer")'
           done
 
       - name: Deploy to Firebase App Hosting
