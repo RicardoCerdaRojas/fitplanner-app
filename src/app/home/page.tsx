@@ -1,17 +1,28 @@
 
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
 import { AppHeader } from "@/components/app-header";
-import { AthleteNav } from "@/components/athlete-nav"; // <-- PASO 1: Importar el menú de navegación
+import { AthleteNav } from "@/components/athlete-nav";
 import { AthleteRoutineList } from "@/components/athlete-routine-list";
-import { useAuth } from "@/contexts/auth-context";
 import { WeeklyProgress, RecentAchievement } from "@/components/athlete-dashboard-widgets";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function HomePage() {
-    const { user, loading } = useAuth();
+    const { user, userProfile, loading } = useAuth();
+    const router = useRouter();
 
-    if (loading) {
+    useEffect(() => {
+        if (!loading && userProfile) {
+            if (userProfile.role === 'gym-admin' || userProfile.role === 'coach') {
+                router.replace('/admin');
+            }
+        }
+    }, [userProfile, loading, router]);
+
+    if (loading || !userProfile || userProfile.role === 'gym-admin' || userProfile.role === 'coach') {
         return (
             <div className="container mx-auto p-4 max-w-md space-y-6">
                  <Skeleton className="h-8 w-48" />
@@ -20,10 +31,6 @@ export default function HomePage() {
                  <Skeleton className="h-40 w-full" />
             </div>
         );
-    }
-
-    if (!user) {
-        return <p>No se pudo cargar la información del usuario.</p>;
     }
     
     const completedDays = [1, 3];
@@ -38,7 +45,6 @@ export default function HomePage() {
             <AppHeader />
             <div className="container mx-auto p-4 max-w-md space-y-8 flex-grow">
                 
-                {/* -- PASO 2: Añadir el menú de navegación en su lugar -- */}
                 <div className="pt-4">
                     <AthleteNav />
                 </div>

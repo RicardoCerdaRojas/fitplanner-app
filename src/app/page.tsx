@@ -149,8 +149,21 @@ const FinalCTA = () => (
 export default function LandingPage() {
     const { user, loading } = useAuth();
     const router = useRouter();
-    useEffect(() => { if (!loading && user) { router.replace('/home'); } }, [user, loading, router]);
-    if (loading || user) { return <GuestHomepage />; }
+
+    useEffect(() => {
+        if (!loading && user) {
+            // Check user role and redirect accordingly
+            if (user.role === 'gym-admin' || user.role === 'coach') {
+                router.replace('/admin');
+            } else {
+                router.replace('/home');
+            }
+        }
+    }, [user, loading, router]);
+
+    if (loading || user) {
+        return <GuestHomepage />;
+    }
 
     return (
         <div className="bg-black text-white font-sans" style={{ fontFamily: "'Satoshi', 'Inter', sans-serif" }}>
