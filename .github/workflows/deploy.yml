@@ -103,7 +103,6 @@ jobs:
           ensure_secret FIREBASE_MESSAGING_SENDER_ID  "$FIREBASE_MESSAGING_SENDER_ID"
           ensure_secret FIREBASE_APP_ID               "$FIREBASE_APP_ID"
 
-
       # 5) Grant explícito al backend 'studio' (esto es lo que te está faltando)
       - name: Debug - Show project & backends
         run: |
@@ -113,24 +112,48 @@ jobs:
           echo "App Hosting backends:"
           firebase apphosting:backends:list --project fitness-flow-1k4yl || true
 
-      - name: Grant secrets to Cloud Build & App Hosting (via gcloud)
+      - name: Debug - Show project & backends
+          run: |
+            gcloud config set project fitness-flow-1k4yl
+            gcloud config list
+            echo "Project number:"
+            gcloud projects describe fitness-flow-1k4yl --format='value(projectNumber)'
+            echo "App Hosting backends:"
+            firebase apphosting:backends:list --project fitness-flow-1k4yl || true
+
+      - name: Grant secrets to build/runtime/compute SAs (via gcloud)
         env:
           PROJECT_ID: fitness-flow-1k4yl
         run: |
           set -e
+          gcloud config set project "$PROJECT_ID"
           PN=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
+
           CB_SA="${PN}@cloudbuild.gserviceaccount.com"
           RUNTIME_SA="firebase-app-hosting-compute@${PROJECT_ID}.iam.gserviceaccount.com"
+          COMPUTE_SA="${PN}-compute@developer.gserviceaccount.com"
+          CBA_AGENT="service-${PN}@gcp-sa-cloudbuild.iam.gserviceaccount.com" # opcional
 
           for S in FIREBASE_API_KEY FIREBASE_AUTH_DOMAIN FIREBASE_PROJECT_ID FIREBASE_STORAGE_BUCKET FIREBASE_MESSAGING_SENDER_ID FIREBASE_APP_ID; do
-            echo "Granting $S to $CB_SA and $RUNTIME_SA"
-            gcloud secrets add-iam-policy-binding "$S" \
-              --member="serviceAccount:${CB_SA}" \
-              --role="roles/secretmanager.secretAccessor"
+            echo "Granting $S to: $CB_SA, $RUNTIME_SA, $COMPUTE_SA"
+            for SA in "$CB_SA" "$RUNTIME_SA" "$COMPUTE_SA" "$CBA_AGENT"; do
+              gcloud secrets add-iam-policy-binding "$S" \
+                --member="serviceAccount:${SA}" \
+                --role="roles/secretmanager.secretAccessor" >/dev/null || true
+            done
+          done
 
-            gcloud secrets add-iam-policy-binding "$S" \
-              --member="serviceAccount:${RUNTIME_SA}" \
-              --role="roles/secretmanager.secretAccessor"
+          # pequeña espera por propagación de IAM
+          sleep 10
+
+      - name: Debug - Check IAM & versions on secrets
+        run: |
+          gcloud config set project fitness-flow-1k4yl
+          for S in FIREBASE_API_KEY FIREBASE_AUTH_DOMAIN FIREBASE_PROJECT_ID FIREBASE_STORAGE_BUCKET FIREBASE_MESSAGING_SENDER_ID FIREBASE_APP_ID; do
+            echo "== $S versions =="
+            gcloud secrets versions list "$S" --format="table(name,state,createTime)"
+            echo "== $S IAM (looking for secretAccessor) =="
+            gcloud secrets get-iam-policy "$S" --format="json" | jq '.bindings[] | select(.role=="roles/secretmanager.secretAccessor")'
           done
 
       # 6) Deploy App Hosting
